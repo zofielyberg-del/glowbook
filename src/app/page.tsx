@@ -1,4 +1,5 @@
 
+// Force rebuild - wipe.ts removal confirmed
 'use client';
 
 import Header from "@/components/layout/Header";
