@@ -53,7 +53,7 @@ model Salon {
   owner               Profile?           @relation("SalonOwner", fields: [owner_id], references: [id])
   services            Service[]
 
-  @@index([owner_id], map: "salons_owner_id_fkey")
+  @@index([owner_id], map: "salons_owner_id_idx")
   @@map("salons")
 }
 
@@ -71,7 +71,7 @@ model Practitioner {
   appointments Appointment[]
   salon        Salon?        @relation(fields: [salon_id], references: [id], onDelete: Cascade)
 
-  @@index([salon_id], map: "practitioners_salon_id_fkey")
+  @@index([salon_id], map: "practitioners_salon_id_idx")
   @@map("practitioners")
 }
 
@@ -89,7 +89,7 @@ model Service {
   appointments     Appointment[]
   salon            Salon?        @relation(fields: [salon_id], references: [id], onDelete: Cascade)
 
-  @@index([salon_id], map: "services_salon_id_fkey")
+  @@index([salon_id], map: "services_salon_id_idx")
   @@map("services")
 }
 
@@ -117,10 +117,10 @@ model Appointment {
   salon           Salon?        @relation(fields: [salon_id], references: [id], onDelete: Cascade)
   service         Service?      @relation(fields: [service_id], references: [id])
 
-  @@index([customer_id], map: "appointments_customer_id_fkey")
-  @@index([practitioner_id], map: "appointments_practitioner_id_fkey")
-  @@index([salon_id], map: "appointments_salon_id_fkey")
-  @@index([service_id], map: "appointments_service_id_fkey")
+  @@index([customer_id], map: "appointments_customer_id_idx")
+  @@index([practitioner_id], map: "appointments_practitioner_id_idx")
+  @@index([salon_id], map: "appointments_salon_id_idx")
+  @@index([service_id], map: "appointments_service_id_idx")
   @@map("appointments")
 }
 
@@ -153,7 +153,7 @@ model LoyaltyBalance {
   salon          Salon?    @relation(fields: [salon_id], references: [id], onDelete: Cascade)
 
   @@unique([profile_id, salon_id])
-  @@index([salon_id], map: "loyalty_balances_salon_id_fkey")
+  @@index([salon_id], map: "loyalty_balances_salon_id_idx")
   @@map("loyalty_balances")
 }
 
@@ -168,7 +168,7 @@ model PointTransaction {
   profile     Profile?  @relation(fields: [profile_id], references: [id], onDelete: Cascade)
   salon       Salon?    @relation(fields: [salon_id], references: [id], onDelete: Cascade)
 
-  @@index([profile_id], map: "point_transactions_profile_id_fkey")
-  @@index([salon_id], map: "point_transactions_salon_id_fkey")
+  @@index([profile_id], map: "point_transactions_profile_id_idx")
+  @@index([salon_id], map: "point_transactions_salon_id_idx")
   @@map("point_transactions")
 }
