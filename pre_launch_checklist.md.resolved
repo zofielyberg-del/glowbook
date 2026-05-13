@@ -1,0 +1,40 @@
+
+# 🚀 Final Countdown: Glowbook Pre-Launch Checklist
+
+Vi har nu byggt grunden, automatiserat poängen och kopplat på den äkta databasen. Här är din "checklista" på vad som behöver göras innan du bjuder in de första riktiga kunderna och salongerna.
+
+## 1. 📧 E-post & Kommunikation (Högsta prioritet)
+Just nu visas bekräftelser bara på skärmen. För att det ska kännas proffsigt behövs mail:
+- [ ] **Resend/SendGrid**: Skapa ett konto och lägg in din API-nyckel i [.env](file:///e:/GLOWBOOK/.env).
+- [ ] **Verifiera domän**: Se till att mailen skickas från `@glowbook.se` och inte en test-adress.
+- [ ] **Mallar**: Aktivera de mallar vi förberett i koden så att kunder får snygga PDF-presentkort och bokningsbekräftelser.
+
+## 2. 💳 Betalningar i "Live Mode"
+- [ ] **Stripe Production**: Byt ut dina `pk_test_...` och `sk_test_...` nycklar mot skarpa nycklar från Stripe.
+- [ ] **Klarna Integration**: Om du ska använda Klarna skarpt behöver du deras produktionskonton och verifiera din webbplats hos dem.
+- [ ] **Connect Express**: Aktivera Stripe Connect-onboarding så att salongerna kan koppla sina bankkonton för utbetalningar.
+
+## 3. ⚖️ Juridik & Trygghet (Viktigt för GDPR)
+- [ ] **Användarvillkor (ToS)**: Skapa en sida med villkor för bokning och avbokningsregler.
+- [ ] **Integritetspolicy**: Beskriv hur ni hanterar kunddata enligt GDPR.
+- [ ] **Cookie Consent**: Lägg till en enkel banner som informerar om kakor (behövs för login-sessions).
+
+## 4. 🧹 Datastädning
+- [ ] **Wipe Test Data**: Innan lansering bör vi rensa `appointments` och `loyalty_balances` tabellerna på alla test-bokningar vi gjort.
+- [ ] **Seed Professionals**: Se till att de första salongerna (som din) har korrekta tjänster och bilder upplagda.
+
+## 5. 📱 Sista "Polishen" (UI/UX)
+- [ ] **Mobil-check**: Gå igenom bokningsflödet på en riktig iPhone och Android. Vi har optimerat mycket, men en sista koll skadar aldrig.
+- [ ] **Bilder**: Byt ut eventuella placeholders mot högupplösta, snygga bilder i gallerierna.
+- [ ] **Favicon**: Se till att Glowbook-loggan syns i webbläsarens flik.
+
+## 🌍 Domän & Hosting
+- [ ] **DNS**: Peaka `glowbook.se` mot din server (Vercel eller Docker-host).
+- [ ] **SSL**: Se till att HTTPS är aktivt (sker oftast automatiskt på Vercel).
+
+---
+
+> [!TIP]
+> **Mitt tips**: Börja med punkt 1 och 2. När mail och betalningar fungerar skarpt är 90% av det tekniska avklarat. Resten är mest innehåll och juridik!
+
+Vila ordentligt nu så tar vi nästa steg när du är pigg! 😴✨

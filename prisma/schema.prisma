@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Profile {
+  id                  String             @id @default(uuid())
+  email               String             @unique
+  role                String?            @default("customer")
+  first_name          String?
+  last_name           String?
+  phone               String?
+  avatar_url          String?
+  total_points_earned Int?               @default(0)
+  created_at          DateTime?          @default(now())
+  password_hash       String?
+  appointments        Appointment[]
+  loyalty_balances    LoyaltyBalance[]
+  point_transactions  PointTransaction[]
+  salons              Salon[]            @relation("SalonOwner")
+
+  @@map("profiles")
+}
+
+model Salon {
+  id                  String             @id @default(uuid())
+  slug                String             @unique
+  name                String
+  description         String?            @db.Text
+  address             String?
+  city                String?
+  municipality        String?
+  country             String?
+  logo_url            String?            @db.LongText
+  banner_url          String?            @db.LongText
+  gallery_images      Json?
+  category            Json?
+  rating              Decimal?           @default(0.000000000000000000000000000000)
+  review_count        Int?               @default(0)
+  membership_tier     String?            @default("BAS")
+  subscription_status String?            @default("trialing")
+  stripe_customer_id  String?
+  owner_id            String?
+  availability        Json?
+  created_at          DateTime?          @default(now())
+  appointments        Appointment[]
+  loyalty_balances    LoyaltyBalance[]
+  point_transactions  PointTransaction[]
+  practitioners       Practitioner[]
+  owner               Profile?           @relation("SalonOwner", fields: [owner_id], references: [id])
+  services            Service[]
+
+  @@index([owner_id], map: "salons_owner_id_fkey")
+  @@map("salons")
+}
+
+model Practitioner {
+  id           String        @id @default(uuid())
+  salon_id     String?
+  name         String
+  title        String?
+  role         String?
+  image_url    String?       @db.LongText
+  schedule     Json?
+  status       String?       @default("active")
+  categories   Json?
+  created_at   DateTime?     @default(now())
+  appointments Appointment[]
+  salon        Salon?        @relation(fields: [salon_id], references: [id], onDelete: Cascade)
+
+  @@index([salon_id], map: "practitioners_salon_id_fkey")
+  @@map("practitioners")
+}
+
+model Service {
+  id               String        @id @default(uuid())
+  salon_id         String?
+  name             String
+  description      String?       @db.Text
+  price            Decimal
+  sale_price       Decimal?
+  sale_ends_at     DateTime?
+  duration_minutes Int
+  category         String?
+  created_at       DateTime?     @default(now())
+  appointments     Appointment[]
+  salon            Salon?        @relation(fields: [salon_id], references: [id], onDelete: Cascade)
+
+  @@index([salon_id], map: "services_salon_id_fkey")
+  @@map("services")
+}
+
+model Appointment {
+  id              String        @id @default(uuid())
+  salon_id        String?
+  service_id      String?
+  service_name    String?
+  practitioner_id String?
+  customer_id     String?
+  customer_name   String?
+  customer_email  String?
+  customer_phone  String?
+  start_time      DateTime
+  end_time        DateTime?
+  booking_date    DateTime?     @db.Date
+  status          String?       @default("pending")
+  payment_method  String?
+  payment_id      String?
+  total_price     Decimal?
+  currency        String?       @default("SEK")
+  created_at      DateTime?     @default(now())
+  customer        Profile?      @relation(fields: [customer_id], references: [id])
+  practitioner    Practitioner? @relation(fields: [practitioner_id], references: [id])
+  salon           Salon?        @relation(fields: [salon_id], references: [id], onDelete: Cascade)
+  service         Service?      @relation(fields: [service_id], references: [id])
+
+  @@index([customer_id], map: "appointments_customer_id_fkey")
+  @@index([practitioner_id], map: "appointments_practitioner_id_fkey")
+  @@index([salon_id], map: "appointments_salon_id_fkey")
+  @@index([service_id], map: "appointments_service_id_fkey")
+  @@map("appointments")
+}
+
+model GiftCard {
+  id                String    @id @default(uuid())
+  code              String    @unique
+  value             Decimal
+  currency          String?   @default("SEK")
+  remaining_balance Decimal
+  recipient_name    String?
+  recipient_email   String?
+  sender_name       String?
+  message           String?   @db.Text
+  expires_at        DateTime?
+  status            String?   @default("active")
+  created_at        DateTime? @default(now())
+
+  @@map("gift_cards")
+}
+
+model LoyaltyBalance {
+  id             String    @id @default(uuid())
+  profile_id     String?
+  salon_id       String?
+  current_points Int?      @default(0)
+  total_earned   Int?      @default(0)
+  created_at     DateTime? @default(now())
+  updated_at     DateTime? @default(now())
+  profile        Profile?  @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  salon          Salon?    @relation(fields: [salon_id], references: [id], onDelete: Cascade)
+
+  @@unique([profile_id, salon_id])
+  @@index([salon_id], map: "loyalty_balances_salon_id_fkey")
+  @@map("loyalty_balances")
+}
+
+model PointTransaction {
+  id          String    @id @default(uuid())
+  profile_id  String?
+  salon_id    String?
+  type        String
+  amount      Int
+  description String?   @db.Text
+  created_at  DateTime? @default(now())
+  profile     Profile?  @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  salon       Salon?    @relation(fields: [salon_id], references: [id], onDelete: Cascade)
+
+  @@index([profile_id], map: "point_transactions_profile_id_fkey")
+  @@index([salon_id], map: "point_transactions_salon_id_fkey")
+  @@map("point_transactions")
+}

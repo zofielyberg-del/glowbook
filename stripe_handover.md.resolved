@@ -1,0 +1,48 @@
+# 💳 Stripe Integration: Complete Platform Handover
+
+Denna guide är till för pappa för att koppla ihop Glowbooks betalningar. Systemet hanterar både kundbetalningar, presentkort (Bullseye) och salongernas abonnemang.
+
+## 🛠 1. Stripe Dashboard Setup
+- [x] **Konto**: Skapa konto på [dashboard.stripe.com](https://dashboard.stripe.com).
+- [ ] **Mode**: Börja i `Test Mode` för att verifiera Bullseye-integrationen.
+- [ ] **Stripe Connect**: Aktivera **Stripe Connect Express**. Detta gör att salongerna enkelt kan onboardas och få sina utbetalningar automatiskt.
+
+## 🔄 2. Transaction Types & Logic (Webhooks)
+Följande händelser (`events`) ska trigga logik i backend:
+
+### ✅ A. Service-bokningar (Klippning, Naglar etc.)
+- **Trigger**: `checkout.session.completed` (metadata: `{ type: 'booking' }`).
+- **Logik**: Markera bokning som betald.
+- **Utbetalning**: Konfigurera Stripe Connect att schemalägga utbetalning till salongen den **25:e varje månad**.
+
+### 🎯 B. Bullseye (Presentkort)
+- **Trigger**: `checkout.session.completed` (metadata: `{ type: 'giftcard' }`).
+- **Logik**: Aktivera `BULLSEYE`-processorn (i [giftcards/page.tsx](file:///e:/GLOWBOOK/src/app/giftcards/page.tsx)) för att skapa koden och maila digitalt kort direkt.
+
+### 💎 C. Salongs-abonnemang (BAS, PRO, LUXE)
+- **Modell**: 30 dagars gratis provperiod för ALLA tiers.
+- **Access Control (Instantly)**:
+    - [ ] **AUTOMATIC DEACTIVATION**: Om prenumerationen avbryts eller om en betalning misslyckas efter trial-perioden (`customer.subscription.deleted` eller `invoice.payment_failed`), stäng av HELA tillgången till systemet (kalender, profil, dashboard).
+    - [ ] **INSTANT REACTIVATION**: Så fort en lyckad betalning registreras (`invoice.paid`), aktivera systemet och profilen på Upptäck-sidan omedelbart.
+
+## 📦 3. Miljövariabler (.env)
+Se till att följande finns i produktion:
+```env
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+```
+
+## 🏧 4. Automatiska Utbetalningar (The Payout Engine)
+- [ ] Ställ in standard utbetalningsschema till **den 25:e i varje månad** för alla anslutna konton (Connect Express).
+- [ ] Se till att Glowbooks provision (Application Fee) dras automatiskt vid varje transaktion.
+
+## 🧪 5. Testning för Pappa
+1.  **Trial-test**: Registrera en salong, välj LUXE, bekräfta att ingen dragning sker förrän dag 31.
+2.  **Access Lock Test**: Simulera misslyckad betalning i Stripe Dashboard och kolla att salongens dashboard blir låst.
+3.  **Instant Unlock Test**: Simulera lyckad betalning och kolla att låset försvinner direkt.
+
+---
+
+> [!IMPORTANT]
+> **Affärsregler**: BAS är INTE gratis permanent. Endast första månaden är fri (Trial). Om de inte betalar stängs systemet ner TVÄRT, men hoppar igång direkt vid betalning.

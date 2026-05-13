@@ -1,0 +1,178 @@
+
+import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { stripe } from '@/lib/stripe';
+import { resend } from '@/lib/resend';
+import { prisma } from '@/lib/prisma';
+
+// Bullseye: Core Gift Card Generation Logic
+function generateCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const seg1 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const seg2 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return `GLOW-${seg1}-${seg2}`;
+}
+
+export async function POST(req: Request) {
+    const body = await req.text();
+    const signature = (await headers()).get('stripe-signature') as string;
+
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(
+            body,
+            signature,
+            process.env.STRIPE_WEBHOOK_SECRET || ''
+        );
+    } catch (err: any) {
+        console.error(`Webhook signature verification failed: ${err.message}`);
+        return NextResponse.json({ error: 'Webhook Error' }, { status: 400 });
+    }
+
+    const session = event.data.object as any;
+
+    // Handle Checkout Completed
+    if (event.type === 'checkout.session.completed') {
+        const type = session.metadata?.type;
+
+        // 🎯 BULLSEYE: Handle Gift Card Payment Success
+        if (type === 'giftcard') {
+            const { recipientEmail, recipientName, senderName, message, amount } = session.metadata;
+            const code = generateCode();
+            const expiresAt = new Date();
+            expiresAt.setFullYear(expiresAt.getFullYear() + 2);
+
+            // 1. Save to Database (Admin bypass)
+            try {
+                await prisma.giftCard.create({
+                    data: {
+                        code,
+                        value: parseFloat(amount),
+                        remaining_balance: parseFloat(amount),
+                        recipient_name: recipientName,
+                        recipient_email: recipientEmail,
+                        sender_name: senderName,
+                        message: message,
+                        expires_at: expiresAt,
+                        status: 'active'
+                    }
+                });
+            } catch (dbError) {
+                console.error('DB Error saving gift card:', dbError);
+            }
+
+            // 2. Send Email via Resend
+            try {
+                await resend.emails.send({
+                    from: 'Glowbook <noreply@glowbook.se>',
+                    to: recipientEmail,
+                    subject: `Ett presentkort från ${senderName}! ✨`,
+                    html: `
+                        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 20px;">
+                            <h2 style="color: #c5a059;">Glowbook</h2>
+                            <p>Hej ${recipientName},</p>
+                            <p>${senderName} har skickat ett digitalt presentkort till dig!</p>
+                            <div style="background: #000; color: #fff; padding: 40px; text-align: center; border-radius: 20px; margin: 20px 0;">
+                                <h1 style="font-size: 48px; margin: 0;">${amount} SEK</h1>
+                                <p style="color: #c5a059; font-family: monospace; font-size: 24px; letter-spacing: 2px;">${code}</p>
+                            </div>
+                            <p><em>"${message || ''}"</em></p>
+                            <p style="font-size: 12px; color: #999;">Giltigt till ${expiresAt.toLocaleDateString('sv-SE')} hos alla Glowbook-anslutna salonger.</p>
+                            <hr />
+                            <a href="${process.env.NEXT_PUBLIC_APP_URL}/giftcards" style="display: inline-block; padding: 10px 20px; background: #c5a059; color: #fff; text-decoration: none; border-radius: 10px;">Lös in här</a>
+                        </div>
+                    `
+                });
+            } catch (mailError) {
+                console.error('Mail Error:', mailError);
+            }
+        }
+
+        // 📅 Handle Appointment Booking Payment Success
+        if (type === 'booking') {
+            const appointmentId = session.metadata?.appointmentId;
+            const salonId = session.metadata?.salonId;
+            const customerEmail = session.customer_details?.email;
+            const amount = session.amount_total / 100; // in SEK
+            const points = Math.floor(amount / 10) * 5;
+
+            // 1. Update Appointment Status
+            await prisma.appointment.update({
+                where: { id: appointmentId },
+                data: { status: 'paid', payment_id: session.id }
+            });
+
+            // 2. Add Loyalty Points
+            if (customerEmail && salonId) {
+                // Find profile by email
+                const profile = await prisma.profile.findUnique({
+                    where: { email: customerEmail },
+                    select: { id: true }
+                });
+
+                if (profile) {
+                    // Update Global Points
+                    await prisma.profile.update({
+                        where: { id: profile.id },
+                        data: { total_points_earned: { increment: points } }
+                    });
+
+                    // Update Salon Specific Points
+                    await prisma.loyaltyBalance.upsert({
+                        where: { profile_id_salon_id: { profile_id: profile.id, salon_id: salonId } },
+                        update: {
+                            current_points: { increment: points },
+                            total_earned: { increment: points }
+                        },
+                        create: {
+                            profile_id: profile.id,
+                            salon_id: salonId,
+                            current_points: points,
+                            total_earned: points
+                        }
+                    });
+
+                    // Record Transaction
+                    await prisma.pointTransaction.create({
+                        data: {
+                            profile_id: profile.id,
+                            salon_id: salonId,
+                            type: 'earned',
+                            amount: points,
+                            description: 'Bokning via Glowbook'
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    // 💎 Handle Subscription Success / Reactivation
+    if (event.type === 'invoice.paid') {
+        const customerId = session.customer;
+        // Need to use findMany then update since stripe_customer_id isn't guaranteed unique in Prisma schema right now
+        const salons = await prisma.salon.findMany({ where: { stripe_customer_id: customerId } });
+        for (const salon of salons) {
+            await prisma.salon.update({
+                where: { id: salon.id },
+                data: { subscription_status: 'active' }
+            });
+        }
+    }
+
+    // 🔴 Handle Subscription Failure / Deactivation
+    if (event.type === 'invoice.payment_failed' || event.type === 'customer.subscription.deleted') {
+        const customerId = session.customer;
+        // This is the "Automatic Deactivation" logic
+        const salons = await prisma.salon.findMany({ where: { stripe_customer_id: customerId } });
+        for (const salon of salons) {
+            await prisma.salon.update({
+                where: { id: salon.id },
+                data: { subscription_status: 'past_due' }
+            });
+        }
+    }
+
+    return NextResponse.json({ received: true });
+}
