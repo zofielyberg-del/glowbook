@@ -1,0 +1,4 @@
+prisma/wipe.ts
+prisma/tmp_*
+tmp_*
+.agents/
