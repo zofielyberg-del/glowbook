@@ -3,7 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Profile {
@@ -34,8 +35,8 @@ model Salon {
   city                String?
   municipality        String?
   country             String?
-  logo_url            String?            @db.LongText
-  banner_url          String?            @db.LongText
+  logo_url            String?            @db.Text
+  banner_url          String?            @db.Text
   gallery_images      Json?
   category            Json?
   rating              Decimal?           @default(0.000000000000000000000000000000)
@@ -63,7 +64,7 @@ model Practitioner {
   name         String
   title        String?
   role         String?
-  image_url    String?       @db.LongText
+  image_url    String?       @db.Text
   schedule     Json?
   status       String?       @default("active")
   categories   Json?
