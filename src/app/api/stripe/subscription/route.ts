@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
         const session = await stripe.checkout.sessions.create({
             mode: 'subscription',
-            automatic_payment_methods: { enabled: true },
+            payment_method_types: ['card'],
             customer_email: salonEmail,
             line_items: [
                 {
