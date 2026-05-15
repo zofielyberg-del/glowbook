@@ -41,7 +41,8 @@ export async function GET(req: Request) {
         if (category && category !== 'Alla' && category !== 'Nya') {
             (where.AND as any[]).push({
                 OR: [
-                    { category: { path: [], string_contains: category } }, // For JSON field if Prisma supports it, or simple path
+                    { category: { path: [], string_contains: category } },
+                    { categories: { path: [], string_contains: category } },
                     { services: { some: { category: { equals: category } } } }
                 ]
             });

@@ -89,10 +89,11 @@ export default function AdminDashboard() {
     const [messages, setMessages] = useState<SupportMessage[]>([]);
     const { user, role, isLoggedIn, isLoading: authLoading } = useAuth();
     const [loginEmail, setLoginEmail] = useState('');
-    const [activeTab, setActiveTab] = useState<'overview' | 'messages' | 'providers' | 'payments' | 'verification'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'messages' | 'providers' | 'payments' | 'verification' | 'users'>('overview');
     const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
     const [viewingDiploma, setViewingDiploma] = useState<string | null>(null);
     const [providers, setProviders] = useState<Provider[]>([]);
+    const [allUsers, setAllUsers] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
 
     const [replyingTo, setReplyingTo] = useState<SupportMessage | null>(null);
@@ -124,8 +125,45 @@ export default function AdminDashboard() {
     const [impersonateTarget, setImpersonateTarget] = useState<Provider | null>(null);
 
     useEffect(() => {
-        const loadData = () => {
-            // Load verification requests
+        const loadData = async () => {
+            try {
+                const response = await fetch('/api/admin/data');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Map DB Salons to Provider type
+                    const mappedProviders: Provider[] = data.salons.map((s: any) => ({
+                        id: s.id,
+                        name: `${s.owner?.first_name || ''} ${s.owner?.last_name || ''}`.trim() || s.name || 'Ägare',
+                        salon: s.name || 'Min Salong',
+                        email: s.owner?.email || s.email || '',
+                        status: s.subscription_status === 'active' ? 'active' : 'active', // For now default to active
+                        tier: (s.membership_tier || 'bas').toLowerCase(),
+                        joined: s.created_at || new Date().toISOString().split('T')[0],
+                        categories: Array.from(new Set([
+                            ...(Array.isArray(s.category) ? s.category : (s.category ? [s.category] : [])),
+                            ...(Array.isArray(s.categories) ? s.categories : (s.categories ? [s.categories] : [])),
+                        ])).map(c => mapCategoryToProfessional(c)).filter(Boolean),
+                        address: s.address || '',
+                        municipality: s.municipality || '',
+                        country: s.country || 'Sverige',
+                        description: s.description || '',
+                        practitioners: s.practitioners || [],
+                        verificationStatus: s.verificationStatus || 'none',
+                    }));
+
+                    setProviders(mappedProviders);
+                    
+                    // Add users to state if we add it below
+                    if (data.users) {
+                        setAllUsers(data.users);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load admin data:', error);
+            }
+
+            // Still load some things from localStorage if needed (e.g. messages for now)
             const verReqs = localStorage.getItem('glowbook_verification_requests');
             if (verReqs) {
                 try { setVerificationRequests(JSON.parse(verReqs)); } catch { }
@@ -135,59 +173,9 @@ export default function AdminDashboard() {
             if (storedMessages) {
                 setMessages(JSON.parse(storedMessages));
             }
-
-            // ONLY load providers from the real active salon
-            // No mock/demo data is ever included
-            const allProviders: Provider[] = [];
-
-            const activeSalonRaw = localStorage.getItem('glowbook_salon');
-            if (activeSalonRaw) {
-                const s = JSON.parse(activeSalonRaw);
-
-                const isLuxeByEssi = (s.businessName?.trim().toLowerCase() === 'luxe by essi' || s.name?.trim().toLowerCase() === 'luxe by essi');
-
-                const mapped: Provider = {
-                    id: s.id || 'real-' + Date.now(),
-                    name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.businessName || s.name || 'Ägare',
-                    salon: s.businessName || s.name || 'Min Salong',
-                    email: s.email || '',
-                    status: 'active',
-                    tier: isLuxeByEssi ? 'bas' : (s.tier || 'pro'),
-                    joined: s.joined || new Date().toISOString().split('T')[0],
-                    categories: Array.from(new Set([
-                        ...(Array.isArray(s.category) ? s.category : (s.category ? [s.category] : [])),
-                        ...(Array.isArray(s.categories) ? s.categories : (s.categories ? [s.categories] : [])),
-                        ...(s.practitioners?.flatMap((p: any) => p.categories || []) || [])
-                    ])).map(c => mapCategoryToProfessional(c)).filter(Boolean),
-                    address: s.address || '',
-                    municipality: s.municipality || '',
-                    country: s.country || 'Sverige',
-                    description: s.description || '',
-                    duration: s.duration || 1,
-                    practitioners: s.practitioners || [],
-                    cancellationRequested: s.cancellationRequested || false,
-                    cancellationDate: s.cancellationDate || null,
-                    cancellationReason: s.cancellationReason || '',
-                    profileImage: s.profileImage || null,
-                    verificationStatus: s.verificationStatus || 'none',
-                };
-
-                allProviders.push(mapped);
-
-                // Overwrite providers list in localStorage — clean out all old mock data
-                localStorage.setItem('glowbook_providers', JSON.stringify(allProviders));
-            }
-
-            setProviders(allProviders);
         };
 
         loadData();
-        window.addEventListener('glowbook_update', loadData);
-        window.addEventListener('storage', loadData);
-        return () => {
-            window.removeEventListener('glowbook_update', loadData);
-            window.removeEventListener('storage', loadData);
-        };
     }, []);
 
     const handleLogin = (e: React.FormEvent) => {
@@ -514,7 +502,13 @@ export default function AdminDashboard() {
                             </span>
                         )}
                     </button>
-                    <button className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-white/50 hover:text-white transition-all font-medium cursor-not-allowed opacity-50">
+                    <button
+                        onClick={() => setActiveTab('users')}
+                        className={clsx(
+                            "w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all font-medium",
+                            activeTab === 'users' ? "bg-white/10 text-champagne-400 shadow-lg" : "text-white/50 hover:text-white"
+                        )}
+                    >
                         <Users size={20} /> Användare
                     </button>
                 </nav>
@@ -549,13 +543,16 @@ export default function AdminDashboard() {
                             {activeTab === 'providers' && 'Hantera Utförare'}
                             {activeTab === 'payments' && 'Ekonomi & Intäkter'}
                             {activeTab === 'verification' && 'Verifieringar'}
+                            {activeTab === 'users' && 'Registrerade Användare'}
                         </h1>
                         <p className="text-gray-500 font-light">
                             {activeTab === 'providers'
                                 ? `Totalt ${providers.length} registrerade företag i systemet.`
                                 : activeTab === 'verification'
                                     ? `${verificationRequests.filter(v => v.status === 'pending').length} ansökningar väntar på granskning.`
-                                    : 'Välkommen tillbaka, Zofie. Här är vad som hänt sedan sist.'
+                                    : activeTab === 'users'
+                                        ? `Totalt ${allUsers.length} användare registrerade på plattformen.`
+                                        : 'Välkommen tillbaka, Zofie. Här är vad som hänt sedan sist.'
                             }
                         </p>
                     </div>
@@ -1039,6 +1036,83 @@ export default function AdminDashboard() {
                                         ))}
                                     </div>
                                 )}
+                            </div>
+                        </motion.div>
+                    ) : activeTab === 'users' ? (
+                        <motion.div
+                            key="users"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="space-y-6"
+                        >
+                            <div className="bg-card rounded-[40px] border border-border shadow-xl overflow-hidden">
+                                <div className="p-8 border-b border-border bg-foreground/5 flex items-center justify-between">
+                                    <h3 className="text-xl font-bold text-foreground">Alla Användare</h3>
+                                    <div className="px-4 py-2 bg-background rounded-xl border border-border text-xs font-bold text-foreground/40">
+                                        Totalt {allUsers.length} profiler
+                                    </div>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="bg-foreground/[0.02] text-[10px] font-black uppercase tracking-widest text-foreground/40 border-b border-border">
+                                                <th className="px-8 py-6">Namn</th>
+                                                <th className="px-8 py-6">E-post</th>
+                                                <th className="px-8 py-6">Roll</th>
+                                                <th className="px-8 py-6">Registrerad</th>
+                                                <th className="px-8 py-6 text-right">Åtgärder</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border">
+                                            {allUsers.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="px-8 py-20 text-center">
+                                                        <div className="w-16 h-16 bg-foreground/5 rounded-full flex items-center justify-center mx-auto mb-4 text-foreground/20">
+                                                            <Users size={32} />
+                                                        </div>
+                                                        <p className="text-foreground/40 font-medium">Inga användare hittades i databasen.</p>
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                allUsers.map((u) => (
+                                                    <tr key={u.id} className="hover:bg-foreground/[0.01] transition-colors">
+                                                        <td className="px-8 py-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 bg-champagne-100 rounded-xl flex items-center justify-center text-champagne-600 font-bold">
+                                                                    {(u.first_name || u.email || '?')[0].toUpperCase()}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-foreground">{u.first_name} {u.last_name}</p>
+                                                                    <p className="text-[10px] text-foreground/30 uppercase font-bold tracking-widest">User ID: {u.id.slice(0, 8)}...</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-8 py-6 text-sm text-foreground/60">{u.email}</td>
+                                                        <td className="px-8 py-6">
+                                                            <span className={clsx(
+                                                                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                                                                u.role === 'admin' ? "bg-red-100 text-red-600" :
+                                                                u.role === 'provider' ? "bg-blue-100 text-blue-600" :
+                                                                "bg-emerald-100 text-emerald-600"
+                                                            )}>
+                                                                {u.role || 'customer'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-8 py-6 text-xs text-foreground/40">
+                                                            {new Date(u.created_at).toLocaleDateString('sv-SE')}
+                                                        </td>
+                                                        <td className="px-8 py-6 text-right">
+                                                            <button className="p-2 hover:bg-foreground/5 rounded-lg text-foreground/30 hover:text-foreground transition-all">
+                                                                <Edit3 size={16} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </motion.div>
                     ) : (

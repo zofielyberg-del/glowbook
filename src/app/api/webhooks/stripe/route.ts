@@ -148,11 +148,40 @@ export async function POST(req: Request) {
         }
     }
 
-    // 💎 Handle Subscription Success / Reactivation
+    // 💎 Handle Subscription Success / Initial Activation
+    if (event.type === 'checkout.session.completed' && session.mode === 'subscription') {
+        const salonId = session.metadata?.salonId;
+        const tier = session.metadata?.tier;
+        const customerId = session.customer;
+        const subscriptionId = session.subscription;
+
+        if (salonId) {
+            await prisma.salon.update({
+                where: { id: salonId },
+                data: { 
+                    subscription_status: 'active',
+                    membership_tier: tier ? tier.toLowerCase() : undefined,
+                    stripe_customer_id: customerId as string,
+                    stripe_subscription_id: subscriptionId as string
+                }
+            });
+        }
+    }
+
     if (event.type === 'invoice.paid') {
         const customerId = session.customer;
-        // Need to use findMany then update since stripe_customer_id isn't guaranteed unique in Prisma schema right now
-        const salons = await prisma.salon.findMany({ where: { stripe_customer_id: customerId } });
+        const subscriptionId = session.subscription;
+        
+        // Find salon by customer ID or subscription ID
+        const salons = await prisma.salon.findMany({ 
+            where: { 
+                OR: [
+                    { stripe_customer_id: customerId as string },
+                    { stripe_subscription_id: subscriptionId as string }
+                ]
+            } 
+        });
+
         for (const salon of salons) {
             await prisma.salon.update({
                 where: { id: salon.id },
@@ -162,14 +191,39 @@ export async function POST(req: Request) {
     }
 
     // 🔴 Handle Subscription Failure / Deactivation
-    if (event.type === 'invoice.payment_failed' || event.type === 'customer.subscription.deleted') {
+    if (event.type === 'invoice.payment_failed') {
         const customerId = session.customer;
-        // This is the "Automatic Deactivation" logic
-        const salons = await prisma.salon.findMany({ where: { stripe_customer_id: customerId } });
+        const salons = await prisma.salon.findMany({ where: { stripe_customer_id: customerId as string } });
         for (const salon of salons) {
             await prisma.salon.update({
                 where: { id: salon.id },
                 data: { subscription_status: 'past_due' }
+            });
+        }
+    }
+
+    if (event.type === 'customer.subscription.deleted') {
+        const subscriptionId = session.id;
+        const salons = await prisma.salon.findMany({ where: { stripe_subscription_id: subscriptionId as string } });
+        for (const salon of salons) {
+            await prisma.salon.update({
+                where: { id: salon.id },
+                data: { subscription_status: 'canceled', membership_tier: 'bas' }
+            });
+        }
+    }
+
+    if (event.type === 'customer.subscription.updated') {
+        const subscription = event.data.object as any;
+        const subscriptionId = subscription.id;
+        const status = subscription.status;
+        
+        // Update status for any salon linked to this subscription
+        const salons = await prisma.salon.findMany({ where: { stripe_subscription_id: subscriptionId as string } });
+        for (const salon of salons) {
+            await prisma.salon.update({
+                where: { id: salon.id },
+                data: { subscription_status: status }
             });
         }
     }

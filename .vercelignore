@@ -1,4 +1,5 @@
-prisma/wipe.ts
-prisma/tmp_*
+node_modules
+.next
+.git
+*.tar
 tmp_*
-.agents/

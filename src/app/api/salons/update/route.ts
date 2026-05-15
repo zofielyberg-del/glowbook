@@ -33,7 +33,8 @@ export async function POST(req: Request) {
                 municipality: salonInfo.municipality,
                 country: salonInfo.country,
                 slug: salonInfo.slug,
-                category: allCategories, // Store as JSON array
+                category: salonInfo.category,
+                categories: salonInfo.categories || [],
                 logo_url: salonInfo.profileImage || salonInfo.logo_url,
                 banner_url: salonInfo.backgroundImage || salonInfo.banner_url,
                 gallery_images: salonInfo.galleryImages || salonInfo.gallery_images || [],

@@ -38,11 +38,14 @@ model Salon {
   banner_url          String?            @db.Text
   gallery_images      Json?
   category            Json?
+  categories          Json?
   rating              Decimal?           @default(0.000000000000000000000000000000)
   review_count        Int?               @default(0)
   membership_tier     String?            @default("BAS")
   subscription_status String?            @default("trialing")
   stripe_customer_id  String?
+  stripe_subscription_id String?
+  stripe_account_id   String?
   owner_id            String?
   availability        Json?
   created_at          DateTime?          @default(now())

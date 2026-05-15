@@ -16,14 +16,12 @@ const CAPITALS: Record<string, string> = {
     'IS': 'Reykjavík'
 };
 
-export default function LocationSelector({ dark = false }: { dark?: boolean }) {
+export default function LocationSelector({ dark = false, className }: { dark?: boolean, className?: string }) {
     const { language, setLanguage, t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const [selectedCountry, setSelectedCountry] = useState(NORDIC_COUNTRIES[0]); // Default to Sweden
     const [selectedMunicipality, setSelectedMunicipality] = useState('Stockholm');
     const [searchTerm, setSearchTerm] = useState('');
-
-
 
     const allMunicipalities = NORDIC_COUNTRIES.flatMap(country =>
         country.municipalities.map(m => ({ country, municipality: m }))
@@ -36,7 +34,7 @@ export default function LocationSelector({ dark = false }: { dark?: boolean }) {
         : allMunicipalities.filter(item => item.country.code === selectedCountry.code).slice(0, 50);
 
     return (
-        <div className="relative font-outfit flex items-center">
+        <div className={clsx("relative font-outfit flex items-center", className)}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={clsx(

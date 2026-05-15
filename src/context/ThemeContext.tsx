@@ -22,10 +22,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             if (savedTheme === 'dark') {
                 document.documentElement.classList.add('dark');
             }
-        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            // Respect system preference
-            setTheme('dark');
-            document.documentElement.classList.add('dark');
         }
     }, []);
 

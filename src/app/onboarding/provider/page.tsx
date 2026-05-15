@@ -94,87 +94,86 @@ export default function ProviderOnboarding() {
         setStep(prev => prev - 1);
     };
 
-    const handleComplete = () => {
+    const handleComplete = async () => {
         setIsKlarnaLoading(true);
         setKlarnaStatus('loading');
 
         const pricing = calculatePrice(formData.tier, formData.duration);
 
-        // Stage 1: Connecting
-        setTimeout(() => {
+        // 1. Prepare Salon Data
+        const saved = localStorage.getItem('glowbook_salon');
+        let initialData = {} as any;
+        if (saved) {
+            try {
+                initialData = JSON.parse(saved);
+            } catch { }
+        }
+
+        const salonId = initialData.id || (formData.businessName ? formData.businessName.toLowerCase().replace(/\s+/g, '-') : `studio-${Date.now()}`);
+        const salonEmail = initialData.email || (formData.businessName ? `${formData.businessName.toLowerCase().replace(/\s+/g, '')}@glowbook.se` : 'studio@glowbook.se');
+
+        const newSalon: any = {
+            ...initialData,
+            id: salonId,
+            name: formData.businessName || initialData.name,
+            category: formData.category,
+            categories: formData.categories,
+            country: formData.country,
+            municipality: formData.municipality,
+            address: formData.address,
+            email: salonEmail,
+            tier: formData.tier,
+            duration: formData.duration,
+            paidAmount: pricing.total,
+            currency: currency,
+            joined: initialData.created_at || new Date().toISOString().split('T')[0],
+            slug: (formData.businessName ? formData.businessName.toLowerCase().replace(/\s+/g, '-') : initialData.slug) || 'studio',
+            subscription_status: 'trialing'
+        };
+
+        try {
+            // 2. Sync with server first
             setKlarnaStatus('processing');
-        }, 1500);
-
-        // Stage 2: Success
-        setTimeout(() => {
-            setKlarnaStatus('success');
-            const saved = localStorage.getItem('glowbook_salon');
-            let initialData = {} as any;
-            if (saved) {
-                try {
-                    initialData = JSON.parse(saved);
-                } catch { }
-            }
-
-            const newSalon: any = {
-                ...initialData, // Spread initial data FIRST to allow overwriting
-                id: initialData.id || (formData.businessName ? formData.businessName.toLowerCase().replace(/\s+/g, '-') : `studio-${Date.now()}`),
-                name: formData.businessName || initialData.name,
-                category: formData.category,
-                categories: formData.categories,
-                country: formData.country,
-                municipality: formData.municipality,
-                address: formData.address,
-                email: initialData.email || (formData.businessName ? `${formData.businessName.toLowerCase().replace(/\s+/g, '')}@glowbook.se` : 'studio@glowbook.se'),
-                tier: formData.tier,
-                duration: formData.duration,
-                paidAmount: pricing.total,
-                currency: currency,
-                joined: initialData.created_at || new Date().toISOString().split('T')[0],
-                slug: (formData.businessName ? formData.businessName.toLowerCase().replace(/\s+/g, '-') : initialData.slug) || 'studio',
-                services: [],
-                practitioners: initialData.practitioners || [],
-                appointments: initialData.appointments || [],
-                isVerified: initialData.isVerified || false
-            };
-
-            // Save to local storage for simulation
-            localStorage.setItem('glowbook_salon', JSON.stringify(newSalon));
-
-            // Sync with server
-            fetch('/api/salons/update', {
+            const syncResponse = await fetch('/api/salons/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newSalon)
-            }).catch(err => console.error('Failed to sync new salon to database:', err));
+            });
 
-            // ALSO add to central providers list for Admin to manage
-            const storedProviders = localStorage.getItem('glowbook_providers');
-            let providersList = storedProviders ? JSON.parse(storedProviders) : [];
+            const syncData = await syncResponse.json();
+            const realId = syncData.salonId || salonId;
 
-            // Check if already exists, else add
-            const exists = providersList.some((p: any) => p.email === newSalon.email);
-            if (!exists) {
-                providersList.push({
-                    id: Date.now().toString(),
-                    name: `${newSalon.name}`,
-                    salon: newSalon.name,
-                    email: newSalon.email,
-                    status: 'active', // Active by default after signup/payment
-                    tier: newSalon.tier.toUpperCase(),
-                    joined: newSalon.joined
-                });
-                localStorage.setItem('glowbook_providers', JSON.stringify(providersList));
+            // 3. Create Stripe Session
+            const stripeResponse = await fetch('/api/stripe/subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tier: formData.tier,
+                    salonId: realId,
+                    salonEmail: salonEmail
+                })
+            });
+
+            const stripeData = await stripeResponse.json();
+
+            if (stripeData.url) {
+                setKlarnaStatus('success');
+                // Save to local storage
+                localStorage.setItem('glowbook_salon', JSON.stringify({ ...newSalon, id: realId }));
+                
+                // Small delay for the success UI
+                setTimeout(() => {
+                    window.location.href = stripeData.url;
+                }, 800);
+            } else {
+                throw new Error(stripeData.error || 'Failed to create payment session');
             }
-
-            window.dispatchEvent(new Event('glowbook_update'));
-        }, 4000);
-
-        // Stage 3: Redirect
-        setTimeout(() => {
+        } catch (err: any) {
+            console.error('Onboarding Error:', err);
+            setKlarnaStatus('loading');
             setIsKlarnaLoading(false);
-            router.push('/provider');
-        }, 6000);
+            alert(`Ett fel uppstod: ${err.message}`);
+        }
     };
 
     return (
@@ -222,7 +221,7 @@ export default function ProviderOnboarding() {
                     </div>
 
                     <div className="p-8 min-h-[400px]">
-                        {/* Klarna Overlay */}
+                        {/* Stripe/Glowbook Overlay */}
                         {isKlarnaLoading && (
                             <div className="absolute inset-0 bg-background/80 backdrop-blur-md z-[60] flex flex-col items-center justify-center text-center p-8 transition-colors">
                                 <motion.div
@@ -230,39 +229,39 @@ export default function ProviderOnboarding() {
                                     animate={{ scale: 1, opacity: 1 }}
                                     className="w-full max-w-sm bg-card rounded-3xl shadow-2xl border border-border overflow-hidden transition-colors"
                                 >
-                                    <div className="bg-[#FFB3C7] p-6 flex flex-col items-center">
-                                        <div className="text-3xl font-black tracking-tighter mb-1 select-none text-[#944658]">Klarna.</div>
-                                        <div className="text-[10px] uppercase font-bold tracking-widest text-[#944658]/60">Secure Checkout</div>
+                                    <div className="bg-[#111] p-6 flex flex-col items-center">
+                                        <div className="text-2xl font-heading font-bold tracking-tighter mb-1 select-none text-white">Glowbook Checkout</div>
+                                        <div className="text-[10px] uppercase font-bold tracking-widest text-white/40">Secure Payment via Stripe</div>
                                     </div>
 
                                     <div className="p-8 space-y-6 text-left">
                                         <div className="space-y-1">
-                                            <p className="text-xs text-foreground/40 uppercase font-bold tracking-widest">{t('onboarding_step_3')}</p>
+                                            <p className="text-xs text-foreground/40 uppercase font-bold tracking-widest">Valt medlemskap</p>
                                             <p className="text-xl font-bold text-foreground capitalize">
                                                 Glowbook {formData.tier}
-                                                <span className="text-sm font-normal text-foreground/50 ml-2">({formData.duration} {t('label_months')})</span>
+                                                <span className="text-sm font-normal text-foreground/50 ml-2">({formData.duration} mån)</span>
                                             </p>
                                         </div>
 
                                         <div className="space-y-1">
-                                            <p className="text-xs text-foreground/40 uppercase font-bold tracking-widest">{t('label_amount_to_pay')}</p>
+                                            <p className="text-xs text-foreground/40 uppercase font-bold tracking-widest">Totalt efter provperiod</p>
                                             <p className="text-3xl font-bold text-foreground">
                                                 {calculatePrice(formData.tier, formData.duration).total} {currency}
                                             </p>
-                                            <p className="text-[10px] text-foreground/40 mt-1">{t('msg_klarna_subscription')}</p>
+                                            <p className="text-[10px] text-foreground/40 mt-1">Inga kostnader under din 30-dagars provperiod.</p>
                                         </div>
 
                                         <div className="py-8 flex flex-col items-center gap-4 min-h-[160px] justify-center">
                                             {klarnaStatus === 'loading' && (
                                                 <>
-                                                    <div className="w-16 h-16 border-4 border-pink-100 border-t-pink-500 rounded-full animate-spin"></div>
-                                                    <p className="text-sm font-medium text-foreground/40">{t('notif_klarna_connecting')}</p>
+                                                    <div className="w-12 h-12 border-4 border-foreground/10 border-t-champagne-500 rounded-full animate-spin"></div>
+                                                    <p className="text-sm font-medium text-foreground/40">Förbereder säker anslutning...</p>
                                                 </>
                                             )}
                                             {klarnaStatus === 'processing' && (
                                                 <>
-                                                    <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-                                                    <p className="text-sm font-medium text-pink-600 animate-pulse">{t('notif_klarna_processing')}</p>
+                                                    <div className="w-12 h-12 border-4 border-champagne-500 border-t-transparent rounded-full animate-spin"></div>
+                                                    <p className="text-sm font-medium text-champagne-500 animate-pulse">Skapar din session...</p>
                                                 </>
                                             )}
                                             {klarnaStatus === 'success' && (
@@ -271,12 +270,12 @@ export default function ProviderOnboarding() {
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     className="flex flex-col items-center gap-4"
                                                 >
-                                                    <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white shadow-lg">
+                                                    <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg">
                                                         <Check size={32} strokeWidth={3} />
                                                     </div>
                                                     <div className="space-y-1 text-center">
-                                                        <p className="text-sm font-bold text-green-600">{t('notif_klarna_success')}</p>
-                                                        <p className="text-[10px] text-foreground/40">{t('notif_klarna_redirecting')}</p>
+                                                        <p className="text-sm font-bold text-emerald-600">Allt klart!</p>
+                                                        <p className="text-[10px] text-foreground/40">Skickar dig till säker betalsida...</p>
                                                     </div>
                                                 </motion.div>
                                             )}
@@ -286,13 +285,13 @@ export default function ProviderOnboarding() {
                                             onClick={() => setIsKlarnaLoading(false)}
                                             className="w-full text-[10px] text-foreground/40 hover:text-foreground/60 underline"
                                         >
-                                            {t('action_cancel_purchase')}
+                                            Avbryt och ändra uppgifter
                                         </button>
                                     </div>
 
                                     <div className="bg-foreground/5 p-4 border-t border-border flex items-center justify-center gap-2">
-                                        <ShieldCheck size={14} className="text-green-600" />
-                                        <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider">{t('notif_klarna_secure')}</span>
+                                        <ShieldCheck size={14} className="text-emerald-600" />
+                                        <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider">Krypterat via SSL & Stripe</span>
                                     </div>
                                 </motion.div>
                             </div>
@@ -355,8 +354,8 @@ export default function ProviderOnboarding() {
                                                                 className={clsx(
                                                                     "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border",
                                                                     isSelected 
-                                                                        ? "bg-violet-600 text-white border-violet-600 shadow-md" 
-                                                                        : "bg-background text-foreground/40 border-border hover:border-violet-300 hover:text-violet-500"
+                                                                        ? "bg-[#111] text-white border-[#111] shadow-md" 
+                                                                        : "bg-background text-foreground/40 border-border hover:border-champagne-300 hover:text-champagne-500"
                                                                 )}
                                                             >
                                                                 {cat}
@@ -435,7 +434,7 @@ export default function ProviderOnboarding() {
                                             />
                                         </div>
                                         <p className="mt-2 text-xs text-foreground/40 pl-1">
-                                            Ange din fullständiga gatuadress med gatunummer. Denna adress visas på kartan för dina kunder.
+                                            Ange din fullständiga gatuadress. Denna adress visas på kartan för dina kunder.
                                         </p>
                                     </div>
                                 </motion.div>
@@ -449,7 +448,7 @@ export default function ProviderOnboarding() {
                                     <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 rounded-2xl p-5">
                                         <div>
                                             <h4 className="font-bold text-foreground text-sm">Första månaden gratis!</h4>
-                                            <p className="text-xs text-foreground/50">Testa valfri tier i 30 dagar utan kostnad. Avsluta när som helst.</p>
+                                            <p className="text-xs text-foreground/50">Testa valfri plan i 30 dagar utan kostnad. Avsluta när som helst.</p>
                                         </div>
                                     </div>
 
@@ -468,7 +467,7 @@ export default function ProviderOnboarding() {
                                                     <span className="text-[10px] font-bold">{d.label}</span>
                                                     <span className="text-[9px] opacity-60 font-medium leading-none mt-0.5">{prices.total} {currency}</span>
                                                     {d.badge && (
-                                                        <span className="absolute -top-3 -right-1 bg-pink-500 text-white text-[8px] px-2 py-0.5 rounded-full ring-2 ring-card font-black shadow-lg">
+                                                        <span className="absolute -top-3 -right-1 bg-champagne-500 text-white text-[8px] px-2 py-0.5 rounded-full ring-2 ring-card font-black shadow-lg">
                                                             {d.badge}
                                                         </span>
                                                     )}
@@ -479,9 +478,9 @@ export default function ProviderOnboarding() {
 
                                     <div className="space-y-4">
                                         {[
-                                            { id: 'bas', label: 'Bas', desc: 'För dig som precis startat', features: ['Bokningskalender', 'Standardprofil', 'Begränsad synlighet i sök', 'Endast lokalt synlig'], limit: 'Max 50 bokningar/mån' },
-                                            { id: 'pro', label: 'PRO', desc: 'Väx snabbare & syns mer', features: ['Syns högre i sök', 'Syns i "Upptäck"', 'Samla recensioner', 'SMS-påminnelser', 'Obegränsade bokningar'], popular: true },
-                                            { id: 'luxe', label: 'LUXE', desc: 'För större salonger', features: ['Högsta ranking (VIP)', 'Featured i din stad', 'Verifierad PRO-badge', 'Personalhantering & schema', 'VIP Support'], note: '249kr nu (ord. 299kr)' }
+                                            { id: 'bas', label: 'Bas', desc: 'För dig som precis startat', features: ['Bokningskalender', 'Standardprofil', 'Begränsad synlighet i sök', 'Endast lokalt synlig'], limit: 'Max 20 bokningar/mån' },
+                                            { id: 'pro', label: 'PRO', desc: 'Väx snabbare & syns mer', features: ['Syns högre i sök', 'Syns i "Upptäck"', 'Glow-tag (Kort länk)', 'SMS-påminnelser', 'Obegränsade bokningar'], popular: true },
+                                            { id: 'luxe', label: 'LUXE', desc: 'För premium-studion', features: ['Högsta ranking (VIP)', 'Featured i din stad', 'Glow-tag (Kort länk)', 'Flera utförare (Team)', 'VIP Support'], note: '249kr nu (ord. 299kr)' }
                                         ].map((tier) => {
                                             const tValue = tier.id as 'bas' | 'pro' | 'luxe';
                                             const prices = calculatePrice(tValue, formData.duration);
@@ -497,7 +496,7 @@ export default function ProviderOnboarding() {
 
                                                     {tier.popular && (
                                                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-champagne-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg uppercase tracking-tighter">
-                                                            Rekommenderas
+                                                            Populärast
                                                         </div>
                                                     )}
 
@@ -543,11 +542,6 @@ export default function ProviderOnboarding() {
                                                                                 {tier.limit}
                                                                             </div>
                                                                         )}
-                                                                        {tier.note && (
-                                                                            <div className="mt-1 pl-8 text-[11px] font-bold text-champagne-500">
-                                                                                {tier.note}
-                                                                            </div>
-                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </motion.div>
@@ -560,7 +554,7 @@ export default function ProviderOnboarding() {
                                 </motion.div>
                             )}
 
-                            {/* STEP 3: PAYMENT */}
+                            {/* STEP 3: PAYMENT SUMMARY */}
                             {step === 3 && (
                                 <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
                                     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden">
@@ -568,7 +562,7 @@ export default function ProviderOnboarding() {
                                             <CreditCard size={160} strokeWidth={1} />
                                         </div>
                                         <div className="flex items-center gap-3 mb-4">
-                                            <span className="bg-emerald-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider">30 dagar gratis</span>
+                                            <span className="bg-emerald-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider">Provperiod aktiv</span>
                                         </div>
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-2">{t('label_order_summary')}</h4>
                                         <h3 className="text-3xl font-bold mb-8 capitalize text-white">Glowbook {formData.tier} Membership</h3>
@@ -587,7 +581,7 @@ export default function ProviderOnboarding() {
                                             <div className="flex justify-between items-center">
                                                 <div className="space-y-1">
                                                     <p className="text-sm text-white/60">Därefter</p>
-                                                    <p className="text-xs text-white/30">{formData.duration} {t('label_months')} bindningstid</p>
+                                                    <p className="text-xs text-white/30">{formData.duration} mån bindningstid</p>
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-2xl font-bold text-champagne-400">{calculatePrice(formData.tier, formData.duration).monthly} {currency}<span className="text-sm font-normal text-white/40">/mån</span></p>
@@ -597,14 +591,16 @@ export default function ProviderOnboarding() {
                                     </div>
 
                                     <div className="space-y-6">
-                                        <div className="flex items-center gap-5 border-2 border-pink-500 bg-pink-500/5 rounded-3xl p-6 relative">
-                                            <div className="w-14 h-14 bg-[#FFB3C7] rounded-2xl flex items-center justify-center font-black text-2xl select-none text-[#944658] shadow-md">Kl.</div>
-                                            <div className="flex-1 text-left">
-                                                <span className="font-bold text-foreground block text-xl">Klarna Checkout.</span>
-                                                <span className="text-sm text-foreground/50">Verifiera betalmetod för framtida debitering</span>
+                                        <div className="flex items-center gap-5 border-2 border-champagne-500 bg-champagne-500/5 rounded-3xl p-6 relative">
+                                            <div className="w-14 h-14 bg-[#111] rounded-2xl flex items-center justify-center text-white shadow-md">
+                                                <ShieldCheck size={28} />
                                             </div>
-                                            <div className="absolute -top-3 right-8 bg-pink-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full ring-4 ring-card uppercase tracking-tighter shadow-lg">
-                                                VALD
+                                            <div className="flex-1 text-left">
+                                                <span className="font-bold text-foreground block text-xl">Säker betalning via Stripe</span>
+                                                <span className="text-sm text-foreground/50">Kort, Apple Pay & Klarna stöds</span>
+                                            </div>
+                                            <div className="absolute -top-3 right-8 bg-champagne-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full ring-4 ring-card uppercase tracking-tighter shadow-lg">
+                                                SÄKERT
                                             </div>
                                         </div>
 
@@ -613,7 +609,7 @@ export default function ProviderOnboarding() {
                                                 ✓ Inga avgifter debiteras under de första 30 dagarna.
                                             </p>
                                             <p className="text-xs text-foreground/50 leading-relaxed">
-                                                ✓ Din betalmetod verifieras nu för att möjliggöra automatisk debitering efter provperioden.
+                                                ✓ Betalmetoden verifieras säkert för automatisk debitering efter provperioden.
                                             </p>
                                             <p className="text-xs text-foreground/50 leading-relaxed">
                                                 ✓ Du kan avsluta när som helst innan provperioden löper ut — helt utan kostnad.
@@ -621,7 +617,7 @@ export default function ProviderOnboarding() {
                                         </div>
 
                                         <p className="text-[10px] text-foreground/30 text-center px-8 leading-relaxed">
-                                            Genom att fortsätta godkänner du våra användarvillkor och integritetspolicy. Efter 30 dagars gratis provperiod debiteras {calculatePrice(formData.tier, formData.duration).monthly} {currency}/mån via Klarna.
+                                            Genom att fortsätta godkänner du våra användarvillkor. Efter 30 dagars gratis provperiod debiteras {calculatePrice(formData.tier, formData.duration).monthly} {currency}/mån via Stripe.
                                         </p>
                                     </div>
                                 </motion.div>
@@ -650,9 +646,9 @@ export default function ProviderOnboarding() {
                         ) : (
                             <button
                                 onClick={handleComplete}
-                                className="bg-[#FFB3C7] text-[#944658] px-12 py-5 rounded-full font-black text-xl hover:bg-[#ffa0ba] transition-all flex items-center gap-4 shadow-2xl hover:scale-105 active:scale-95"
+                                className="bg-[#111] dark:bg-white text-white dark:text-[#111] px-12 py-5 rounded-full font-black text-xl hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-all flex items-center gap-4 shadow-2xl hover:scale-105 active:scale-95"
                             >
-                                {t('btn_complete_klarna')}
+                                Slutför & Aktivera via Stripe
                             </button>
                         )}
                     </div>
@@ -661,4 +657,5 @@ export default function ProviderOnboarding() {
         </div >
     );
 }
+
 

@@ -19,7 +19,12 @@ export async function GET(req: Request) {
             include: {
                 practitioners: true,
                 services: true,
-                owner: true // Include the owner profile
+                owner: true,
+                appointments: {
+                    where: {
+                        status: { not: 'cancelled' }
+                    }
+                }
             }
         });
 

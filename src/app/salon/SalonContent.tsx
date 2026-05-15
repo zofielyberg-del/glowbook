@@ -48,7 +48,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
     const [selectedPractitioner, setSelectedPractitioner] = useState<any>(null);
     const [selectedTime, setSelectedTime] = useState<{ day: string; time: string; fullDate: string; dayIndex: number } | null>(null);
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'onsite' | 'klarna' | 'giftcard'>('onsite');
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'onsite' | 'stripe' | 'giftcard'>('onsite');
     const [isBooked, setIsBooked] = useState(false);
     const [galleryLightbox, setGalleryLightbox] = useState<number | null>(null);
     const [giftCardCode, setGiftCardCode] = useState('');
@@ -84,6 +84,13 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             } else {
                 setIsCustomerLoggedIn(false);
                 setBookingType('none');
+            }
+
+            // Check for success redirect from Stripe
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('booking_success') === 'true') {
+                setIsBooked(true);
+                setIsBookingModalOpen(true);
             }
         };
         checkCustomerLogin();
@@ -241,7 +248,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 }
             }
 
-            // 2. Create Appointment in Supabase
+            // 2. Create Appointment
             const bookingResponse = await fetch('/api/bookings/confirm', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -257,7 +264,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     customerInfo,
                     paymentMethod: selectedPaymentMethod,
                     rewardInfo: useGlowpoints ? selectedReward : null,
-                    status: selectedPaymentMethod === 'klarna' ? 'pending_payment' : 'confirmed'
+                    status: selectedPaymentMethod === 'stripe' ? 'pending_payment' : 'confirmed'
                 }),
             });
 
@@ -268,7 +275,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             }
 
             // 3. Handle Payment Redirect if needed
-            if (selectedPaymentMethod === 'klarna') {
+            if (selectedPaymentMethod === 'stripe') {
                 const checkoutResponse = await fetch('/api/bookings/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -509,7 +516,11 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         if (dayData && dayData.active === true) {
                             const dayIndex = parseInt(dayIndexStr);
                             if (isNaN(dayIndex)) return;
-                            const slots = dayData.slots || [{ start: dayData.start || "09:00", end: dayData.end || "17:00" }];
+                            const slots = dayData.slots || [];
+                            if (slots.length === 0 && dayData.start && dayData.end) {
+                                // Only allow start/end fallback if they are explicitly set
+                                slots.push({ start: dayData.start, end: dayData.end });
+                            }
                             const breaks = dayData.breaks || [];
 
                             slots.forEach((slot: any) => {
@@ -686,7 +697,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             <Header />
 
             {/* Hero Section */}
-            <div className="relative h-[400px] w-full mt-16 overflow-hidden">
+            <div className="relative h-[250px] md:h-[400px] w-full mt-16 overflow-hidden">
                 {salon.backgroundImage ? (
                     <img src={salon.backgroundImage} className="w-full h-full object-cover" alt="Banner" />
                 ) : (
@@ -697,9 +708,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 <div className="absolute inset-0 bg-black/20"></div>
             </div>
 
-            <div className="max-w-6xl mx-auto px-6 -mt-24 relative z-10 space-y-12 pb-24">
-                <div className="bg-card rounded-[40px] p-10 shadow-2xl border border-border flex flex-col md:flex-row gap-10 items-center md:items-start text-center md:text-left transition-colors">
-                    <div className="w-48 h-48 rounded-[32px] overflow-hidden border-8 border-card shadow-xl flex-shrink-0">
+            <div className="max-w-6xl mx-auto px-4 md:px-6 -mt-16 md:-mt-24 relative z-10 space-y-8 md:space-y-12 pb-24">
+                <div className="bg-card rounded-[32px] md:rounded-[40px] p-6 md:p-10 shadow-2xl border border-border flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-start text-center md:text-left transition-colors">
+                    <div className="w-32 h-32 md:w-48 md:h-48 rounded-[24px] md:rounded-[32px] overflow-hidden border-4 md:border-8 border-card shadow-xl flex-shrink-0">
                         {salon.profileImage ? (
                             <img src={salon.profileImage} className="w-full h-full object-cover" alt="Profile" />
                         ) : (
@@ -731,7 +742,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             </div>
                         </div>
                         <div className="flex items-center justify-center md:justify-start gap-4">
-                            <h1 className="text-5xl font-heading font-bold text-foreground">{salon.name}</h1>
+                            <h1 className="text-3xl md:text-5xl font-heading font-bold text-foreground">{salon.name}</h1>
                             {salon.isVerified && (
                                 <div className="p-1.5 bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/20" title="Verifierad Utförare">
                                     <Check size={20} strokeWidth={4} />
@@ -745,7 +756,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             </div>
                             <div className="flex items-center gap-2">
                                 <Clock size={18} className="text-champagne-500" />
-                                <span>Öppet · Stänger 18:00</span>
+                                <span className="text-sm md:text-base">Öppet · Stänger 18:00</span>
                             </div>
                         </div>
                     </div>
@@ -781,7 +792,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                             <div
                                                 key={service.id}
                                                 onClick={() => handleServiceSelect(service)}
-                                                className="p-8 rounded-3xl border border-border bg-card hover:border-champagne-500 hover:bg-champagne-500/5 transition-all group cursor-pointer flex justify-between items-center relative overflow-hidden"
+                                                className="p-5 md:p-8 rounded-[24px] md:rounded-3xl border border-border bg-card hover:border-champagne-500 hover:bg-champagne-500/5 transition-all group cursor-pointer flex justify-between items-center relative overflow-hidden"
                                             >
                                                 {isOnSale && (
                                                     <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-black uppercase tracking-tighter px-3 py-1 rounded-bl-xl shadow-lg animate-pulse">
@@ -995,23 +1006,23 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             {/* Booking Modal */}
             <AnimatePresence>
                 {isBookingModalOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/60 backdrop-blur-md">
+                    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center md:p-6 bg-background/60 backdrop-blur-md">
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                            initial={{ opacity: 0, scale: 0.9, y: 100 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 40 }}
-                            className="bg-card rounded-[40px] w-full max-w-5xl h-[90vh] shadow-2xl flex flex-col relative overflow-hidden border border-border"
+                            exit={{ opacity: 0, scale: 0.9, y: 100 }}
+                            className="bg-card rounded-t-[32px] md:rounded-[40px] w-full max-w-5xl h-[95vh] md:h-[90vh] shadow-2xl flex flex-col relative overflow-hidden border border-border"
                         >
                             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-champagne-300 via-pink-200 to-champagne-300"></div>
 
-                            <div className="p-8 border-b border-border flex justify-between items-center bg-foreground/[0.02]">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-foreground text-background rounded-2xl flex items-center justify-center font-bold">
+                            <div className="p-5 md:p-8 border-b border-border flex justify-between items-center bg-foreground/[0.02]">
+                                <div className="flex items-center gap-3 md:gap-4">
+                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-foreground text-background rounded-xl md:rounded-2xl flex items-center justify-center font-bold text-sm md:text-base">
                                         {bookingStep}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-bold text-foreground">{bookingStep === 2 ? t('salon_choose_time') : t('salon_confirm_booking')}</h3>
-                                        <span className="text-foreground/40 text-sm">
+                                        <h3 className="text-lg md:text-2xl font-bold text-foreground">{bookingStep === 2 ? t('salon_choose_time') : t('salon_confirm_booking')}</h3>
+                                        <span className="text-foreground/40 text-[10px] md:text-sm">
                                             {selectedService?.name} • {
                                                 (selectedService?.sale_price && (!selectedService?.sale_ends_at || new Date(selectedService.sale_ends_at) > new Date()))
                                                     ? <span className="text-red-500 font-bold">{selectedService.sale_price} {salon.currency || 'kr'}</span>
@@ -1020,12 +1031,12 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         </span>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsBookingModalOpen(false)} className="p-3 hover:bg-foreground/5 rounded-full transition-colors text-foreground/40">
-                                    <X size={24} />
+                                <button onClick={() => setIsBookingModalOpen(false)} className="p-2 md:p-3 hover:bg-foreground/5 rounded-full transition-colors text-foreground/40">
+                                    <X size={20} />
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-auto p-8 bg-card no-scrollbar">
+                            <div className="flex-1 overflow-auto p-5 md:p-8 bg-card no-scrollbar">
                                 {bookingStep === 2 ? (
                                     <div className="space-y-8">
                                         <div className="bg-champagne-50 dark:bg-champagne-950/20 p-6 rounded-3xl border border-champagne-100 dark:border-champagne-900/10 flex items-center gap-4 text-champagne-800 dark:text-champagne-300">
@@ -1214,6 +1225,30 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                     <p className="text-[10px] text-foreground/40 font-medium">Kort, Swish eller kontant</p>
                                                                 </div>
                                                             </div>
+
+                                                            {salon.stripe_account_id && (
+                                                                <div
+                                                                    onClick={() => setSelectedPaymentMethod('stripe')}
+                                                                    className={clsx(
+                                                                        "p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-4",
+                                                                        selectedPaymentMethod === 'stripe'
+                                                                            ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500"
+                                                                            : "border-border bg-card hover:border-blue-500/10"
+                                                                    )}
+                                                                >
+                                                                    <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center", selectedPaymentMethod === 'stripe' ? "bg-blue-500 text-white" : "bg-foreground/5 text-foreground/40")}>
+                                                                        <CreditCard size={20} />
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <h5 className="font-bold text-sm">Betala online</h5>
+                                                                            <span className="text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black uppercase tracking-widest">Säker betalning</span>
+                                                                        </div>
+                                                                        <p className="text-[10px] text-foreground/40 font-medium">Kort, Apple Pay & Google Pay</p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
                                                             <div
                                                                 onClick={() => setSelectedPaymentMethod('giftcard')}
                                                                 className={clsx(
@@ -1444,7 +1479,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-foreground/40">Betalsätt</span>
-                                            <span className="font-bold">{selectedPaymentMethod === 'giftcard' ? 'Presentkort' : 'Betalas på plats'}</span>
+                                            <span className="font-bold">
+                                                {selectedPaymentMethod === 'giftcard' ? 'Presentkort' : 
+                                                 selectedPaymentMethod === 'stripe' ? 'Betalat Online' : 'Betalas på plats'}
+                                            </span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm border-t border-border pt-4">
                                             <span className="text-foreground/40">Totalt</span>

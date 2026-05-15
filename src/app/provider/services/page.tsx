@@ -129,11 +129,23 @@ export default function ServicesPage() {
     });
     const [salonTier, setSalonTier] = useState('bas');
 
-    const SERVICE_CATEGORIES = [
-        'Frisör', 'Barberare', 'Fransstylist', 'Nagelterapeut', 'Hudterapeut',
-        'Massör', 'Makeup-artist', 'Brow stylist', 'Tatuerare', 'Lasertekniker',
-        'Fotvårdsterapeut', 'Övrigt'
-    ];
+    const NICHE_TO_CATEGORIES: Record<string, string[]> = {
+        "Naglar": ['Nagelterapeut', 'Övrigt'],
+        "Fransar & Bryn": ['Fransstylist', 'Brow stylist', 'Övrigt'],
+        "Hudvård": ['Hudterapeut', 'Lasertekniker', 'Övrigt'],
+        "Hårvård": ['Frisör', 'Barberare', 'Övrigt'],
+        "Barberare": ['Barberare', 'Frisör', 'Övrigt'],
+        "Massage": ['Massör', 'Övrigt'],
+        "Makeup": ['Makeup-artist', 'Övrigt'],
+        "Tatuerare": ['Tatuerare', 'Övrigt'],
+        "Fotvård": ['Fotvårdsterapeut', 'Övrigt'],
+        "Estetisk Injektion": ['Sjuksköterska', 'Läkare', 'Lasertekniker', 'Övrigt']
+    };
+
+    const getAvailableCategories = () => {
+        if (salonTier === 'bas') return availableCategories.length > 0 ? availableCategories : [category];
+        return NICHE_TO_CATEGORIES[category] || [category, 'Övrigt'];
+    };
 
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -531,7 +543,7 @@ export default function ServicesPage() {
                                                     onChange={(e) => setNewService({ ...newService, category: e.target.value })}
                                                     className="w-full px-4 py-3 rounded-xl border border-border focus:border-champagne-500 outline-none transition-all text-foreground appearance-none cursor-pointer bg-background"
                                                 >
-                                                    {(salonTier === 'bas' ? availableCategories : SERVICE_CATEGORIES).map(cat => (
+                                                    {getAvailableCategories().map(cat => (
                                                         <option key={cat} value={cat}>{cat}</option>
                                                     ))}
                                                 </select>

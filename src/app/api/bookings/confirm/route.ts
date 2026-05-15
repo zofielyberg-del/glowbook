@@ -8,19 +8,62 @@ export async function POST(req: Request) {
             salonId,
             serviceName,
             practitionerId,
-            startTime,
-            date,
+            startTime, // "09:00"
+            date,      // "2026-05-14"
+            duration = 30,
             price,
             customerInfo,
             paymentMethod,
             status = 'confirmed'
         } = await req.json();
 
-        if (!salonId || !serviceName || !customerInfo?.email) {
+        if (!salonId || !serviceName || !customerInfo?.email || !date || !startTime) {
             return NextResponse.json({ error: 'Missing required booking data' }, { status: 400 });
         }
 
-        // 1. Create or update customer profile (Sync with database)
+        // Parse date and time correctly
+        const startDateTime = new Date(`${date}T${startTime}`);
+        const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
+
+        // 1. Check for Overlaps (Double booking prevention)
+        const isUUID = (id: string) => id && id.length > 20;
+        const pid = isUUID(practitionerId) ? practitionerId : undefined;
+        const sid = isUUID(salonId) ? salonId : undefined;
+
+        if (sid) {
+            const overlap = await prisma.appointment.findFirst({
+                where: {
+                    salon_id: sid,
+                    practitioner_id: pid,
+                    status: { not: 'cancelled' },
+                    OR: [
+                        {
+                            // New starts during existing
+                            start_time: { lte: startDateTime },
+                            end_time: { gt: startDateTime }
+                        },
+                        {
+                            // New ends during existing
+                            start_time: { lt: endDateTime },
+                            end_time: { gte: endDateTime }
+                        },
+                        {
+                            // New fully wraps existing
+                            start_time: { gte: startDateTime },
+                            end_time: { lte: endDateTime }
+                        }
+                    ]
+                }
+            });
+
+            if (overlap) {
+                return NextResponse.json({ 
+                    error: 'Tiden är tyvärr redan bokad. Vänligen välj en annan tid.' 
+                }, { status: 409 });
+            }
+        }
+
+        // 2. Create or update customer profile
         let profileId: string | undefined;
         try {
             const profile = await prisma.profile.upsert({
@@ -43,25 +86,23 @@ export async function POST(req: Request) {
             profileId = profile?.id;
         } catch (profileError) {
             console.error('Error syncing customer profile:', profileError);
-            // We can continue booking even if profile sync fails, but better to log it
         }
 
-        // 2. Insert appointment
-        const isUUID = (id: string) => id && id.length > 20;
-
+        // 3. Insert appointment
         let appointment;
         try {
             appointment = await prisma.appointment.create({
                 data: {
-                    salon_id: isUUID(salonId) ? salonId : undefined,
+                    salon_id: sid,
                     service_name: serviceName,
-                    practitioner_id: isUUID(practitionerId) ? practitionerId : undefined,
+                    practitioner_id: pid,
                     customer_id: profileId,
                     customer_email: customerInfo.email,
                     customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
                     customer_phone: customerInfo.phone,
-                    start_time: new Date(startTime),
-                    booking_date: date ? new Date(date) : undefined,
+                    start_time: startDateTime,
+                    end_time: endDateTime,
+                    booking_date: new Date(date),
                     total_price: price,
                     status: status,
                     payment_method: paymentMethod

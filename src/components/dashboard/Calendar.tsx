@@ -404,12 +404,12 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             </AnimatePresence>
 
             {/* Calendar Grid */}
-            <div className="flex-1 overflow-auto no-scrollbar">
-                <div className="flex min-w-[800px]">
+            <div className="flex-1 overflow-auto no-scrollbar scroll-smooth">
+                <div className="flex min-w-[600px] md:min-w-[800px] relative">
                     {/* Time Column with Sticky Header */}
-                    <div className="w-16 flex-shrink-0 border-r border-border bg-background transition-colors flex flex-col">
+                    <div className="w-12 md:w-16 flex-shrink-0 border-r border-border bg-background transition-colors flex flex-col sticky left-0 z-30">
                         <div className="h-[68px] border-b border-border sticky top-0 z-20 bg-background" />
-                        <div className="relative">
+                        <div className="relative bg-background">
                             {hours.map(hour => (
                                 <div key={hour} className="h-16 flex items-start justify-center text-[10px] font-bold text-foreground/20 pt-1 border-b border-border/10">
                                     {String(hour).padStart(2, '0')}:00

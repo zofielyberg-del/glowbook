@@ -56,6 +56,7 @@ function SettingsContent() {
         galleryImages: [] as string[],
         slug: '',
         stripeConnected: false,
+        subscription_status: 'none' as string,
     });
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
     const [isSubmittingVerification, setIsSubmittingVerification] = useState(false);
@@ -290,7 +291,7 @@ function SettingsContent() {
                 body: JSON.stringify({
                     tier,
                     salonId: salonData.id,
-                    email: salonData.email
+                    salonEmail: salonData.email // Fixed: changed email to salonEmail to match API
                 }),
             });
 
@@ -298,10 +299,11 @@ function SettingsContent() {
             if (data.url) {
                 window.location.href = data.url;
             } else {
-                console.error('Failed to create checkout session');
+                alert(data.error || 'Kunde inte skapa betalningssession');
             }
         } catch (error) {
             console.error('Error during upgrade:', error);
+            alert('Ett oväntat fel uppstod');
         }
     };
 
@@ -938,13 +940,22 @@ function SettingsContent() {
                                                         onClick={() => handleUpgradeClick(p.key as any)}
                                                         disabled={salonData.tier === p.key && comparisonDuration === (salonData.duration || 12)}
                                                         className={clsx(
-                                                            "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all box-border border",
+                                                            "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all box-border border flex flex-col items-center justify-center gap-1",
                                                             salonData.tier === p.key && comparisonDuration === (salonData.duration || 12)
                                                                 ? "bg-foreground/5 text-foreground/30 border-foreground/5 cursor-default"
                                                                 : "bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-champagne-600 dark:hover:bg-champagne-300 border-transparent shadow-lg active:scale-95"
                                                         )}
                                                     >
-                                                        {salonData.tier === p.key && comparisonDuration === (salonData.duration || 12) ? 'Nuvarande plan' : 'Välj plan'}
+                                                        <span>
+                                                            {salonData.tier === p.key && comparisonDuration === (salonData.duration || 12) 
+                                                                ? 'Nuvarande plan' 
+                                                                : salonData.subscription_status === 'trialing' ? 'Uppgradera plan' : 'Starta 30 dagars gratis prova-på'}
+                                                        </span>
+                                                        {!(salonData.tier === p.key && comparisonDuration === (salonData.duration || 12)) && (
+                                                            <span className="text-[7px] opacity-50 lowercase font-medium tracking-normal flex items-center gap-1">
+                                                                <CreditCard size={8} /> Endast verifiering — 0 kr idag
+                                                            </span>
+                                                        )}
                                                     </button>
                                                 </div>
                                             );
@@ -1043,73 +1054,6 @@ function SettingsContent() {
                             )}
                         </AnimatePresence>
 
-                        {/* ===== KLARNA CHECKOUT MODAL ===== */}
-                        <AnimatePresence>
-                            {isCheckoutOpen && (
-                                <>
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        onClick={() => setIsCheckoutOpen(false)}
-                                        className="fixed inset-0 bg-background/80 backdrop-blur-md z-[100]"
-                                    />
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-card rounded-[2.5rem] shadow-2xl z-[101] overflow-hidden border border-border"
-                                    >
-                                        <div className="bg-[#FFB3C7] p-8 flex justify-between items-center text-[#111]">
-                                            <div className="flex items-center gap-3">
-                                                <div className="bg-white px-2 py-1 rounded font-black text-xs uppercase tracking-tighter">Klarna.</div>
-                                                <h3 className="text-xl font-bold">Checkout</h3>
-                                            </div>
-                                            <button onClick={() => setIsCheckoutOpen(false)} className="hover:scale-110 transition-transform"><X size={24} /></button>
-                                        </div>
-
-                                        <div className="p-8 space-y-8">
-                                            <div className="space-y-2">
-                                                <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">Orderöversikt</p>
-                                                <div className="flex justify-between items-center bg-foreground/5 p-4 rounded-2xl">
-                                                    <div>
-                                                        <p className="font-bold text-sm capitalize">Glowbook {selectedTier}</p>
-                                                        <p className="text-[10px] text-foreground/60">12 Månadar prenumeration</p>
-                                                    </div>
-                                                    <div className="text-lg font-black">{selectedTier === 'start' ? '600' : selectedTier === 'pro' ? '1,800' : '3,000'} {currency}</div>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <div className="bg-background/50 p-5 rounded-2xl border border-border">
-                                                    <div className="flex justify-between items-center mb-4">
-                                                        <span className="text-sm font-bold text-foreground">Betala med Klarna</span>
-                                                        <div className="flex gap-2">
-                                                            <div className="w-8 h-5 bg-foreground/10 border border-border rounded flex items-center justify-center text-[6px] font-bold text-foreground/40">VISA</div>
-                                                            <div className="w-8 h-5 bg-foreground/10 border border-border rounded flex items-center justify-center text-[6px] font-bold text-foreground/40">BANK</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        <div className="h-10 bg-background border border-border rounded-xl px-4 flex items-center text-xs text-foreground/60">Kortnummer (â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢)</div>
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <div className="h-10 bg-background border border-border rounded-xl px-4 flex items-center text-xs text-foreground/60">MM/Ã…Ã…</div>
-                                                            <div className="h-10 bg-background border border-border rounded-xl px-4 flex items-center text-xs text-foreground/60">CVC</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <button
-                                                onClick={confirmUpgrade}
-                                                className="w-full py-5 bg-foreground text-background rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-champagne-600 hover:text-white transition-all shadow-xl active:scale-95"
-                                            >
-                                                Slutför köp
-                                            </button>
-                                        </div>
-                                    </motion.div>
-                                </>
-                            )}
-                        </AnimatePresence>
 
                         {/* ===== LOJALITET TAB ===== */}
                         {activeTab === 'loyalty' && (
@@ -1348,39 +1292,48 @@ function SettingsContent() {
                                     </div>
 
                                     <div className="relative z-10 space-y-6">
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 text-[10px] font-black uppercase tracking-[0.2em]">
-                                            <Shield size={12} /> Säker Partner: Stripe
-                                        </div>
-                                        <div className="space-y-2">
-                                            <h2 className="text-3xl font-heading font-bold text-foreground">Ta emot online-betalningar</h2>
-                                            <p className="text-foreground/50 max-w-xl leading-relaxed">
-                                                För att kunna ta emot betalningar via kort, Klarna och Swish direkt på Glowbook behöver du ansluta din salong till vår betalningspartner Stripe.
-                                            </p>
+                                        <div className="flex items-center justify-between mb-8">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <h2 className="text-3xl font-heading font-bold text-foreground">Betalningar</h2>
+                                                    <span className="px-2 py-0.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white text-[8px] font-black rounded uppercase tracking-widest">Guld-val</span>
+                                                </div>
+                                                <p className="text-foreground/40 text-sm italic">Aktivera Stripe för att ta emot betalningar direkt vid bokning.</p>
+                                            </div>
+                                            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center text-amber-600">
+                                                <CreditCard size={24} />
+                                            </div>
                                         </div>
 
                                         {!salonData.stripeConnected ? (
-                                            <div className="bg-foreground/[0.02] p-8 rounded-3xl border border-dashed border-border flex flex-col items-center text-center space-y-6">
-                                                <div className="w-20 h-20 bg-blue-500/10 text-blue-600 rounded-3xl flex items-center justify-center">
-                                                    <CreditCard size={40} />
+                                            <div className="p-8 bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/20 dark:to-card border border-amber-200 dark:border-amber-800/30 rounded-[32px] flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl shadow-amber-500/5">
+                                                <div className="space-y-4 text-center md:text-left flex-1">
+                                                    <div className="w-14 h-14 bg-white dark:bg-amber-900/50 rounded-2xl shadow-inner flex items-center justify-center text-amber-500 mx-auto md:mx-0">
+                                                        <Star size={28} fill="currentColor" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-2xl font-bold text-foreground mb-1">Gör som proffsen</h3>
+                                                        <p className="text-sm text-foreground/60 leading-relaxed max-w-md">
+                                                            Genom att ansluta ditt företag till Stripe kan dina kunder betala direkt vid bokning. Pengarna landar på ditt konto varje månad. <strong>Glowbook tar 0% provision.</strong>
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <h3 className="font-bold text-lg text-foreground">Du har inte anslutit Stripe än</h3>
-                                                    <p className="text-xs text-foreground/40 max-w-md mx-auto">
-                                                        Klicka på knappen nedan för att starta din onboarding. Det tar mindre än 2 minuter och sen sköts allt automatiskt.
-                                                    </p>
+                                                <div className="flex flex-col gap-4">
+                                                    <div className="px-6 py-4 bg-amber-100/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-2xl">
+                                                        <p className="text-sm font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                                                            <Clock size={16} /> Beta: Utbetalningar kommer snart
+                                                        </p>
+                                                        <p className="text-xs text-amber-600/70 mt-1">
+                                                            Vi förbereder din salong för direkta utbetalningar. Håll utkik efter en uppdatering inom kort!
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        disabled
+                                                        className="px-10 py-6 bg-foreground/10 text-foreground/20 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center gap-3 cursor-not-allowed border border-border"
+                                                    >
+                                                        <Plus size={18} /> Stripe Anslutning Pausad
+                                                    </button>
                                                 </div>
-                                                <button
-                                                    onClick={() => {
-                                                        const updated = { ...salonData, stripeConnected: true };
-                                                        setSalonData(updated);
-                                                        localStorage.setItem('glowbook_salon', JSON.stringify(updated));
-                                                        setSavedSuccess(true);
-                                                        setTimeout(() => setSavedSuccess(false), 2000);
-                                                    }}
-                                                    className="px-10 py-5 bg-[#635BFF] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-[#5a52e6] transition-all flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]"
-                                                >
-                                                    <Plus size={18} /> Anslut med Stripe
-                                                </button>
                                             </div>
                                         ) : (
                                             <div className="bg-emerald-500/5 p-8 rounded-3xl border border-emerald-500/20 flex flex-col md:flex-row items-center gap-6">

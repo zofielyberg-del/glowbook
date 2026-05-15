@@ -1,44 +1,57 @@
 
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
     try {
         const { appointmentId, salonId, serviceName, price, customerEmail } = await req.json();
 
-        if (!appointmentId || !salonId || !price) {
-            return NextResponse.json({ error: 'Missing required booking data' }, { status: 400 });
+        if (!appointmentId || !salonId) {
+            return NextResponse.json({ error: 'Missing required data' }, { status: 400 });
         }
 
+        // 1. Get Salon Connect Account
+        const salon = await prisma.salon.findUnique({
+            where: { id: salonId },
+            select: { stripe_account_id: true, name: true }
+        });
+
+        if (!salon?.stripe_account_id) {
+            return NextResponse.json({ error: 'Salon is not connected to Stripe' }, { status: 400 });
+        }
+
+        // 2. Create Checkout Session on behalf of the salon (Direct Charge)
+        // Note: Since Glowbook takes 0%, a direct charge is best.
         const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            customer_email: customerEmail,
+            mode: 'payment',
+            automatic_payment_methods: { enabled: true },
             line_items: [
                 {
                     price_data: {
                         currency: 'sek',
                         product_data: {
-                            name: `Bokning: ${serviceName}`,
-                            description: `Tid hos salong ${salonId}`,
+                            name: `${serviceName} @ ${salon.name}`,
                         },
-                        unit_amount: Math.round(price * 100),
+                        unit_amount: Math.round(price * 100), // Stripe expects cents/öre
                     },
                     quantity: 1,
                 },
             ],
-            mode: 'payment',
-            success_url: `${process.env.NEXT_PUBLIC_APP_URL}/profile?tab=bookings&status=success`,
-            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/checkout?status=cancel`,
+            customer_email: customerEmail,
+            success_url: `${process.env.NEXT_PUBLIC_APP_URL}/salon/${salonId}?booking_success=true&appointment_id=${appointmentId}`,
+            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/salon/${salonId}?booking_canceled=true`,
             metadata: {
-                type: 'booking',
                 appointmentId,
-                salonId
+                salonId,
             },
+        }, {
+            stripeAccount: salon.stripe_account_id, // This makes it a Direct Charge
         });
 
         return NextResponse.json({ url: session.url });
-    } catch (error) {
-        console.error('Stripe booking checkout error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    } catch (error: any) {
+        console.error('Booking Checkout Error:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
