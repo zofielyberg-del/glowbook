@@ -78,7 +78,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     // Load data on mount and listen for changes
     useEffect(() => {
         const loadData = () => {
-            const saved = localStorage.getItem('glowbook_salon');
+            const saved = sessionStorage.getItem('glowbook_salon');
             if (saved) {
                 const data = JSON.parse(saved);
                 if (data.availability) setInternalAvailability(data.availability);

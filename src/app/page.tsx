@@ -197,7 +197,7 @@ export default function Home() {
       });
 
       // Add local salon match
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('glowbook_salon') : null;
+      const saved = typeof window !== 'undefined' ? sessionStorage.getItem('glowbook_salon') : null;
       const localMatches: any[] = [];
       if (saved) {
         const local = JSON.parse(saved);

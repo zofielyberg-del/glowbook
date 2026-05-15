@@ -23,8 +23,8 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
                     // const res = await fetch(`/api/salons/${user.id}/status`);
                     // const data = await res.json();
 
-                    // For demo/dev, we check localStorage but prepare for DB status
-                    const status = user.subscriptionStatus || 'trialing';
+                    // For demo/dev, we check sessionStorage but prepare for DB status
+                    const status = sessionStorage.getItem('glowbook_salon_status') || user.subscriptionStatus || 'trialing';
 
                     if (status === 'past_due' || status === 'canceled') {
                         setIsLocked(true);

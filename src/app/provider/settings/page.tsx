@@ -76,7 +76,7 @@ function SettingsContent() {
 
     useEffect(() => {
         const loadData = async () => {
-            const saved = localStorage.getItem('glowbook_salon');
+            const saved = sessionStorage.getItem('glowbook_salon');
             if (saved) {
                 const localData = JSON.parse(saved);
 
@@ -103,7 +103,7 @@ function SettingsContent() {
                             } else {
                                 setSalonData(prev => ({ ...prev, ...salon }));
                             }
-                            localStorage.setItem('glowbook_salon', JSON.stringify(serverData.salon));
+                            sessionStorage.setItem('glowbook_salon', JSON.stringify(serverData.salon));
                         }
                     } catch (e) {
                         console.error('Failed to fetch salon from server:', e);
@@ -251,7 +251,7 @@ function SettingsContent() {
             setIsSaving(false);
         }
 
-        localStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
+        sessionStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 3000);
     };
@@ -314,7 +314,7 @@ function SettingsContent() {
             duration: comparisonDuration
         };
         setSalonData(updated as any);
-        localStorage.setItem('glowbook_salon', JSON.stringify(updated));
+        sessionStorage.setItem('glowbook_salon', JSON.stringify(updated));
 
         setIsCheckoutOpen(false);
         setSavedSuccess(true);

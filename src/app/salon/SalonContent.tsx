@@ -69,7 +69,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
     useEffect(() => {
         const checkCustomerLogin = () => {
-            const customer = localStorage.getItem('glowbook_customer');
+            const customer = sessionStorage.getItem('glowbook_customer');
             if (customer) {
                 const data = JSON.parse(customer);
                 setIsCustomerLoggedIn(true);
@@ -180,7 +180,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
         // Prevent providers from booking
         try {
-            const isProvider = !!localStorage.getItem('glowbook_salon');
+            const isProvider = !!sessionStorage.getItem('glowbook_salon');
             if (isProvider) {
                 alert('Som utförare kan du inte boka tjänster hos andra utförare.');
                 return;
@@ -299,7 +299,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
             // 5. Local sync for immediate visibility (Demo & Testing)
             try {
-                const legacySalon = localStorage.getItem('glowbook_salon');
+                const legacySalon = sessionStorage.getItem('glowbook_salon');
                 if (legacySalon) {
                     const data = JSON.parse(legacySalon);
                     if (data.id === salon.id) {
@@ -318,7 +318,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             color: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
                         };
                         data.appointments = [...(data.appointments || []), newApt];
-                        localStorage.setItem('glowbook_salon', JSON.stringify(data));
+                        sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
                     }
                 }
             } catch (e) { console.error('Local sync failed:', e); }
@@ -395,7 +395,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             }
 
             // Fallback to local
-            const saved = localStorage.getItem('glowbook_salon');
+            const saved = sessionStorage.getItem('glowbook_salon');
             if (saved) {
                 const localData = JSON.parse(saved);
                 if (localData.id === salonId || localData.slug === salonId) {

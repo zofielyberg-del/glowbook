@@ -19,9 +19,9 @@ export function useAuth() {
     });
 
     const checkAuth = useCallback(async () => {
-        const adminData = localStorage.getItem('glowbook_admin');
-        const salonDataString = localStorage.getItem('glowbook_salon');
-        const customerData = localStorage.getItem('glowbook_customer');
+        const adminData = sessionStorage.getItem('glowbook_admin');
+        const salonDataString = sessionStorage.getItem('glowbook_salon');
+        const customerData = sessionStorage.getItem('glowbook_customer');
 
         if (adminData) {
             setState({ user: JSON.parse(adminData), role: 'admin', isLoading: false });
@@ -35,10 +35,10 @@ export function useAuth() {
                     const serverResult = await response.json();
                     if (serverResult.success) {
                         data = { ...data, ...serverResult.salon };
-                        localStorage.setItem('glowbook_salon', JSON.stringify(data));
+                        sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
                     } else if (serverResult.error === 'Salon not found') {
                         // DB was cleared, remove from local storage
-                        localStorage.removeItem('glowbook_salon');
+                        sessionStorage.removeItem('glowbook_salon');
                         setState({ user: null, role: 'guest', isLoading: false });
                         return;
                     }
@@ -60,7 +60,7 @@ export function useAuth() {
                     if (result.success) {
                         const exists = result.users.some((u: any) => u.id === data.id);
                         if (!exists) {
-                            localStorage.removeItem('glowbook_customer');
+                            sessionStorage.removeItem('glowbook_customer');
                             setState({ user: null, role: 'guest', isLoading: false });
                             return;
                         }
@@ -93,9 +93,9 @@ export function useAuth() {
     };
 
     const logout = () => {
-        localStorage.removeItem('glowbook_admin');
-        localStorage.removeItem('glowbook_salon');
-        localStorage.removeItem('glowbook_customer');
+        sessionStorage.removeItem('glowbook_admin');
+        sessionStorage.removeItem('glowbook_salon');
+        sessionStorage.removeItem('glowbook_customer');
         window.dispatchEvent(new Event('glowbook_update'));
     };
 

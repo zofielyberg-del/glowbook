@@ -89,7 +89,7 @@ export default function RegisterContent() {
                     currency: selectedCountry.currency,
                     role: 'salon_owner'
                 };
-                localStorage.setItem('glowbook_salon', JSON.stringify(providerData));
+                sessionStorage.setItem('glowbook_salon', JSON.stringify(providerData));
                 // Trigger auth update
                 window.dispatchEvent(new Event('glowbook_update'));
                 router.push('/onboarding/provider');
@@ -103,7 +103,7 @@ export default function RegisterContent() {
                     points: 0,
                     role: 'customer'
                 };
-                localStorage.setItem('glowbook_customer', JSON.stringify(customerData));
+                sessionStorage.setItem('glowbook_customer', JSON.stringify(customerData));
                 // Trigger auth update
                 window.dispatchEvent(new Event('glowbook_update'));
                 router.push('/profile');
@@ -311,11 +311,11 @@ export default function RegisterContent() {
                                     onClick={() => {
                                         if (role === 'provider') {
                                             const dummy = { firstName: 'Social', lastName: 'Provider', email: 'google@glowbook.se', phone: '+46700000000' };
-                                            localStorage.setItem('glowbook_salon', JSON.stringify(dummy));
+                                            sessionStorage.setItem('glowbook_salon', JSON.stringify(dummy));
                                             router.push('/onboarding/provider');
                                         } else {
                                             const dummy = { firstName: 'Social', lastName: 'User', email: 'google@user.se', phone: '', points: 0 };
-                                            localStorage.setItem('glowbook_customer', JSON.stringify(dummy));
+                                            sessionStorage.setItem('glowbook_customer', JSON.stringify(dummy));
                                             router.push('/profile');
                                         }
                                         window.dispatchEvent(new Event('glowbook_update'));
@@ -330,11 +330,11 @@ export default function RegisterContent() {
                                     onClick={() => {
                                         if (role === 'provider') {
                                             const dummy = { firstName: 'Social', lastName: 'Provider', email: 'apple@glowbook.se', phone: '+46700000000' };
-                                            localStorage.setItem('glowbook_salon', JSON.stringify(dummy));
+                                            sessionStorage.setItem('glowbook_salon', JSON.stringify(dummy));
                                             router.push('/onboarding/provider');
                                         } else {
                                             const dummy = { firstName: 'Social', lastName: 'User', email: 'apple@user.se', phone: '', points: 0 };
-                                            localStorage.setItem('glowbook_customer', JSON.stringify(dummy));
+                                            sessionStorage.setItem('glowbook_customer', JSON.stringify(dummy));
                                             router.push('/profile');
                                         }
                                         window.dispatchEvent(new Event('glowbook_update'));

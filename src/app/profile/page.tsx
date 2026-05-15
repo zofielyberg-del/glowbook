@@ -138,7 +138,7 @@ export default function ProfilePage() {
     // Load profile from localStorage and sync with Supabase
     useEffect(() => {
         const checkAuth = async () => {
-            const saved = localStorage.getItem('glowbook_customer');
+            const saved = sessionStorage.getItem('glowbook_customer');
             if (!saved) {
                 router.push('/auth/login');
                 return;
@@ -203,7 +203,7 @@ export default function ProfilePage() {
     if (!profile.firstName) return null;
 
     const handleLogout = () => {
-        localStorage.clear();
+        sessionStorage.clear();
         window.dispatchEvent(new Event('glowbook_update'));
         router.push('/auth/login');
     };
@@ -211,7 +211,7 @@ export default function ProfilePage() {
     const saveProfile = (updates: Partial<CustomerProfile>) => {
         const updated = { ...profile, ...updates };
         setProfile(updated);
-        localStorage.setItem('glowbook_customer', JSON.stringify(updated));
+        sessionStorage.setItem('glowbook_customer', JSON.stringify(updated));
         setSavedMsg('Ändringar sparade!');
         setTimeout(() => setSavedMsg(''), 2000);
     };
@@ -220,7 +220,7 @@ export default function ProfilePage() {
         const balance = loyalty.providerBalances.find(b => b.providerId === providerId);
         if (!balance || balance.currentPoints < tier.pointsCost) return;
 
-        const userId = JSON.parse(localStorage.getItem('glowbook_customer') || '{}').id;
+        const userId = JSON.parse(sessionStorage.getItem('glowbook_customer') || '{}').id;
 
         try {
             const response = await fetch('/api/loyalty/redeem', {
@@ -355,7 +355,7 @@ export default function ProfilePage() {
             }
         };
         setProfile(updated);
-        localStorage.setItem('glowbook_customer', JSON.stringify(updated));
+        sessionStorage.setItem('glowbook_customer', JSON.stringify(updated));
         setShowCardModal(false);
         setCardForm({ number: '', expiry: '', cvc: '', name: '' });
         setSavedMsg('Kort tillagt!');
@@ -366,7 +366,7 @@ export default function ProfilePage() {
         const { bankDetails, ...rest } = profile as any;
         const updated = rest as CustomerProfile;
         setProfile(updated);
-        localStorage.setItem('glowbook_customer', JSON.stringify(updated));
+        sessionStorage.setItem('glowbook_customer', JSON.stringify(updated));
         setSavedMsg('Kortet har tagits bort');
         setTimeout(() => setSavedMsg(''), 3000);
     };

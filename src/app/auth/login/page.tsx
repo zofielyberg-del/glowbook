@@ -40,12 +40,12 @@ export default function LoginPage() {
                 return;
             }
 
-            // Success! Store data in localStorage (maintaining existing UI logic)
+            // Success! Store data in sessionStorage (maintaining existing UI logic)
             if (role === 'provider' && data.salon) {
-                localStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
+                sessionStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
                 router.push('/provider');
             } else {
-                localStorage.setItem('glowbook_customer', JSON.stringify(data.user));
+                sessionStorage.setItem('glowbook_customer', JSON.stringify(data.user));
                 router.push('/profile');
             }
 
@@ -66,7 +66,7 @@ export default function LoginPage() {
 
         if (role === 'provider') {
             // Provider MUST have existing account
-            const existingSalon = localStorage.getItem('glowbook_salon');
+            const existingSalon = sessionStorage.getItem('glowbook_salon');
             if (!existingSalon) {
                 setLoginError('Inget utförarkonto hittades. Registrera dig först via "Starta som studio".');
                 return;
@@ -76,7 +76,7 @@ export default function LoginPage() {
             router.push('/provider');
         } else {
             // Customer: log in or create
-            const existingCustomer = localStorage.getItem('glowbook_customer');
+            const existingCustomer = sessionStorage.getItem('glowbook_customer');
             if (existingCustomer) {
                 window.dispatchEvent(new Event('glowbook_update'));
                 router.push('/profile');
@@ -101,13 +101,13 @@ export default function LoginPage() {
                     .then(res => res.json())
                     .then(data => {
                         if (data.success && data.profile) {
-                            localStorage.setItem('glowbook_customer', JSON.stringify({ ...newProfile, id: data.profile.id }));
+                            sessionStorage.setItem('glowbook_customer', JSON.stringify({ ...newProfile, id: data.profile.id }));
                             window.dispatchEvent(new Event('glowbook_update'));
                             router.push('/profile');
                         }
                     })
                     .catch(() => {
-                        localStorage.setItem('glowbook_customer', JSON.stringify(newProfile));
+                        sessionStorage.setItem('glowbook_customer', JSON.stringify(newProfile));
                         window.dispatchEvent(new Event('glowbook_update'));
                         router.push('/profile');
                     });
@@ -203,7 +203,7 @@ export default function LoginPage() {
                             {loginError && (
                                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500 font-medium text-center">
                                     {loginError}
-                                    {role === 'provider' && !localStorage.getItem('glowbook_salon') && (
+                                    {role === 'provider' && !sessionStorage.getItem('glowbook_salon') && (
                                         <div className="mt-2 text-[10px] uppercase font-bold">
                                             <Link href="/auth/register" className="text-foreground hover:underline">
                                                 → Starta som studio
