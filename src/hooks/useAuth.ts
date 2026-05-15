@@ -36,6 +36,11 @@ export function useAuth() {
                     if (serverResult.success) {
                         data = { ...data, ...serverResult.salon };
                         localStorage.setItem('glowbook_salon', JSON.stringify(data));
+                    } else if (serverResult.error === 'Salon not found') {
+                        // DB was cleared, remove from local storage
+                        localStorage.removeItem('glowbook_salon');
+                        setState({ user: null, role: 'guest', isLoading: false });
+                        return;
                     }
                 } catch (e) {
                     console.error('Failed to refresh salon data from server:', e);
@@ -45,7 +50,25 @@ export function useAuth() {
             const role: Role = data.role === 'practitioner' ? 'practitioner' : 'salon_owner';
             setState({ user: data, role, isLoading: false });
         } else if (customerData) {
-            setState({ user: JSON.parse(customerData), role: 'customer', isLoading: false });
+            const data = JSON.parse(customerData);
+            
+            // For customers, also try to verify if they exist if they have a real ID
+            if (data.id && data.id.length > 20) {
+                try {
+                    const response = await fetch(`/api/admin/data`); // We can use the admin data or a specific user check
+                    const result = await response.json();
+                    if (result.success) {
+                        const exists = result.users.some((u: any) => u.id === data.id);
+                        if (!exists) {
+                            localStorage.removeItem('glowbook_customer');
+                            setState({ user: null, role: 'guest', isLoading: false });
+                            return;
+                        }
+                    }
+                } catch (e) {}
+            }
+            
+            setState({ user: data, role: 'customer', isLoading: false });
         } else {
             setState({ user: null, role: 'guest', isLoading: false });
         }
