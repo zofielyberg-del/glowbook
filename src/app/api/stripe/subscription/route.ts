@@ -4,19 +4,24 @@ import { stripe } from '@/lib/stripe';
 
 export async function POST(req: Request) {
     try {
-        const { tier, salonId, salonEmail } = await req.json();
+        const { tier, duration, salonId, salonEmail } = await req.json();
 
-        // Map tiers to Stripe Price IDs (User needs to create these in Stripe Dashboard)
-        const priceMap: Record<string, string> = {
-            'bas': process.env.STRIPE_PRICE_ID_BAS || '',
-            'pro': process.env.STRIPE_PRICE_ID_PRO || '',
-            'luxe': process.env.STRIPE_PRICE_ID_LUXE || '',
+        // Map tiers and durations to Stripe Price IDs
+        // Fallback to monthly price if specific duration price is not provided
+        const getPriceId = (tier: string, duration: number) => {
+            const prefix = `STRIPE_PRICE_${tier.toUpperCase()}`;
+            
+            if (duration === 3) return process.env[`${prefix}_3`] || process.env[prefix] || '';
+            if (duration === 6) return process.env[`${prefix}_6`] || process.env[prefix] || '';
+            if (duration === 12) return process.env[`${prefix}_12`] || process.env[prefix] || '';
+            
+            return process.env[prefix] || process.env[`STRIPE_PRICE_ID_${tier.toUpperCase()}`] || '';
         };
 
-        const priceId = priceMap[tier];
+        const priceId = getPriceId(tier, duration || 1);
 
         if (!priceId) {
-            return NextResponse.json({ error: 'Invalid tier or Price ID missing in .env' }, { status: 400 });
+            return NextResponse.json({ error: `Price ID for ${tier} (duration: ${duration}) missing in .env` }, { status: 400 });
         }
 
         const session = await stripe.checkout.sessions.create({

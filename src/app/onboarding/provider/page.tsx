@@ -149,6 +149,7 @@ export default function ProviderOnboarding() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tier: formData.tier,
+                    duration: formData.duration,
                     salonId: realId,
                     salonEmail: salonEmail
                 })
