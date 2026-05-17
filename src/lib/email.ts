@@ -69,13 +69,19 @@ export const sendProviderWelcomeEmail = async (email: string, salonName: string)
     `;
 
     try {
-        await resend.emails.send({
+        const { data, error } = await resend.emails.send({
             from: `Glowbook <${FROM_EMAIL}>`,
             to: email,
             subject: 'Välkommen till Glowbook! ✨',
             html: getHtmlWrapper(htmlContent),
         });
-        return { success: true };
+        
+        if (error) {
+            console.error('Resend API Error (Welcome):', error);
+            return { success: false, error };
+        }
+        
+        return { success: true, data };
     } catch (error) {
         console.error('Error sending welcome email:', error);
         return { success: false, error };
@@ -117,13 +123,19 @@ export const sendCustomerBookingConfirmation = async (
     `;
 
     try {
-        await resend.emails.send({
+        const { data, error } = await resend.emails.send({
             from: `Glowbook Bokning <${FROM_EMAIL}>`,
             to: email,
             subject: `Din bokning hos ${salonName} är bekräftad`,
             html: getHtmlWrapper(htmlContent),
         });
-        return { success: true };
+        
+        if (error) {
+            console.error('Resend API Error (Customer):', error);
+            return { success: false, error };
+        }
+        
+        return { success: true, data };
     } catch (error) {
         console.error('Error sending customer confirmation:', error);
         return { success: false, error };
@@ -164,13 +176,19 @@ export const sendProviderBookingNotification = async (
     `;
 
     try {
-        await resend.emails.send({
+        const { data, error } = await resend.emails.send({
             from: `Glowbook System <${FROM_EMAIL}>`,
             to: providerEmail,
             subject: `Ny bokning: ${serviceName} med ${customerName}`,
             html: getHtmlWrapper(htmlContent),
         });
-        return { success: true };
+        
+        if (error) {
+            console.error('Resend API Error (Provider):', error);
+            return { success: false, error };
+        }
+        
+        return { success: true, data };
     } catch (error) {
         console.error('Error sending provider notification:', error);
         return { success: false, error };
