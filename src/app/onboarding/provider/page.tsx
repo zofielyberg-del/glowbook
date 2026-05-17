@@ -4,7 +4,7 @@
 import Header from "@/components/layout/Header";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronRight, Store, MapPin, User, ShieldCheck, Star, CreditCard, Sparkles } from "lucide-react";
+import { Check, ChevronRight, Store, MapPin, User, ShieldCheck, Star, CreditCard, Sparkles, Hourglass } from "lucide-react";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
@@ -162,9 +162,13 @@ export default function ProviderOnboarding() {
                 // Save to local storage
                 localStorage.setItem('glowbook_salon', JSON.stringify({ ...newSalon, id: realId }));
                 
-                // Small delay for the success UI
+                // Small delay for the success UI, then open in new window
                 setTimeout(() => {
-                    window.location.href = stripeData.url;
+                    const newWindow = window.open(stripeData.url, '_blank');
+                    // Fallback: If popup blocker blocks the new tab, redirect in the same tab instead of breaking the flow
+                    if (!newWindow) {
+                        window.location.href = stripeData.url;
+                    }
                 }, 800);
             } else {
                 throw new Error(stripeData.error || 'Failed to create payment session');
@@ -277,15 +281,15 @@ export default function ProviderOnboarding() {
                                                     className="flex flex-col items-center gap-4"
                                                 >
                                                     <motion.div 
-                                                        animate={{ rotate: 360, scale: [1, 1.2, 1] }}
-                                                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                                        className="text-6xl drop-shadow-2xl"
+                                                        animate={{ rotate: [0, 180, 180, 360] }}
+                                                        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", times: [0, 0.4, 0.5, 1] }}
+                                                        className="text-champagne-500 drop-shadow-2xl"
                                                     >
-                                                        ✨
+                                                        <Hourglass size={64} strokeWidth={1.5} />
                                                     </motion.div>
-                                                    <div className="space-y-1 text-center">
-                                                        <p className="text-sm font-bold text-champagne-600">Din salong förbereds! ✨</p>
-                                                        <p className="text-[10px] text-foreground/40">Tar dig vidare till säker betalning...</p>
+                                                    <div className="space-y-1 text-center mt-2">
+                                                        <p className="text-sm font-bold text-champagne-600">Förbereder betalning...</p>
+                                                        <p className="text-[10px] text-foreground/40">Ett nytt fönster öppnas för Stripe.</p>
                                                     </div>
                                                 </motion.div>
                                             )}
