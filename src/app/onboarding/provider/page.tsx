@@ -245,9 +245,9 @@ export default function ProviderOnboarding() {
                                         </div>
 
                                         <div className="space-y-1">
-                                            <p className="text-xs text-foreground/40 uppercase font-bold tracking-widest">Totalt efter provperiod</p>
+                                            <p className="text-xs text-foreground/40 uppercase font-bold tracking-widest">Kostnad efter provperiod</p>
                                             <p className="text-3xl font-bold text-foreground">
-                                                {calculatePrice(formData.tier, formData.duration).total} {currency}
+                                                {calculatePrice(formData.tier, formData.duration).monthly} {currency} <span className="text-sm text-foreground/50 font-normal">/ mån</span>
                                             </p>
                                             <p className="text-[10px] text-foreground/40 mt-1">Inga kostnader under din 30-dagars provperiod.</p>
                                         </div>
@@ -466,7 +466,7 @@ export default function ProviderOnboarding() {
                                                     )}
                                                 >
                                                     <span className="text-[10px] font-bold">{d.label}</span>
-                                                    <span className="text-[9px] opacity-60 font-medium leading-none mt-0.5">{prices.total} {currency}</span>
+                                                    <span className="text-[9px] opacity-60 font-medium leading-none mt-0.5">{prices.monthly} {currency} / mån</span>
                                                     {d.badge && (
                                                         <span className="absolute -top-3 -right-1 bg-champagne-500 text-white text-[8px] px-2 py-0.5 rounded-full ring-2 ring-card font-black shadow-lg">
                                                             {d.badge}
