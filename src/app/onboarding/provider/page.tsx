@@ -276,12 +276,12 @@ export default function ProviderOnboarding() {
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     className="flex flex-col items-center gap-4"
                                                 >
-                                                    <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg">
-                                                        <Check size={32} strokeWidth={3} />
+                                                    <div className="w-16 h-16 bg-champagne-500 rounded-full flex items-center justify-center text-white shadow-lg animate-pulse">
+                                                        <Sparkles size={32} strokeWidth={2} className="animate-spin-slow" />
                                                     </div>
                                                     <div className="space-y-1 text-center">
-                                                        <p className="text-sm font-bold text-emerald-600">Allt klart!</p>
-                                                        <p className="text-[10px] text-foreground/40">Skickar dig till säker betalsida...</p>
+                                                        <p className="text-sm font-bold text-champagne-600">Din salong förbereds! ✨</p>
+                                                        <p className="text-[10px] text-foreground/40">Tar dig vidare till säker betalning...</p>
                                                     </div>
                                                 </motion.div>
                                             )}
