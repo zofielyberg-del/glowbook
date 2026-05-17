@@ -438,13 +438,25 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Secondary Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              {/* Secondary Actions / Galaxy Glow Style */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full mt-4">
                 <Link
                   href="/auth/register?role=provider"
-                  className="inline-flex items-center px-8 py-3 bg-card dark:bg-transparent text-foreground border border-black/10 dark:border-white/20 rounded-full font-bold text-xs tracking-widest uppercase transition-all hover:border-black/30 dark:hover:border-white/40 shadow-sm"
+                  className="relative group/glow"
                 >
-                  {t('home_hero_cta_register')}
+                  {/* Outer ambient glow */}
+                  <div className="absolute -inset-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-champagne-400 rounded-full blur-lg opacity-30 group-hover/glow:opacity-60 transition duration-1000" />
+                  
+                  {/* Button surface */}
+                  <div className="relative flex items-center gap-3 px-10 py-4 bg-[#060713]/90 backdrop-blur-xl rounded-full border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] overflow-hidden">
+                    {/* Inner highlight */}
+                    <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-50" />
+                    
+                    <span className="text-white font-bold text-xs sm:text-sm tracking-[0.2em] uppercase">
+                      {t('home_hero_cta_register')}
+                    </span>
+                    <Sparkles size={16} className="text-purple-400 group-hover/glow:text-champagne-400 transition-colors duration-500" />
+                  </div>
                 </Link>
               </div>
             </div>
