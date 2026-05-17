@@ -245,10 +245,15 @@ export default function ProviderOnboarding() {
                                         </div>
 
                                         <div className="space-y-1">
-                                            <p className="text-xs text-foreground/40 uppercase font-bold tracking-widest">Kostnad efter provperiod</p>
+                                            <p className="text-xs text-foreground/40 uppercase font-bold tracking-widest">Belopp att debiteras efter provperiod</p>
                                             <p className="text-3xl font-bold text-foreground">
-                                                {calculatePrice(formData.tier, formData.duration).monthly} {currency} <span className="text-sm text-foreground/50 font-normal">/ mån</span>
+                                                {calculatePrice(formData.tier, formData.duration).total} {currency}
                                             </p>
+                                            {formData.duration > 1 && (
+                                                <p className="text-xs font-bold text-emerald-600 mt-1">
+                                                    Motsvarar endast {calculatePrice(formData.tier, formData.duration).monthly} {currency} / mån!
+                                                </p>
+                                            )}
                                             <p className="text-[10px] text-foreground/40 mt-1">Inga kostnader under din 30-dagars provperiod.</p>
                                         </div>
 
@@ -466,7 +471,8 @@ export default function ProviderOnboarding() {
                                                     )}
                                                 >
                                                     <span className="text-[10px] font-bold">{d.label}</span>
-                                                    <span className="text-[9px] opacity-60 font-medium leading-none mt-0.5">{prices.monthly} {currency} / mån</span>
+                                                    <span className="text-[9px] opacity-60 font-medium leading-none mt-0.5">{prices.total} {currency}</span>
+                                                    {d.value > 1 && <span className="text-[8px] text-emerald-600 font-bold mt-1">Motsvarar {prices.monthly} kr/mån</span>}
                                                     {d.badge && (
                                                         <span className="absolute -top-3 -right-1 bg-champagne-500 text-white text-[8px] px-2 py-0.5 rounded-full ring-2 ring-card font-black shadow-lg">
                                                             {d.badge}
@@ -585,7 +591,8 @@ export default function ProviderOnboarding() {
                                                     <p className="text-xs text-white/30">{formData.duration} mån bindningstid</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-2xl font-bold text-champagne-400">{calculatePrice(formData.tier, formData.duration).monthly} {currency}<span className="text-sm font-normal text-white/40">/mån</span></p>
+                                                    <p className="text-2xl font-bold text-champagne-400">{calculatePrice(formData.tier, formData.duration).total} {currency}</p>
+                                                    {formData.duration > 1 && <p className="text-[10px] text-emerald-400 mt-1">Motsvarar {calculatePrice(formData.tier, formData.duration).monthly} kr/mån</p>}
                                                 </div>
                                             </div>
                                         </div>
@@ -618,7 +625,7 @@ export default function ProviderOnboarding() {
                                         </div>
 
                                         <p className="text-[10px] text-foreground/30 text-center px-8 leading-relaxed">
-                                            Genom att fortsätta godkänner du våra användarvillkor. Efter 30 dagars gratis provperiod debiteras {calculatePrice(formData.tier, formData.duration).monthly} {currency}/mån via Stripe.
+                                            Genom att fortsätta godkänner du våra användarvillkor. Efter 30 dagars gratis provperiod debiteras en förskottsbetalning på {calculatePrice(formData.tier, formData.duration).total} {currency} för din valda period via Stripe.
                                         </p>
                                     </div>
                                 </motion.div>
