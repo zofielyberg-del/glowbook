@@ -455,7 +455,6 @@ export default function Home() {
                     <span className="text-white font-bold text-xs sm:text-sm tracking-[0.2em] uppercase">
                       {t('home_hero_cta_register')}
                     </span>
-                    <Sparkles size={16} className="text-champagne-400 group-hover/glow:text-white transition-colors duration-500" />
                   </div>
                 </Link>
               </div>
