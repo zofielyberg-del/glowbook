@@ -445,7 +445,7 @@ export default function Home() {
                   className="relative group/glow"
                 >
                   {/* Outer ambient glow */}
-                  <div className="absolute -inset-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-champagne-400 rounded-full blur-lg opacity-30 group-hover/glow:opacity-60 transition duration-1000" />
+                  <div className="absolute -inset-1.5 bg-gradient-to-r from-champagne-300 via-champagne-500 to-champagne-700 rounded-full blur-lg opacity-30 group-hover/glow:opacity-60 transition duration-1000" />
                   
                   {/* Button surface */}
                   <div className="relative flex items-center gap-3 px-10 py-4 bg-[#060713]/90 backdrop-blur-xl rounded-full border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] overflow-hidden">
@@ -455,7 +455,7 @@ export default function Home() {
                     <span className="text-white font-bold text-xs sm:text-sm tracking-[0.2em] uppercase">
                       {t('home_hero_cta_register')}
                     </span>
-                    <Sparkles size={16} className="text-purple-400 group-hover/glow:text-champagne-400 transition-colors duration-500" />
+                    <Sparkles size={16} className="text-champagne-400 group-hover/glow:text-white transition-colors duration-500" />
                   </div>
                 </Link>
               </div>
