@@ -281,9 +281,9 @@ export default function ProviderOnboarding() {
                                                     className="flex flex-col items-center gap-4"
                                                 >
                                                     <motion.div 
-                                                        animate={{ rotate: [0, 180, 180, 360, 360] }}
-                                                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", times: [0, 0.4, 0.5, 0.9, 1] }}
-                                                        className="text-champagne-500 drop-shadow-2xl"
+                                                        animate={{ rotate: 360 }}
+                                                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                                        className="text-champagne-500 drop-shadow-[0_0_15px_rgba(229,211,179,0.3)]"
                                                     >
                                                         <Hourglass size={64} strokeWidth={1.5} />
                                                     </motion.div>
