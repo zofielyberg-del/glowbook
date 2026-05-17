@@ -70,7 +70,7 @@ export const sendProviderWelcomeEmail = async (email: string, salonName: string)
 
     try {
         await resend.emails.send({
-            from: \`Glowbook <\${FROM_EMAIL}>\`,
+            from: `Glowbook <${FROM_EMAIL}>`,
             to: email,
             subject: 'Välkommen till Glowbook! ✨',
             html: getHtmlWrapper(htmlContent),
@@ -118,9 +118,9 @@ export const sendCustomerBookingConfirmation = async (
 
     try {
         await resend.emails.send({
-            from: \`Glowbook Bokning <\${FROM_EMAIL}>\`,
+            from: `Glowbook Bokning <${FROM_EMAIL}>`,
             to: email,
-            subject: \`Din bokning hos \${salonName} är bekräftad\`,
+            subject: `Din bokning hos ${salonName} är bekräftad`,
             html: getHtmlWrapper(htmlContent),
         });
         return { success: true };
@@ -165,9 +165,9 @@ export const sendProviderBookingNotification = async (
 
     try {
         await resend.emails.send({
-            from: \`Glowbook System <\${FROM_EMAIL}>\`,
+            from: `Glowbook System <${FROM_EMAIL}>`,
             to: providerEmail,
-            subject: \`Ny bokning: \${serviceName} med \${customerName}\`,
+            subject: `Ny bokning: ${serviceName} med ${customerName}`,
             html: getHtmlWrapper(htmlContent),
         });
         return { success: true };
