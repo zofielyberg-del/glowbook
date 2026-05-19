@@ -29,7 +29,8 @@ export async function POST(req: Request) {
         }
 
         // Calculate duration (minutes)
-        const duration = Math.round((appointment.end_time.getTime() - appointment.start_time.getTime()) / 60000);
+        const endTime = appointment.end_time || new Date(appointment.start_time.getTime() + 30 * 60000);
+        const duration = Math.round((endTime.getTime() - appointment.start_time.getTime()) / 60000);
 
         // Parse new date and time correctly
         const startDateTime = new Date(`${newDate}T${newStartTime}`);
