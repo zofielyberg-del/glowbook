@@ -145,7 +145,8 @@ export async function POST(req: Request) {
                     serviceName,
                     date,
                     startTime,
-                    `${price} SEK`
+                    `${price} SEK`,
+                    appointment.id
                 );
             }
         } catch (customerEmailErr) {

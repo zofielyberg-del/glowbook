@@ -97,7 +97,8 @@ export const sendCustomerBookingConfirmation = async (
     serviceName: string, 
     dateStr: string, 
     timeStr: string,
-    priceStr: string
+    priceStr: string,
+    appointmentId?: string
 ) => {
     const htmlContent = `
         <h1>Bokning bekräftad! ✅</h1>
@@ -118,7 +119,14 @@ export const sendCustomerBookingConfirmation = async (
             <div class="value">${priceStr}</div>
         </div>
         
+        ${appointmentId ? `
+        <div style="text-align: center; margin: 32px 0 16px 0;">
+            <a href="https://glowbook.se/booking/manage/${appointmentId}" class="btn" style="background-color: #C5A059; color: #fff;">Om- / Avboka tid</a>
+            <p style="font-size: 11px; color: #999; margin-top: 10px;">Ändra eller avboka din tid säkert och smidigt utan inloggning.</p>
+        </div>
+        ` : `
         <p>För att avboka eller ändra din tid, vänligen kontakta salongen direkt eller logga in på din profil.</p>
+        `}
     `;
 
     try {
@@ -137,6 +145,100 @@ export const sendCustomerBookingConfirmation = async (
         return { success: true, data };
     } catch (error) {
         console.error('Error sending customer confirmation:', error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * 2b. Booking Cancellation for Customers
+ */
+export const sendCustomerCancellationEmail = async (
+    email: string, 
+    customerName: string, 
+    salonName: string, 
+    serviceName: string, 
+    dateStr: string, 
+    timeStr: string
+) => {
+    const htmlContent = `
+        <h1 style="color: #d32f2f;">Bokning avbokad ❌</h1>
+        <p>Hej ${customerName},</p>
+        <p>Din bokade behandling hos <strong>${salonName}</strong> har avbokats enligt dina önskemål.</p>
+        
+        <div class="card">
+            <div class="label">Avbokad Behandling</div>
+            <div class="value">${serviceName}</div>
+            
+            <div class="label">Ursprunglig Tid</div>
+            <div class="value">${dateStr} kl ${timeStr}</div>
+            
+            <div class="label">Salong</div>
+            <div class="value">${salonName}</div>
+        </div>
+        
+        <p>Du är alltid varmt välkommen att boka en ny tid hos oss på Glowbook när det passar dig!</p>
+        <div style="text-align: center; margin-top: 24px;">
+            <a href="https://glowbook.se/explore" class="btn">Hitta ny tid</a>
+        </div>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: `Glowbook Bokning <${FROM_EMAIL}>`,
+            to: email,
+            subject: `Avbokningsbekräftelse: ${serviceName} hos ${salonName}`,
+            html: getHtmlWrapper(htmlContent),
+        });
+        return { success: !error, error };
+    } catch (error) {
+        console.error('Error sending customer cancellation email:', error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * 2c. Booking Cancellation for Providers
+ */
+export const sendProviderCancellationEmail = async (
+    providerEmail: string, 
+    salonName: string,
+    customerName: string, 
+    serviceName: string, 
+    dateStr: string, 
+    timeStr: string
+) => {
+    const htmlContent = `
+        <h1 style="color: #d32f2f;">Avbokad tid ❌</h1>
+        <p>Hej ${salonName},</p>
+        <p>Kunden <strong>${customerName}</strong> har avbokat sin tid.</p>
+        
+        <div class="card">
+            <div class="label">Kund</div>
+            <div class="value">${customerName}</div>
+            
+            <div class="label">Avbokad Behandling</div>
+            <div class="value">${serviceName}</div>
+            
+            <div class="label">Avbokad Tid</div>
+            <div class="value">${dateStr} kl ${timeStr}</div>
+        </div>
+        
+        <p>Denna tid har nu öppnats upp i din kalender så att andra kunder kan boka den.</p>
+        <div style="text-align: center; margin-top: 24px;">
+            <a href="https://glowbook.se/admin/calendar" class="btn">Gå till din Kalender</a>
+        </div>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: `Glowbook System <${FROM_EMAIL}>`,
+            to: providerEmail,
+            subject: `Avbokning: ${serviceName} - ${customerName}`,
+            html: getHtmlWrapper(htmlContent),
+        });
+        return { success: !error, error };
+    } catch (error) {
+        console.error('Error sending provider cancellation email:', error);
         return { success: false, error };
     }
 };

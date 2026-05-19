@@ -1,10 +1,11 @@
 async function run() {
     try {
-        const res = await fetch("https://sofiesrepository.vercel.app/api/test-email?email=zofielyberg@gmail.com");
+        console.log("Triggering live test email on glowbook.se...");
+        const res = await fetch("https://glowbook.se/api/test-email?email=zofielyberg@gmail.com");
         const json = await res.json();
-        console.log(JSON.stringify(json, null, 2));
+        console.log("Response:", JSON.stringify(json, null, 2));
     } catch(e) {
-        console.error(e);
+        console.error("Fetch failed:", e);
     }
 }
 run();
