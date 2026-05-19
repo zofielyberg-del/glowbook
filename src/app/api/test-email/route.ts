@@ -45,6 +45,9 @@ export async function GET(request: Request) {
                 log.push(`   - Välkomstmail kraschade: ${err.message}`);
             }
 
+            // Small delay to respect Resend's 5 requests/sec limit
+            await new Promise(resolve => setTimeout(resolve, 350));
+
             // B. Booking Confirmation
             const appointment = salon.appointments[0];
             const service = salon.services[0];
@@ -72,6 +75,9 @@ export async function GET(request: Request) {
             } else {
                 log.push(`   - Ingen bokning hittades för denna salong i databasen.`);
             }
+
+            // Small delay to respect Resend's 5 requests/sec limit
+            await new Promise(resolve => setTimeout(resolve, 350));
         }
 
         return NextResponse.json({
