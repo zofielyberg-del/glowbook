@@ -10,15 +10,11 @@
     }
   </style>
 
-  <!-- The Interlocking 'G' and 'b' -->
-  <g transform="translate(8, 0)">
+  <!-- Clean, ultra-minimalist 'G' and 'b' perfectly balanced -->
+  <g transform="translate(48, 12)">
     <!-- 'G' in Black/White depending on system theme -->
-    <text x="110" y="350" font-family="'Comfortaa', 'Outfit', -apple-system, sans-serif" font-size="280" font-weight="900" class="glow-letter" letter-spacing="-5">G</text>
-    <!-- 'b' in Champagne Gold (book style) -->
-    <text x="265" y="350" font-family="'Comfortaa', 'Outfit', -apple-system, sans-serif" font-size="280" font-weight="400" fill="#C5A059" letter-spacing="-5">b</text>
+    <text x="50" y="340" font-family="'Comfortaa', 'Outfit', -apple-system, sans-serif" font-size="290" font-weight="900" class="glow-letter" letter-spacing="-8">G</text>
+    <!-- 'b' in Champagne Gold -->
+    <text x="210" y="340" font-family="'Comfortaa', 'Outfit', -apple-system, sans-serif" font-size="290" font-weight="400" fill="#C5A059" letter-spacing="-8">b</text>
   </g>
-
-  <!-- Luxury Diamond Spark at the top right to represent "Glow" -->
-  <path d="M 370 140 Q 400 170 430 140 Q 400 110 370 140 Z" fill="#C5A059" />
-  <path d="M 370 140 Q 400 170 430 140 Q 400 110 370 140 Z" fill="#C5A059" transform="rotate(90, 400, 140)" />
 </svg>
