@@ -10,11 +10,6 @@
     }
   </style>
 
-  <!-- Clean, ultra-minimalist 'G' and 'b' perfectly balanced -->
-  <g transform="translate(48, 12)">
-    <!-- 'G' in Black/White depending on system theme -->
-    <text x="50" y="340" font-family="'Comfortaa', 'Outfit', -apple-system, sans-serif" font-size="290" font-weight="900" class="glow-letter" letter-spacing="-8">G</text>
-    <!-- 'b' in Champagne Gold -->
-    <text x="210" y="340" font-family="'Comfortaa', 'Outfit', -apple-system, sans-serif" font-size="290" font-weight="400" fill="#C5A059" letter-spacing="-8">b</text>
-  </g>
+  <!-- Single, iconic, perfectly centered 'G' representing "Glow" -->
+  <text x="50%" y="360" text-anchor="middle" font-family="'Comfortaa', 'Outfit', -apple-system, sans-serif" font-size="340" font-weight="900" class="glow-letter">G</text>
 </svg>
