@@ -1,15 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <style>
-    .glow-letter {
-      fill: #000000;
+    .book-page {
+      stroke: #000000;
     }
     @media (prefers-color-scheme: dark) {
-      .glow-letter {
-        fill: #ffffff;
+      .book-page {
+        stroke: #ffffff;
       }
     }
   </style>
 
-  <!-- Single, iconic, perfectly centered 'G' representing "Glow" -->
-  <text x="50%" y="360" text-anchor="middle" font-family="'Comfortaa', 'Outfit', -apple-system, sans-serif" font-size="340" font-weight="900" class="glow-letter">G</text>
+  <!-- Clean, ultra-minimalist open book icon -->
+  <!-- Left Page Leaf -->
+  <path d="M 236 170 C 160 140, 100 160, 70 190 L 70 350 C 100 320, 160 300, 236 330" 
+        fill="none" class="book-page" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Right Page Leaf -->
+  <path d="M 276 170 C 352 140, 412 160, 442 190 L 442 350 C 412 320, 352 300, 276 330" 
+        fill="none" class="book-page" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Gold Spine/Bookmark in the center -->
+  <path d="M 256 160 L 256 380" 
+        fill="none" stroke="#C5A059" stroke-width="32" stroke-linecap="round" />
 </svg>
