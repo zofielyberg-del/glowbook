@@ -16,15 +16,15 @@ const getHtmlWrapper = (content: string) => `
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #fafafa; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
-      .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; margin-top: 40px; margin-bottom: 40px; box-shadow: 0 4px 24px rgba(0,0,0,0.04); overflow: hidden; }
-      .header { text-align: center; padding: 40px 20px; background-color: #ffffff; border-bottom: 1px solid #f2f2f2; }
-      .logo { font-size: 28px; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; text-decoration: none; margin: 0; line-height: 1; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+      .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; margin-top: 40px; margin-bottom: 40px; border: 1px solid #f0f0f0; box-shadow: 0 8px 30px rgba(0,0,0,0.03); overflow: hidden; }
+      .header { text-align: center; padding: 40px 20px; background-color: #ffffff; border-bottom: 1px solid #f5f5f5; }
+      .logo { font-size: 28px; font-weight: 800; text-decoration: none; margin: 0; line-height: 1; letter-spacing: -0.04em; }
       .content { color: #333; font-size: 16px; line-height: 1.6; padding: 40px; }
-      .footer { text-align: center; padding: 30px; color: #999; font-size: 12px; background-color: #f9f9f9; border-top: 1px solid #eee; }
+      .footer { text-align: center; padding: 30px; color: #999; font-size: 12px; background-color: #ffffff; border-top: 1px solid #f5f5f5; }
       h1 { font-size: 24px; font-weight: 800; margin-top: 0; margin-bottom: 24px; color: #111; letter-spacing: -0.5px; }
-      .btn { display: inline-block; background-color: #111; color: #fff; padding: 16px 32px; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 14px; margin-top: 24px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-      .btn:hover { background-color: #333; }
+      .btn { display: inline-block; background-color: #000000; color: #ffffff; padding: 16px 32px; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 14px; margin-top: 24px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+      .btn:hover { background-color: #C5A059; }
       .card { background-color: #fafafa; border-radius: 16px; padding: 24px; margin: 32px 0; border: 1px solid #eee; }
       .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-bottom: 4px; }
       .value { font-size: 16px; color: #111; font-weight: 600; margin-bottom: 16px; }
@@ -36,7 +36,7 @@ const getHtmlWrapper = (content: string) => `
     <div class="container">
       <div class="header">
         <p class="logo">
-          <span style="color: #000000;">GLOW</span><span style="color: #C5A059;">BOOK</span>
+          <span style="color: #000000; font-weight: 900;">Glow</span><span style="color: #C5A059; font-weight: 400;">book</span>
         </p>
       </div>
       <div class="content">
