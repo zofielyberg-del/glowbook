@@ -1,25 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <style>
-    .book-page {
-      stroke: #000000;
+    .badge-bg {
+      fill: #ffffff;
+      stroke: #f0f0f0;
+    }
+    .glow-letter {
+      fill: #000000;
     }
     @media (prefers-color-scheme: dark) {
-      .book-page {
-        stroke: #ffffff;
+      .badge-bg {
+        fill: #000000;
+        stroke: #1a1a1a;
+      }
+      .glow-letter {
+        fill: #ffffff;
       }
     }
   </style>
 
-  <!-- Clean, ultra-minimalist open book icon -->
-  <!-- Left Page Leaf -->
-  <path d="M 236 170 C 160 140, 100 160, 70 190 L 70 350 C 100 320, 160 300, 236 330" 
-        fill="none" class="book-page" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
-  
-  <!-- Right Page Leaf -->
-  <path d="M 276 170 C 352 140, 412 160, 442 190 L 442 350 C 412 320, 352 300, 276 330" 
-        fill="none" class="book-page" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Dynamic theme-aware background badge -->
+  <rect width="504" height="504" x="4" y="4" rx="140" class="badge-bg" stroke-width="8" />
 
-  <!-- Gold Spine/Bookmark in the center -->
-  <path d="M 256 160 L 256 380" 
-        fill="none" stroke="#C5A059" stroke-width="32" stroke-linecap="round" />
+  <!-- The Interlocking 'G' and 'b' -->
+  <g transform="translate(8, 0)">
+    <!-- 'G' in Black/White depending on system theme -->
+    <text x="110" y="350" font-family="'Comfortaa', 'Outfit', -apple-system, sans-serif" font-size="280" font-weight="900" class="glow-letter" letter-spacing="-5">G</text>
+    <!-- 'b' in Champagne Gold (book style) -->
+    <text x="265" y="350" font-family="'Comfortaa', 'Outfit', -apple-system, sans-serif" font-size="280" font-weight="400" fill="#C5A059" letter-spacing="-5">b</text>
+  </g>
+
+  <!-- Luxury Diamond Spark at the top right to represent "Glow" -->
+  <path d="M 370 140 Q 400 170 430 140 Q 400 110 370 140 Z" fill="#C5A059" />
+  <path d="M 370 140 Q 400 170 430 140 Q 400 110 370 140 Z" fill="#C5A059" transform="rotate(90, 400, 140)" />
 </svg>
