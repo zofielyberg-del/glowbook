@@ -492,7 +492,6 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                                 <Calendar 
                                     availability={computedAvailability}
                                     onSelectSlot={handleSelectSlot}
-                                    selectedSlot={selectedDateSlot ? { date: selectedDateSlot.fullDate, time: selectedDateSlot.time } : null}
                                 />
                             </div>
 
