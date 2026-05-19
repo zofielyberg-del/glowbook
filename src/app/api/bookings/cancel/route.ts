@@ -63,7 +63,7 @@ export async function POST(req: Request) {
                     appointment.customer_email,
                     appointment.customer_name || 'Kund',
                     salonName,
-                    appointment.service_name,
+                    appointment.service_name || 'Behandling',
                     bookingDateStr,
                     startTimeStr
                 );
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
                     providerEmail,
                     salonName,
                     appointment.customer_name || 'Kund',
-                    appointment.service_name,
+                    appointment.service_name || 'Behandling',
                     bookingDateStr,
                     startTimeStr
                 );

@@ -90,7 +90,7 @@ export async function POST(req: Request) {
                     appointment.customer_email,
                     appointment.customer_name || 'Kund',
                     salonName,
-                    `[OMBOKAD] ${appointment.service_name}`,
+                    `[OMBOKAD] ${appointment.service_name || 'Behandling'}`,
                     newDate,
                     newStartTime,
                     `${appointment.total_price} SEK`,
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
                     salonName,
                     `${appointment.customer_name} (OMBOKAD)`,
                     appointment.customer_email || '',
-                    appointment.service_name,
+                    appointment.service_name || 'Behandling',
                     newDate,
                     newStartTime
                 );
