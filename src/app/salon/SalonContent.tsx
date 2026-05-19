@@ -49,6 +49,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [selectedPractitioner, setSelectedPractitioner] = useState<any>(null);
     const [selectedTime, setSelectedTime] = useState<{ day: string; time: string; fullDate: string; dayIndex: number } | null>(null);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'onsite' | 'stripe' | 'giftcard'>('onsite');
+    const [giftCardSecondaryMethod, setGiftCardSecondaryMethod] = useState<'onsite' | 'stripe'>('onsite');
     const [isBooked, setIsBooked] = useState(false);
     const [galleryLightbox, setGalleryLightbox] = useState<number | null>(null);
     const [giftCardCode, setGiftCardCode] = useState('');
@@ -66,6 +67,48 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [useGlowpoints, setUseGlowpoints] = useState(false);
     const [selectedReward, setSelectedReward] = useState<any>(null);
     const [status, setStatus] = useState<'loading' | 'ready'>('loading');
+
+    const basePrice = useMemo(() => {
+        return Number(
+            (selectedService?.sale_price && (!selectedService?.sale_ends_at || new Date(selectedService.sale_ends_at) > new Date()))
+                ? selectedService.sale_price
+                : (selectedService?.price || 0)
+        );
+    }, [selectedService]);
+
+    const addonsPrice = useMemo(() => {
+        return selectedAddons.reduce((acc, id) => {
+            const addon = (salon?.addons || []).find((a: any) => a.id === id);
+            return acc + Number(addon?.price || 0);
+        }, 0);
+    }, [selectedAddons, salon?.addons]);
+
+    const originalTotal = useMemo(() => {
+        let total = basePrice + addonsPrice;
+        // Apply Glowpoints Reward Discount
+        if (useGlowpoints && selectedReward) {
+            if (selectedReward.id.includes('50 kr')) total = Math.max(0, total - 50);
+            if (selectedReward.id.includes('100 kr')) total = Math.max(0, total - 100);
+            if (selectedReward.label.includes('20%')) total = Math.floor(total * 0.8);
+            if (selectedReward.label.includes('30%')) total = Math.floor(total * 0.7);
+            if (selectedReward.label.includes('50%')) total = Math.floor(total * 0.5);
+            if (selectedReward.label.includes('Gratis tillägg')) {
+                const addonPrices = selectedAddons.map(id => (salon?.addons || []).find((a: any) => a.id === id)?.price || 0);
+                if (addonPrices.length > 0) total -= Math.max(...addonPrices);
+            }
+        }
+        return total;
+    }, [basePrice, addonsPrice, useGlowpoints, selectedReward, selectedAddons, salon?.addons]);
+
+    const giftCardDiscount = useMemo(() => {
+        return selectedPaymentMethod === 'giftcard' && giftCardStatus?.valid
+            ? Math.min(originalTotal, Number(giftCardStatus.balance))
+            : 0;
+    }, [selectedPaymentMethod, giftCardStatus, originalTotal]);
+
+    const finalTotal = useMemo(() => {
+        return originalTotal - giftCardDiscount;
+    }, [originalTotal, giftCardDiscount]);
 
     useEffect(() => {
         const checkCustomerLogin = () => {
@@ -187,33 +230,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             }
         } catch { }
 
-        const effectivePrice = (selectedService?.sale_price && (!selectedService?.sale_ends_at || new Date(selectedService.sale_ends_at) > new Date()))
-            ? selectedService.sale_price
-            : (selectedService?.price || 0);
-
-        let totalAmount = effectivePrice + selectedAddons.reduce((acc, id) => {
-            const addon = (salon.addons || []).find((a: any) => a.id === id);
-            return acc + (addon?.price || 0);
-        }, 0);
-
-        // Apply Glowpoints Reward Discount
-        if (useGlowpoints && selectedReward) {
-            if (selectedReward.id.includes('50 kr')) totalAmount = Math.max(0, totalAmount - 50);
-            if (selectedReward.id.includes('100 kr')) totalAmount = Math.max(0, totalAmount - 100);
-            if (selectedReward.label.includes('20%')) totalAmount = Math.floor(totalAmount * 0.8);
-            if (selectedReward.label.includes('30%')) totalAmount = Math.floor(totalAmount * 0.7);
-            if (selectedReward.label.includes('50%')) totalAmount = Math.floor(totalAmount * 0.5);
-            if (selectedReward.label.includes('Gratis tillägg')) {
-                // Find most expensive addon and subtract it
-                const addonPrices = selectedAddons.map(id => (salon.addons || []).find((a: any) => a.id === id)?.price || 0);
-                if (addonPrices.length > 0) totalAmount -= Math.max(...addonPrices);
-            }
-        }
-
         try {
             // 1. Redeeming Gift Card if selected
             if (selectedPaymentMethod === 'giftcard' && giftCardStatus?.valid) {
-                const amountToRedeem = Math.min(totalAmount, giftCardStatus.balance);
+                const amountToRedeem = giftCardDiscount;
                 const redeemResponse = await fetch('/api/giftcards/redeem', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -249,6 +269,12 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 }
             }
 
+            const actualPaymentMethod = selectedPaymentMethod === 'giftcard' && finalTotal > 0
+                ? giftCardSecondaryMethod
+                : selectedPaymentMethod;
+
+            const isStripePayment = actualPaymentMethod === 'stripe';
+
             // 2. Create Appointment
             const bookingResponse = await fetch('/api/bookings/confirm', {
                 method: 'POST',
@@ -261,11 +287,11 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     date: selectedTime.fullDate,
                     dayIndex: selectedTime.dayIndex,
                     duration: selectedService.duration || 30,
-                    price: totalAmount,
+                    price: finalTotal,
                     customerInfo,
-                    paymentMethod: selectedPaymentMethod,
+                    paymentMethod: actualPaymentMethod,
                     rewardInfo: useGlowpoints ? selectedReward : null,
-                    status: selectedPaymentMethod === 'stripe' ? 'pending_payment' : 'confirmed'
+                    status: isStripePayment ? 'pending_payment' : 'confirmed'
                 }),
             });
 
@@ -276,7 +302,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             }
 
             // 3. Handle Payment Redirect if needed
-            if (selectedPaymentMethod === 'stripe') {
+            if (isStripePayment) {
                 const checkoutResponse = await fetch('/api/bookings/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -284,7 +310,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         appointmentId: bookingData.appointmentId,
                         salonId: salon.id,
                         serviceName: selectedService.name,
-                        price: totalAmount,
+                        price: finalTotal,
                         customerEmail: customerInfo.email
                     }),
                 });
@@ -313,7 +339,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             startTime: selectedTime.time,
                             duration: selectedService.duration || 30,
                             dayIndex: selectedTime.dayIndex,
-                            price: totalAmount,
+                            price: finalTotal,
                             status: 'confirmed',
                             practitionerId: selectedPractitioner?.id || 'owner',
                             color: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
@@ -1302,6 +1328,44 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                             {giftCardStatus.message}
                                                                         </div>
                                                                     )}
+
+                                                                    {giftCardStatus?.valid && finalTotal > 0 && (
+                                                                        <div className="mt-4 pt-4 border-t border-champagne-500/10 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40">Välj betalsätt för resterande {finalTotal} {salon.currency || 'kr'}</p>
+                                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                                <div
+                                                                                    onClick={() => setGiftCardSecondaryMethod('onsite')}
+                                                                                    className={clsx(
+                                                                                        "p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3",
+                                                                                        giftCardSecondaryMethod === 'onsite'
+                                                                                            ? "border-champagne-500 bg-champagne-500/10 text-champagne-700 ring-1 ring-champagne-500 font-bold"
+                                                                                            : "border-border/60 bg-card hover:border-foreground/10 text-foreground/60"
+                                                                                    )}
+                                                                                >
+                                                                                    <Wallet size={16} />
+                                                                                    <div className="text-left">
+                                                                                        <h6 className="font-bold text-xs">Betala på plats</h6>
+                                                                                    </div>
+                                                                                </div>
+                                                                                {salon.stripe_account_id && (
+                                                                                    <div
+                                                                                        onClick={() => setGiftCardSecondaryMethod('stripe')}
+                                                                                        className={clsx(
+                                                                                            "p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3",
+                                                                                            giftCardSecondaryMethod === 'stripe'
+                                                                                                ? "border-blue-500 bg-blue-500/10 text-blue-700 ring-1 ring-blue-500 font-bold"
+                                                                                                : "border-border/60 bg-card hover:border-blue-500/10 text-foreground/60"
+                                                                                        )}
+                                                                                    >
+                                                                                        <CreditCard size={16} />
+                                                                                        <div className="text-left">
+                                                                                            <h6 className="font-bold text-xs">Betala online</h6>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1362,113 +1426,92 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                 </div>
 
                                                 {/* Summary Sidebar */}
-                                                {(() => {
-                                                    const basePrice = Number(
-                                                        (selectedService?.sale_price && (!selectedService?.sale_ends_at || new Date(selectedService.sale_ends_at) > new Date()))
-                                                            ? selectedService.sale_price
-                                                            : (selectedService?.price || 0)
-                                                    );
-                                                    const addonsPrice = selectedAddons.reduce((acc, id) => {
-                                                        const addon = (salon.addons || []).find((a: any) => a.id === id);
-                                                        return acc + Number(addon?.price || 0);
-                                                    }, 0);
-                                                    const originalTotal = basePrice + addonsPrice;
-                                                    
-                                                    const giftCardDiscount = selectedPaymentMethod === 'giftcard' && giftCardStatus?.valid
-                                                        ? Math.min(originalTotal, Number(giftCardStatus.balance))
-                                                        : 0;
-                                                    
-                                                    const finalTotal = originalTotal - giftCardDiscount;
+                                                <div className="lg:col-span-2 space-y-6">
+                                                    <div className="bg-foreground/[0.03] rounded-3xl p-6 border border-border sticky top-4 space-y-4">
+                                                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground/30 border-b border-border pb-4">Sammanfattning</h3>
 
-                                                    return (
-                                                        <div className="lg:col-span-2 space-y-6">
-                                                            <div className="bg-foreground/[0.03] rounded-3xl p-6 border border-border sticky top-4 space-y-4">
-                                                                <h3 className="text-sm font-black uppercase tracking-widest text-foreground/30 border-b border-border pb-4">Sammanfattning</h3>
+                                                        <div className="space-y-4">
+                                                            <div>
+                                                                <p className="text-[10px] font-bold text-foreground/30 uppercase">Tjänst</p>
+                                                                <p className="text-sm font-bold">{selectedService?.name}</p>
+                                                            </div>
+                                                            <div className="flex justify-between items-center text-xs">
+                                                                <span className="text-foreground/40">{selectedService?.duration} min</span>
+                                                                <span className="font-bold">
+                                                                    {basePrice} {salon.currency || 'kr'}
+                                                                </span>
+                                                            </div>
 
-                                                                <div className="space-y-4">
-                                                                    <div>
-                                                                        <p className="text-[10px] font-bold text-foreground/30 uppercase">Tjänst</p>
-                                                                        <p className="text-sm font-bold">{selectedService?.name}</p>
-                                                                    </div>
-                                                                    <div className="flex justify-between items-center text-xs">
-                                                                        <span className="text-foreground/40">{selectedService?.duration} min</span>
-                                                                        <span className="font-bold">
-                                                                            {basePrice} {salon.currency || 'kr'}
-                                                                        </span>
-                                                                    </div>
-
-                                                                    {selectedAddons.length > 0 && (
-                                                                        <div className="pt-2 border-t border-border/50 space-y-2">
-                                                                            {selectedAddons.map(id => {
-                                                                                const addon = (salon.addons || []).find((a: any) => a.id === id);
-                                                                                return (
-                                                                                    <div key={id} className="flex justify-between items-center text-[10px]">
-                                                                                        <span className="text-foreground/40">+ {addon?.name}</span>
-                                                                                        <span className="font-bold text-foreground/60">{addon?.price} {salon.currency || 'kr'}</span>
-                                                                                    </div>
-                                                                                );
-                                                                            })}
-                                                                        </div>
-                                                                    )}
-
-                                                                    <div className="pt-4 border-t border-border space-y-1">
-                                                                        <p className="text-[10px] font-bold text-foreground/30 uppercase">{t('salon_date_time').replace(' & ', ' & Utförare')} </p>
-                                                                        <p className="text-sm font-bold capitalize">{selectedTime?.day}, {selectedTime?.time}</p>
-                                                                        <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest">{selectedPractitioner?.name || 'Utförare'}</p>
-                                                                    </div>
+                                                            {selectedAddons.length > 0 && (
+                                                                <div className="pt-2 border-t border-border/50 space-y-2">
+                                                                    {selectedAddons.map(id => {
+                                                                        const addon = (salon.addons || []).find((a: any) => a.id === id);
+                                                                        return (
+                                                                            <div key={id} className="flex justify-between items-center text-[10px]">
+                                                                                <span className="text-foreground/40">+ {addon?.name}</span>
+                                                                                <span className="font-bold text-foreground/60">{addon?.price} {salon.currency || 'kr'}</span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
+                                                            )}
 
-                                                                {giftCardDiscount > 0 && (
-                                                                    <div className="pt-4 border-t border-border/50 flex justify-between items-center text-xs text-green-600 font-bold">
-                                                                        <span>Presentkort ({giftCardCode})</span>
-                                                                        <span>-{giftCardDiscount} {salon.currency || 'kr'}</span>
-                                                                    </div>
-                                                                )}
-
-                                                                <div className="pt-4 border-t border-border flex justify-between items-end">
-                                                                    <span className="text-[10px] font-bold text-foreground/30 uppercase">Totalt</span>
-                                                                    <span className="text-xl font-bold">
-                                                                        {finalTotal} {salon.currency || 'kr'}
-                                                                    </span>
-                                                                </div>
-
-                                                                <button
-                                                                    disabled={!isFormValid || (selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid)}
-                                                                    onClick={handleConfirmBooking}
-                                                                    className={clsx(
-                                                                        "w-full py-5 rounded-2xl font-bold text-sm transition-all shadow-xl active:scale-95",
-                                                                        isFormValid && (selectedPaymentMethod !== 'giftcard' || giftCardStatus?.valid)
-                                                                            ? "bg-foreground text-background hover:bg-champagne-600 hover:text-white shadow-black/10"
-                                                                            : "bg-foreground/5 text-foreground/20 cursor-not-allowed shadow-none"
-                                                                    )}
-                                                                >
-                                                                    {!isFormValid
-                                                                        ? 'Fyll i dina uppgifter'
-                                                                        : selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid
-                                                                            ? 'Validera presentkort först'
-                                                                            : `✓ ${t('salon_book_now')}`}
-                                                                </button>
-                                                                {!isFormValid && (
-                                                                    <p className="text-[10px] text-center text-red-500/60 font-medium">
-                                                                        Vänligen fyll i alla fält för att boka
-                                                                    </p>
-                                                                )}
-
-                                                                {!isCustomerLoggedIn && bookingType === 'guest' && (
-                                                                    <div className="text-center pt-2 border-t border-border/20">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => setBookingType('none')}
-                                                                            className="text-[10px] font-bold text-foreground/40 hover:text-champagne-600 transition-colors underline"
-                                                                        >
-                                                                            Logga in istället
-                                                                        </button>
-                                                                    </div>
-                                                                )}
+                                                            <div className="pt-4 border-t border-border space-y-1">
+                                                                <p className="text-[10px] font-bold text-foreground/30 uppercase">{t('salon_date_time').replace(' & ', ' & Utförare')} </p>
+                                                                <p className="text-sm font-bold capitalize">{selectedTime?.day}, {selectedTime?.time}</p>
+                                                                <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest">{selectedPractitioner?.name || 'Utförare'}</p>
                                                             </div>
                                                         </div>
-                                                    );
-                                                })()}
+
+                                                        {giftCardDiscount > 0 && (
+                                                            <div className="pt-4 border-t border-border/50 flex justify-between items-center text-xs text-green-600 font-bold">
+                                                                <span>Presentkort ({giftCardCode})</span>
+                                                                <span>-{giftCardDiscount} {salon.currency || 'kr'}</span>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="pt-4 border-t border-border flex justify-between items-end">
+                                                            <span className="text-[10px] font-bold text-foreground/30 uppercase">Totalt</span>
+                                                            <span className="text-xl font-bold">
+                                                                {finalTotal} {salon.currency || 'kr'}
+                                                            </span>
+                                                        </div>
+
+                                                        <button
+                                                            disabled={!isFormValid || (selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid)}
+                                                            onClick={handleConfirmBooking}
+                                                            className={clsx(
+                                                                "w-full py-5 rounded-2xl font-bold text-sm transition-all shadow-xl active:scale-95",
+                                                                isFormValid && (selectedPaymentMethod !== 'giftcard' || giftCardStatus?.valid)
+                                                                    ? "bg-foreground text-background hover:bg-champagne-600 hover:text-white shadow-black/10"
+                                                                    : "bg-foreground/5 text-foreground/20 cursor-not-allowed shadow-none"
+                                                            )}
+                                                        >
+                                                            {!isFormValid
+                                                                ? 'Fyll i dina uppgifter'
+                                                                : selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid
+                                                                    ? 'Validera presentkort först'
+                                                                    : `✓ ${t('salon_book_now')}`}
+                                                        </button>
+                                                        {!isFormValid && (
+                                                            <p className="text-[10px] text-center text-red-500/60 font-medium">
+                                                                Vänligen fyll i alla fält för att boka
+                                                            </p>
+                                                        )}
+
+                                                        {!isCustomerLoggedIn && bookingType === 'guest' && (
+                                                            <div className="text-center pt-2 border-t border-border/20">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setBookingType('none')}
+                                                                    className="text-[10px] font-bold text-foreground/40 hover:text-champagne-600 transition-colors underline"
+                                                                >
+                                                                    Logga in istället
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
 
