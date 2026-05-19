@@ -40,7 +40,8 @@ export async function POST(req: Request) {
                 gallery_images: salonInfo.galleryImages || salonInfo.gallery_images || [],
                 membership_tier: (salonInfo.tier || salonInfo.membership_tier || 'bas').toLowerCase(),
                 subscription_status: salonInfo.subscription_status || 'active',
-                availability: salonInfo.availability || []
+                availability: salonInfo.availability || [],
+                cancellation_window_hours: salonInfo.cancellation_window_hours !== undefined ? parseInt(salonInfo.cancellation_window_hours) : 24
             };
 
             // Try find by ID first

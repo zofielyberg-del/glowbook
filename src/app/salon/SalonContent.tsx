@@ -219,7 +219,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         code: giftCardCode.trim().toUpperCase(),
-                        amount: amountToRedeem
+                        amount: amountToRedeem,
+                        salonName: salon.name
                     }),
                 });
                 const redeemData = await redeemResponse.json();

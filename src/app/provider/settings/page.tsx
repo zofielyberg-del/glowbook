@@ -57,6 +57,7 @@ function SettingsContent() {
         slug: '',
         stripeConnected: false,
         subscription_status: 'none' as string,
+        cancellation_window_hours: 24,
     });
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
     const [isSubmittingVerification, setIsSubmittingVerification] = useState(false);
@@ -1404,35 +1405,79 @@ function SettingsContent() {
 
                         {/* ===== NOTISER TAB ===== */}
                         {activeTab === 'notifications' && (
-                            <section className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-6">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400 rounded-lg">
-                                        <Bell size={20} />
-                                    </div>
-                                    <h2 className="text-xl font-bold text-foreground">{t('tab_notifications')}</h2>
-                                </div>
-                                <p className="text-foreground/50 text-sm">{t('desc_notifications_settings')}</p>
-
-                                <div className="space-y-4">
-                                    {[
-                                        { label: t('notif_new_bookings'), desc: t('notif_new_bookings_desc'), defaultOn: true },
-                                        { label: t('notif_cancellations'), desc: t('notif_cancellations_desc'), defaultOn: true },
-                                        { label: t('notif_reminders'), desc: t('notif_reminders_desc'), defaultOn: false },
-                                        { label: t('notif_marketing'), desc: t('notif_marketing_desc'), defaultOn: false },
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
-                                            <div>
-                                                <p className="font-bold text-foreground text-sm">{item.label}</p>
-                                                <p className="text-xs text-foreground/40">{item.desc}</p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" defaultChecked={item.defaultOn} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-background border border-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-card after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-foreground transition-colors"></div>
-                                            </label>
+                            <>
+                                <section className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-6">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="p-2 bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400 rounded-lg">
+                                            <Bell size={20} />
                                         </div>
-                                    ))}
-                                </div>
-                            </section>
+                                        <h2 className="text-xl font-bold text-foreground">{t('tab_notifications')}</h2>
+                                    </div>
+                                    <p className="text-foreground/50 text-sm">{t('desc_notifications_settings')}</p>
+
+                                    <div className="space-y-4">
+                                        {[
+                                            { label: t('notif_new_bookings'), desc: t('notif_new_bookings_desc'), defaultOn: true },
+                                            { label: t('notif_cancellations'), desc: t('notif_cancellations_desc'), defaultOn: true },
+                                            { label: t('notif_reminders'), desc: t('notif_reminders_desc'), defaultOn: false },
+                                            { label: t('notif_marketing'), desc: t('notif_marketing_desc'), defaultOn: false },
+                                        ].map((item, i) => (
+                                            <div key={i} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                                                <div>
+                                                    <p className="font-bold text-foreground text-sm">{item.label}</p>
+                                                    <p className="text-xs text-foreground/40">{item.desc}</p>
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" defaultChecked={item.defaultOn} className="sr-only peer" />
+                                                    <div className="w-11 h-6 bg-background border border-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-card after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-foreground transition-colors"></div>
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                <section className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-6 mt-8">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="p-2 bg-champagne-50 dark:bg-champagne-950/30 text-champagne-700 dark:text-champagne-400 rounded-lg">
+                                            <Clock size={20} />
+                                        </div>
+                                        <h2 className="text-xl font-bold text-foreground">Avbokningspolicy</h2>
+                                    </div>
+                                    <p className="text-foreground/50 text-sm">Bestäm hur långt innan en behandling som kunder har rätt att själva avboka eller omboka sin tid online.</p>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {[
+                                            { value: 24, label: '24 Timmar', desc: 'Standardpolicy. Ger kunder flexibilitet men skyddar din planering.' },
+                                            { value: 48, label: '48 Timmar', desc: 'Mer strikt. Ger dig mer tid att fylla avbokade tider med nya kunder.' }
+                                        ].map((policy) => (
+                                            <button
+                                                key={policy.value}
+                                                type="button"
+                                                onClick={() => setSalonData({ ...salonData, cancellation_window_hours: policy.value })}
+                                                className={clsx(
+                                                    "p-6 rounded-2xl border text-left transition-all space-y-2 relative overflow-hidden group",
+                                                    (salonData.cancellation_window_hours ?? 24) === policy.value 
+                                                        ? "border-champagne-500 bg-champagne-500/5 shadow-md shadow-champagne-500/5" 
+                                                        : "border-border hover:border-champagne-300 hover:bg-champagne-500/[0.01]"
+                                                )}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-bold text-foreground text-base">{policy.label}</span>
+                                                    <div className={clsx(
+                                                        "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
+                                                        (salonData.cancellation_window_hours ?? 24) === policy.value 
+                                                            ? "border-champagne-500 bg-champagne-500 text-white" 
+                                                            : "border-border bg-card group-hover:border-champagne-300"
+                                                    )}>
+                                                        {(salonData.cancellation_window_hours ?? 24) === policy.value && <Check size={12} strokeWidth={3} />}
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-foreground/50 leading-relaxed font-medium">{policy.desc}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+                            </>
                         )}
 
                         {/* ===== MARKNADSFÖRING TAB ===== */}

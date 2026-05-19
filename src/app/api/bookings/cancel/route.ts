@@ -32,6 +32,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Bokningen är redan avbokad' }, { status: 400 });
         }
 
+        // Cancellation policy window check
+        const windowHours = appointment.salon?.cancellation_window_hours ?? 24;
+        const diffMs = new Date(appointment.start_time).getTime() - Date.now();
+        const diffHours = diffMs / (1000 * 60 * 60);
+
+        if (diffHours < windowHours) {
+            return NextResponse.json({ 
+                error: `Avbokning nekad: Denna salong tillåter inte avbokningar mindre än ${windowHours} timmar innan besöket.` 
+            }, { status: 400 });
+        }
+
         // 2. Update status to cancelled in database
         const updatedAppointment = await prisma.appointment.update({
             where: { id: appointmentId },

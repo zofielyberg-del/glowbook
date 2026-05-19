@@ -45,6 +45,52 @@ export default function GiftCardsPage() {
     const [activeView, setActiveView] = useState<'buy' | 'redeem'>('buy');
     const [redeemCode, setRedeemCode] = useState('');
     const [redeemResult, setRedeemResult] = useState<{ success: boolean; message: string; card?: GiftCard } | null>(null);
+    const [isLoadingSession, setIsLoadingSession] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+        const checkStripeSuccess = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const success = params.get('success');
+            const sessionId = params.get('session_id');
+
+            if (success === 'true' && sessionId) {
+                setIsLoadingSession(true);
+                try {
+                    const response = await fetch(`/api/giftcards/by-session?session_id=${sessionId}`);
+                    const data = await response.json();
+
+                    if (!active) return;
+
+                    if (data.success && data.card) {
+                        setIsPurchased(true);
+                        setGeneratedCode(data.card.code);
+                        setSelectedValue(data.card.value);
+                        setRecipient({
+                            to: data.card.recipientName || '',
+                            from: data.card.senderName || '',
+                            email: data.card.recipientEmail || '',
+                            message: data.card.message || ''
+                        });
+                        setIsLoadingSession(false);
+                        // Clean URL
+                        window.history.replaceState({}, document.title, '/giftcards');
+                    } else {
+                        // Webhook might be slightly delayed, retry in 2 seconds
+                        setTimeout(checkStripeSuccess, 2000);
+                    }
+                } catch (error) {
+                    console.error('Error fetching checkout session:', error);
+                    if (active) {
+                        setIsLoadingSession(false);
+                    }
+                }
+            }
+        };
+
+        checkStripeSuccess();
+        return () => { active = false; };
+    }, []);
 
     // BULLSEYE: Gift Card Purchase Processor
     const handlePurchase = async () => {
@@ -159,7 +205,16 @@ export default function GiftCardsPage() {
                     </button>
                 </div>
 
-                <AnimatePresence mode="wait">
+                {isLoadingSession && !isPurchased ? (
+                    <div className="flex flex-col items-center justify-center py-20 space-y-6">
+                        <div className="w-12 h-12 border-4 border-champagne-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="text-center space-y-2">
+                            <h3 className="text-lg font-bold text-foreground">Hämtar ditt presentkort...</h3>
+                            <p className="text-foreground/40 text-xs">Vänligen vänta medan vi bekräftar ditt köp.</p>
+                        </div>
+                    </div>
+                ) : (
+                    <AnimatePresence mode="wait">
 
                     {/* ═══ REDEEM VIEW ═══ */}
                     {activeView === 'redeem' && (
@@ -496,6 +551,7 @@ export default function GiftCardsPage() {
                     )}
 
                 </AnimatePresence>
+                )}
             </main>
 
             {/* Background Decorations */}

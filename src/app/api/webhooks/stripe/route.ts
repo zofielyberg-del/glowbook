@@ -64,8 +64,7 @@ export async function POST(req: Request) {
 
             // 2. Send Email via Resend
             try {
-                await resend.emails.send({
-                    from: 'Glowbook <noreply@glowbook.se>',
+                const emailPayload = {
                     to: recipientEmail,
                     subject: `Ett presentkort från ${senderName}! ✨`,
                     html: `
@@ -83,9 +82,24 @@ export async function POST(req: Request) {
                             <a href="${process.env.NEXT_PUBLIC_APP_URL}/giftcards" style="display: inline-block; padding: 10px 20px; background: #c5a059; color: #fff; text-decoration: none; border-radius: 10px;">Lös in här</a>
                         </div>
                     `
-                });
+                };
+
+                try {
+                    // Try sending with standard verified domain
+                    await resend.emails.send({
+                        from: 'Glowbook <noreply@glowbook.se>',
+                        ...emailPayload
+                    });
+                } catch (firstTryErr) {
+                    console.warn('Failed to send email with glowbook.se domain, trying onboarding@resend.dev sandbox fallback:', firstTryErr);
+                    // Try sending with sandbox fallback
+                    await resend.emails.send({
+                        from: 'Glowbook <onboarding@resend.dev>',
+                        ...emailPayload
+                    });
+                }
             } catch (mailError) {
-                console.error('Mail Error:', mailError);
+                console.error('Mail Error after both attempts:', mailError);
             }
         }
 

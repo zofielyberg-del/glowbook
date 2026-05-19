@@ -296,6 +296,13 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
 
     const isCancelled = appointment.status === 'cancelled';
 
+    // Cancellation policy window check
+    const cancellationWindowHours = appointment.salon?.cancellation_window_hours ?? 24;
+    const appointmentStartTime = new Date(appointment.start_time).getTime();
+    const nowTime = new Date().getTime();
+    const hoursToAppointment = (appointmentStartTime - nowTime) / (1000 * 60 * 60);
+    const isWithinCancellationWindow = hoursToAppointment < cancellationWindowHours;
+
     return (
         <div className="min-h-screen bg-background">
             <Header />
@@ -311,7 +318,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                 <AnimatePresence>
                     {successMessage && (
                         <motion.div 
-                            initial={{ opacity: 0, y: -20 }}
+                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                             className="bg-emerald-500/10 border border-emerald-500/30 rounded-3xl p-6 text-emerald-700 dark:text-emerald-400 flex items-start gap-4"
@@ -380,7 +387,24 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                     </div>
 
                     {/* Actions Panel */}
-                    {!isCancelled && (
+                    {!isCancelled && isWithinCancellationWindow && (
+                        <div className="p-6 bg-rose-500/5 border border-rose-500/10 rounded-3xl space-y-4">
+                            <div className="flex gap-4">
+                                <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 flex-shrink-0">
+                                    <AlertTriangle size={24} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-sm text-foreground">Avbokningspolicy ({cancellationWindowHours}h)</h4>
+                                    <p className="text-xs text-foreground/50 mt-1 leading-relaxed">
+                                        Den här salongen tillämpar en {cancellationWindowHours}-timmars avbokningspolicy. Eftersom din behandling startar om mindre än {cancellationWindowHours} timmar kan du tyvärr inte längre avboka eller omboka din tid själv online. 
+                                        Vänligen kontakta {appointment.salon?.name} direkt om du har frågor eller vill göra ändringar.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {!isCancelled && !isWithinCancellationWindow && (
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
                             <button
                                 onClick={() => setShowRescheduleModal(true)}

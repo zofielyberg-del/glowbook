@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
-import { sendProviderWelcomeEmail } from '@/lib/email';
+import { sendProviderWelcomeEmail, sendCustomerWelcomeEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
     try {
@@ -79,6 +79,14 @@ export async function POST(req: Request) {
                     success: false, 
                     error: 'Kunde inte skapa salongen i databasen: ' + String(salonError) 
                 }, { status: 500 });
+            }
+        } else if (role === 'customer') {
+            // Send Welcome Email to the Customer
+            try {
+                await sendCustomerWelcomeEmail(email, firstName);
+                console.log(`Customer welcome email successfully sent to ${email}`);
+            } catch (emailErr) {
+                console.error('Failed to send customer welcome email:', emailErr);
             }
         }
 

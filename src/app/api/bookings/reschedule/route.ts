@@ -28,6 +28,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
         }
 
+        // Cancellation policy window check
+        const windowHours = appointment.salon?.cancellation_window_hours ?? 24;
+        const diffMs = new Date(appointment.start_time).getTime() - Date.now();
+        const diffHours = diffMs / (1000 * 60 * 60);
+
+        if (diffHours < windowHours) {
+            return NextResponse.json({ 
+                error: `Ombokning nekad: Denna salong tillåter inte ombokningar mindre än ${windowHours} timmar innan besöket.` 
+            }, { status: 400 });
+        }
+
         // Calculate duration (minutes)
         const endTime = appointment.end_time || new Date(appointment.start_time.getTime() + 30 * 60000);
         const duration = Math.round((endTime.getTime() - appointment.start_time.getTime()) / 60000);

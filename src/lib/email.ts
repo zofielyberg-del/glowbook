@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 
 // Initialize Resend with the API Key from environment variables
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || 're_mockKey1234567890');
 
 // The official sending address (make sure this domain is verified in Resend)
 const FROM_EMAIL = 'support@glowbook.se'; 
@@ -83,6 +83,58 @@ export const sendProviderWelcomeEmail = async (email: string, salonName: string)
         return { success: true, data };
     } catch (error) {
         console.error('Error sending welcome email:', error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * 1b. Welcome Email for New Customers
+ */
+export const sendCustomerWelcomeEmail = async (email: string, firstName: string) => {
+    const htmlContent = `
+        <h1>Välkommen till Glowbook! ✨</h1>
+        <p>Hej ${firstName},</p>
+        <p>Vad roligt att du har skapat ett konto hos oss! Med Glowbook har du tillgång till Sveriges mest exklusiva salonger och skönhetsutförare direkt i din ficka.</p>
+        
+        <div class="card" style="background-color: #FAF6EE; border: 1px solid #EAD8B1; border-radius: 20px; padding: 24px; margin: 24px 0;">
+            <h3 style="margin-top: 0; color: #C5A059; font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 1.5px;">⭐ Din Lojalitetsbonus: Glowpoints</h3>
+            <p style="font-size: 13px; line-height: 1.6; margin: 0; color: #444;">
+                Visste du att du tjänar poäng automatiskt varje gång du bokar och slutför en behandling via Glowbook? 
+                För varje <strong>10 kr</strong> du spenderar får du <strong>5 poäng</strong>. Samla poäng för att låsa upp exklusiva rabatter och klättra i medlemsnivåer från Bronze till legendarisk Diamond!
+            </p>
+        </div>
+
+        <div class="card" style="background-color: #F8F9FA; border: 1px solid #E9ECEF; border-radius: 20px; padding: 24px; margin: 24px 0;">
+            <h3 style="margin-top: 0; color: #111; font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 1.5px;">🎁 Visste du?</h3>
+            <p style="font-size: 13px; line-height: 1.6; margin: 0; color: #444;">
+                Du kan köpa digitala <strong>presentkort</strong> på Glowbook och ge bort till någon du tycker om! Presentkortet levereras direkt till mottagarens mail med en unik kod som enkelt kan lösas in vid bokning.
+            </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 32px;">
+            <a href="https://glowbook.se/explore" class="btn" style="background-color: #111; color: #fff; padding: 16px 32px; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Upptäck Salonger</a>
+        </div>
+        
+        <p style="margin-top: 32px; font-size: 13px; color: #666;">Vi ser fram emot att hjälpa dig att stråla!</p>
+        <p>Bästa hälsningar,<br/><strong>Team Glowbook</strong></p>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: `Glowbook <${FROM_EMAIL}>`,
+            to: email,
+            subject: 'Välkommen till Glowbook! ✨',
+            html: getHtmlWrapper(htmlContent),
+        });
+        
+        if (error) {
+            console.error('Resend API Error (Customer Welcome):', error);
+            return { success: false, error };
+        }
+        
+        return { success: true, data };
+    } catch (error) {
+        console.error('Error sending customer welcome email:', error);
         return { success: false, error };
     }
 };
