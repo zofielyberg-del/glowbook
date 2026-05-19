@@ -1,7 +1,7 @@
-
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
+import { sendProviderWelcomeEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
     try {
@@ -64,6 +64,15 @@ export async function POST(req: Request) {
                     }
                 });
                 console.log('SALON & PRACTITIONER CREATED SUCCESSFULLY:', salon.id);
+
+                // Send Welcome Email to the Provider
+                try {
+                    await sendProviderWelcomeEmail(email, salon.name);
+                    console.log(`Welcome email successfully sent to ${email}`);
+                } catch (emailErr) {
+                    console.error('Failed to send welcome email:', emailErr);
+                }
+
             } catch (salonError) {
                 console.error('CRITICAL SALON CREATION ERROR:', salonError);
                 return NextResponse.json({ 

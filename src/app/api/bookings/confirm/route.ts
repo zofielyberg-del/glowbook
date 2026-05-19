@@ -1,6 +1,6 @@
-
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendCustomerBookingConfirmation, sendProviderBookingNotification } from '@/lib/email';
 
 export async function POST(req: Request) {
     try {
@@ -88,6 +88,28 @@ export async function POST(req: Request) {
             console.error('Error syncing customer profile:', profileError);
         }
 
+        // Fetch Salon details to get owner email and salon name
+        let salonName = 'Salongen';
+        let providerEmail = '';
+        if (sid) {
+            try {
+                const salonDetails = await prisma.salon.findUnique({
+                    where: { id: sid },
+                    include: {
+                        owner: {
+                            select: { email: true }
+                        }
+                    }
+                });
+                if (salonDetails) {
+                    salonName = salonDetails.name;
+                    providerEmail = salonDetails.owner?.email || '';
+                }
+            } catch (salonFetchError) {
+                console.error('Error fetching salon details for email notification:', salonFetchError);
+            }
+        }
+
         // 3. Insert appointment
         let appointment;
         try {
@@ -111,6 +133,39 @@ export async function POST(req: Request) {
         } catch (appointmentError) {
             console.error('Error creating appointment:', appointmentError);
             return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
+        }
+
+        // 4. Send Email Notifications
+        try {
+            if (customerInfo.email) {
+                await sendCustomerBookingConfirmation(
+                    customerInfo.email,
+                    `${customerInfo.firstName} ${customerInfo.lastName}`,
+                    salonName,
+                    serviceName,
+                    date,
+                    startTime,
+                    `${price} SEK`
+                );
+            }
+        } catch (customerEmailErr) {
+            console.error('Error sending customer booking email:', customerEmailErr);
+        }
+
+        try {
+            if (providerEmail) {
+                await sendProviderBookingNotification(
+                    providerEmail,
+                    salonName,
+                    `${customerInfo.firstName} ${customerInfo.lastName}`,
+                    customerInfo.email,
+                    serviceName,
+                    date,
+                    startTime
+                );
+            }
+        } catch (providerEmailErr) {
+            console.error('Error sending provider booking email:', providerEmailErr);
         }
 
         return NextResponse.json({

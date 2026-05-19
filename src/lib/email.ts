@@ -4,8 +4,7 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // The official sending address (make sure this domain is verified in Resend)
-// NOTE: Temporarily set to onboarding@resend.dev for testing purposes.
-const FROM_EMAIL = 'onboarding@resend.dev'; 
+const FROM_EMAIL = 'support@glowbook.se'; 
 
 /**
  * Premium HTML Wrapper for all Glowbook emails
