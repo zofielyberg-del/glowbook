@@ -575,6 +575,11 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             }
         }
 
+        // Fix: If a specific practitioner is selected, do NOT fall back to salon-wide availability
+        if (targetPractitioner.id !== 'any') {
+            return [];
+        }
+
         // STRATEGY 2: Fall back to salon.availability frames (from Calendar page)
         const salonAvailability: any[] = salon?.availability || [];
         if (salonAvailability.length === 0) return [];

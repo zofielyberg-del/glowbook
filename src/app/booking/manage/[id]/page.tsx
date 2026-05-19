@@ -202,6 +202,11 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
             }
         }
 
+        // Fix: If a specific practitioner is selected, do NOT fall back to salon-wide availability
+        if (targetP.id && targetP.id !== 'any') {
+            return [];
+        }
+
         // Fallback Strategy 2: Salon availability
         const salonAvailability: any[] = salon.availability || [];
         salonAvailability.forEach((frame: any) => {
