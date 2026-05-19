@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { resend } from '@/lib/resend';
+import { sendGiftCardUsageEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
     try {
@@ -51,38 +51,15 @@ export async function POST(req: Request) {
         // 3. Send email to the giftcard owner notifying them where it was used and the remaining balance
         if (giftCard.recipient_email) {
             const salonDisplay = salonName || 'en av våra anslutna salonger';
-            const emailHtml = `
-                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 20px;">
-                    <h2 style="color: #c5a059;">Glowbook</h2>
-                    <p>Hej ${giftCard.recipient_name || 'mottagare'},</p>
-                    <p>Ditt presentkort har använts hos <strong>${salonDisplay}</strong>.</p>
-                    <div style="background: #fcfcfc; padding: 20px; border-radius: 15px; margin: 20px 0; border: 1px solid #eee;">
-                        <p style="margin: 5px 0;"><strong>Använt belopp:</strong> ${amount} SEK</p>
-                        <p style="margin: 5px 0; color: #c5a059; font-weight: bold;"><strong>Kvarvarande saldo:</strong> ${newBalance} SEK</p>
-                        <p style="margin: 5px 0;"><strong>Presentkortskod:</strong> <code style="background: #eee; padding: 2px 6px; border-radius: 4px;">${giftCard.code}</code></p>
-                    </div>
-                    <p>Hoppas du blir nöjd med din behandling! Om du har några frågor kan du alltid svara på detta mejl.</p>
-                    <p style="font-size: 12px; color: #999;">Tack för att du använder Glowbook.</p>
-                </div>
-            `;
-
             try {
-                try {
-                    await resend.emails.send({
-                        from: 'Glowbook <noreply@glowbook.se>',
-                        to: giftCard.recipient_email,
-                        subject: `Ditt presentkort har använts hos ${salonDisplay}! ✨`,
-                        html: emailHtml
-                    });
-                } catch (firstTryErr) {
-                    console.warn('Failed to send usage notice with glowbook.se domain, trying onboarding@resend.dev fallback:', firstTryErr);
-                    await resend.emails.send({
-                        from: 'Glowbook <onboarding@resend.dev>',
-                        to: giftCard.recipient_email,
-                        subject: `Ditt presentkort har använts hos ${salonDisplay}! ✨`,
-                        html: emailHtml
-                    });
-                }
+                await sendGiftCardUsageEmail(
+                    giftCard.recipient_email,
+                    giftCard.recipient_name || 'mottagare',
+                    salonDisplay,
+                    amount,
+                    giftCard.code,
+                    newBalance
+                );
             } catch (mailError) {
                 console.error('Mail Error sending presentkort usage notice:', mailError);
             }

@@ -18,8 +18,8 @@ const getHtmlWrapper = (content: string) => `
     <style>
       body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #fafafa; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
       .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; margin-top: 40px; margin-bottom: 40px; box-shadow: 0 4px 24px rgba(0,0,0,0.04); overflow: hidden; }
-      .header { text-align: center; padding: 40px 20px; background-color: #111; }
-      .logo { font-size: 28px; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; color: #fff; text-decoration: none; margin: 0; }
+      .header { text-align: center; padding: 40px 20px; background-color: #ffffff; border-bottom: 1px solid #f2f2f2; }
+      .logo { font-size: 28px; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; text-decoration: none; margin: 0; line-height: 1; }
       .content { color: #333; font-size: 16px; line-height: 1.6; padding: 40px; }
       .footer { text-align: center; padding: 30px; color: #999; font-size: 12px; background-color: #f9f9f9; border-top: 1px solid #eee; }
       h1 { font-size: 24px; font-weight: 800; margin-top: 0; margin-bottom: 24px; color: #111; letter-spacing: -0.5px; }
@@ -35,7 +35,9 @@ const getHtmlWrapper = (content: string) => `
   <body>
     <div class="container">
       <div class="header">
-        <p class="logo">GLOWBOOK<span style="color: #C5A059;">.</span></p>
+        <p class="logo">
+          <span style="color: #000000;">GLOW</span><span style="color: #C5A059;">BOOK</span>
+        </p>
       </div>
       <div class="content">
         ${content}
@@ -344,6 +346,124 @@ export const sendProviderBookingNotification = async (
         return { success: true, data };
     } catch (error) {
         console.error('Error sending provider notification:', error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * 4. Premium Gift Card Email
+ */
+export const sendGiftCardEmail = async (
+    email: string,
+    recipientName: string,
+    senderName: string,
+    amount: number,
+    code: string,
+    message?: string,
+    expiresAt?: Date
+) => {
+    const expiresAtStr = expiresAt ? expiresAt.toLocaleDateString('sv-SE') : new Date(Date.now() + 365 * 2 * 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE');
+    
+    const htmlContent = `
+        <h1>Ett presentkort från Glowbook! ✨</h1>
+        <p>Hej ${recipientName},</p>
+        <p>${senderName} har skickat ett digitalt presentkort till dig!</p>
+        
+        <div style="background: #000000; color: #ffffff; padding: 40px; text-align: center; border-radius: 20px; margin: 32px 0; border: 1px solid #111;">
+            <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #C5A059; font-weight: 800;">Presentkort</p>
+            <h1 style="font-size: 48px; margin: 12px 0; color: #ffffff; letter-spacing: -1px; font-weight: 900;">${amount} SEK</h1>
+            <p style="color: #C5A059; font-family: monospace; font-size: 24px; letter-spacing: 3px; margin: 0; font-weight: bold;">${code}</p>
+        </div>
+        
+        ${message ? `
+        <div class="card" style="background-color: #FAF6EE; border: 1px solid #EAD8B1; border-radius: 20px; padding: 24px; margin: 24px 0;">
+            <p style="font-size: 14px; font-style: italic; line-height: 1.6; margin: 0; color: #444; text-align: center;">
+                "${message}"
+            </p>
+        </div>
+        ` : ''}
+        
+        <div style="text-align: center; margin-top: 32px;">
+            <a href="https://www.glowbook.se/giftcards" class="btn" style="background-color: #C5A059; color: #ffffff;">Lös in Presentkort</a>
+        </div>
+        
+        <p style="margin-top: 32px; font-size: 11px; color: #999; text-align: center;">
+            Giltigt till ${expiresAtStr} hos alla Glowbook-anslutna salonger.
+        </p>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: `Glowbook <${FROM_EMAIL}>`,
+            to: email,
+            subject: `Du har fått ett digitalt presentkort! ✨`,
+            html: getHtmlWrapper(htmlContent),
+        });
+        
+        if (error) {
+            console.error('Resend API Error (Gift Card):', error);
+            return { success: false, error };
+        }
+        
+        return { success: true, data };
+    } catch (error) {
+        console.error('Error sending gift card email:', error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * 5. Premium Gift Card Usage Email (Receipt)
+ */
+export const sendGiftCardUsageEmail = async (
+    email: string,
+    recipientName: string,
+    salonName: string,
+    amount: number,
+    code: string,
+    newBalance: number
+) => {
+    const htmlContent = `
+        <h1>Ditt presentkort har använts ✨</h1>
+        <p>Hej ${recipientName},</p>
+        <p>Ditt presentkort har precis använts för en bokning hos <strong>${salonName}</strong>.</p>
+        
+        <div class="card">
+            <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #111; border-bottom: 1px solid #eee; padding-bottom: 10px;">Transaktionsdetaljer</h3>
+            
+            <div class="label">Salong</div>
+            <div class="value">${salonName}</div>
+            
+            <div class="label">Använt belopp</div>
+            <div class="value" style="color: #d32f2f;">-${amount} SEK</div>
+            
+            <div class="label">Kvarvarande saldo</div>
+            <div class="value highlight" style="font-size: 18px; font-weight: 800;">${newBalance} SEK</div>
+            
+            <div class="label">Kod</div>
+            <div class="value" style="font-family: monospace; letter-spacing: 1px;">${code}</div>
+        </div>
+        
+        <p>Hoppas du blir nöjd med din behandling! Om du har några frågor om transaktionen kan du alltid kontakta oss.</p>
+        <p>Bästa hälsningar,<br/><strong>Team Glowbook</strong></p>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: `Glowbook <${FROM_EMAIL}>`,
+            to: email,
+            subject: `Ditt presentkort har använts hos ${salonName} ✨`,
+            html: getHtmlWrapper(htmlContent),
+        });
+        
+        if (error) {
+            console.error('Resend API Error (Gift Card Usage):', error);
+            return { success: false, error };
+        }
+        
+        return { success: true, data };
+    } catch (error) {
+        console.error('Error sending gift card usage email:', error);
         return { success: false, error };
     }
 };

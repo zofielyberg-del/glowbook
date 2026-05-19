@@ -1362,92 +1362,113 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                 </div>
 
                                                 {/* Summary Sidebar */}
-                                                <div className="lg:col-span-2 space-y-6">
-                                                    <div className="bg-foreground/[0.03] rounded-3xl p-6 border border-border sticky top-4 space-y-4">
-                                                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground/30 border-b border-border pb-4">Sammanfattning</h3>
+                                                {(() => {
+                                                    const basePrice = Number(
+                                                        (selectedService?.sale_price && (!selectedService?.sale_ends_at || new Date(selectedService.sale_ends_at) > new Date()))
+                                                            ? selectedService.sale_price
+                                                            : (selectedService?.price || 0)
+                                                    );
+                                                    const addonsPrice = selectedAddons.reduce((acc, id) => {
+                                                        const addon = (salon.addons || []).find((a: any) => a.id === id);
+                                                        return acc + Number(addon?.price || 0);
+                                                    }, 0);
+                                                    const originalTotal = basePrice + addonsPrice;
+                                                    
+                                                    const giftCardDiscount = selectedPaymentMethod === 'giftcard' && giftCardStatus?.valid
+                                                        ? Math.min(originalTotal, Number(giftCardStatus.balance))
+                                                        : 0;
+                                                    
+                                                    const finalTotal = originalTotal - giftCardDiscount;
 
-                                                        <div className="space-y-4">
-                                                            <div>
-                                                                <p className="text-[10px] font-bold text-foreground/30 uppercase">Tjänst</p>
-                                                                <p className="text-sm font-bold">{selectedService?.name}</p>
-                                                            </div>
-                                                            <div className="flex justify-between items-center text-xs">
-                                                                <span className="text-foreground/40">{selectedService?.duration} min</span>
-                                                                <span className="font-bold">
-                                                                    {(selectedService?.sale_price && (!selectedService?.sale_ends_at || new Date(selectedService.sale_ends_at) > new Date()))
-                                                                        ? <span className="text-red-500">{selectedService.sale_price} {salon.currency || 'kr'}</span>
-                                                                        : <span>{selectedService?.price} {salon.currency || 'kr'}</span>
-                                                                    }
-                                                                </span>
-                                                            </div>
+                                                    return (
+                                                        <div className="lg:col-span-2 space-y-6">
+                                                            <div className="bg-foreground/[0.03] rounded-3xl p-6 border border-border sticky top-4 space-y-4">
+                                                                <h3 className="text-sm font-black uppercase tracking-widest text-foreground/30 border-b border-border pb-4">Sammanfattning</h3>
 
-                                                            {selectedAddons.length > 0 && (
-                                                                <div className="pt-2 border-t border-border/50 space-y-2">
-                                                                    {selectedAddons.map(id => {
-                                                                        const addon = (salon.addons || []).find((a: any) => a.id === id);
-                                                                        return (
-                                                                            <div key={id} className="flex justify-between items-center text-[10px]">
-                                                                                <span className="text-foreground/40">+ {addon?.name}</span>
-                                                                                <span className="font-bold text-foreground/60">{addon?.price} {salon.currency || 'kr'}</span>
-                                                                            </div>
-                                                                        );
-                                                                    })}
+                                                                <div className="space-y-4">
+                                                                    <div>
+                                                                        <p className="text-[10px] font-bold text-foreground/30 uppercase">Tjänst</p>
+                                                                        <p className="text-sm font-bold">{selectedService?.name}</p>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center text-xs">
+                                                                        <span className="text-foreground/40">{selectedService?.duration} min</span>
+                                                                        <span className="font-bold">
+                                                                            {basePrice} {salon.currency || 'kr'}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {selectedAddons.length > 0 && (
+                                                                        <div className="pt-2 border-t border-border/50 space-y-2">
+                                                                            {selectedAddons.map(id => {
+                                                                                const addon = (salon.addons || []).find((a: any) => a.id === id);
+                                                                                return (
+                                                                                    <div key={id} className="flex justify-between items-center text-[10px]">
+                                                                                        <span className="text-foreground/40">+ {addon?.name}</span>
+                                                                                        <span className="font-bold text-foreground/60">{addon?.price} {salon.currency || 'kr'}</span>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="pt-4 border-t border-border space-y-1">
+                                                                        <p className="text-[10px] font-bold text-foreground/30 uppercase">{t('salon_date_time').replace(' & ', ' & Utförare')} </p>
+                                                                        <p className="text-sm font-bold capitalize">{selectedTime?.day}, {selectedTime?.time}</p>
+                                                                        <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest">{selectedPractitioner?.name || 'Utförare'}</p>
+                                                                    </div>
                                                                 </div>
-                                                            )}
 
-                                                            <div className="pt-4 border-t border-border space-y-1">
-                                                                <p className="text-[10px] font-bold text-foreground/30 uppercase">{t('salon_date_time').replace(' & ', ' & Utförare')} </p>
-                                                                <p className="text-sm font-bold capitalize">{selectedTime?.day}, {selectedTime?.time}</p>
-                                                                <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest">{selectedPractitioner?.name || 'Utförare'}</p>
+                                                                {giftCardDiscount > 0 && (
+                                                                    <div className="pt-4 border-t border-border/50 flex justify-between items-center text-xs text-green-600 font-bold">
+                                                                        <span>Presentkort ({giftCardCode})</span>
+                                                                        <span>-{giftCardDiscount} {salon.currency || 'kr'}</span>
+                                                                    </div>
+                                                                )}
+
+                                                                <div className="pt-4 border-t border-border flex justify-between items-end">
+                                                                    <span className="text-[10px] font-bold text-foreground/30 uppercase">Totalt</span>
+                                                                    <span className="text-xl font-bold">
+                                                                        {finalTotal} {salon.currency || 'kr'}
+                                                                    </span>
+                                                                </div>
+
+                                                                <button
+                                                                    disabled={!isFormValid || (selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid)}
+                                                                    onClick={handleConfirmBooking}
+                                                                    className={clsx(
+                                                                        "w-full py-5 rounded-2xl font-bold text-sm transition-all shadow-xl active:scale-95",
+                                                                        isFormValid && (selectedPaymentMethod !== 'giftcard' || giftCardStatus?.valid)
+                                                                            ? "bg-foreground text-background hover:bg-champagne-600 hover:text-white shadow-black/10"
+                                                                            : "bg-foreground/5 text-foreground/20 cursor-not-allowed shadow-none"
+                                                                    )}
+                                                                >
+                                                                    {!isFormValid
+                                                                        ? 'Fyll i dina uppgifter'
+                                                                        : selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid
+                                                                            ? 'Validera presentkort först'
+                                                                            : `✓ ${t('salon_book_now')}`}
+                                                                </button>
+                                                                {!isFormValid && (
+                                                                    <p className="text-[10px] text-center text-red-500/60 font-medium">
+                                                                        Vänligen fyll i alla fält för att boka
+                                                                    </p>
+                                                                )}
+
+                                                                {!isCustomerLoggedIn && bookingType === 'guest' && (
+                                                                    <div className="text-center pt-2 border-t border-border/20">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setBookingType('none')}
+                                                                            className="text-[10px] font-bold text-foreground/40 hover:text-champagne-600 transition-colors underline"
+                                                                        >
+                                                                            Logga in istället
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
-
-                                                        <div className="pt-4 border-t border-border flex justify-between items-end">
-                                                            <span className="text-[10px] font-bold text-foreground/30 uppercase">Totalt</span>
-                                                            <span className="text-xl font-bold">
-                                                                {((selectedService?.sale_price && (!selectedService?.sale_ends_at || new Date(selectedService.sale_ends_at) > new Date()))
-                                                                    ? selectedService.sale_price
-                                                                    : (selectedService?.price || 0)) + selectedAddons.reduce((acc, id) => {
-                                                                        const addon = (salon.addons || []).find((a: any) => a.id === id);
-                                                                        return acc + (addon?.price || 0);
-                                                                    }, 0)} {salon.currency || 'kr'}
-                                                            </span>
-                                                        </div>
-
-                                                        <button
-                                                            disabled={!isFormValid || (selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid)}
-                                                            onClick={handleConfirmBooking}
-                                                            className={clsx(
-                                                                "w-full py-5 rounded-2xl font-bold text-sm transition-all shadow-xl active:scale-95",
-                                                                isFormValid && (selectedPaymentMethod !== 'giftcard' || giftCardStatus?.valid)
-                                                                    ? "bg-foreground text-background hover:bg-champagne-600 hover:text-white shadow-black/10"
-                                                                    : "bg-foreground/5 text-foreground/20 cursor-not-allowed shadow-none"
-                                                            )}
-                                                        >
-                                                            {!isFormValid
-                                                                ? 'Fyll i dina uppgifter'
-                                                                : selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid
-                                                                    ? 'Validera presentkort först'
-                                                                    : `✓ ${t('salon_book_now')}`}
-                                                        </button>
-                                                        {!isFormValid && (
-                                                            <p className="text-[10px] text-center text-red-500/60 font-medium">
-                                                                Vänligen fyll i alla fält för att boka
-                                                            </p>
-                                                        )}
-                                                    </div>
-
-                                                    {!isCustomerLoggedIn && bookingType === 'guest' && (
-                                                        <div className="text-center">
-                                                            <button
-                                                                onClick={() => setBookingType('none')}
-                                                                className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20 hover:text-foreground/40 transition-colors"
-                                                            >
-                                                                Byt metod (Gäst → Logga in)
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                    );
+                                                })()}
                                             </div>
                                         )}
 
