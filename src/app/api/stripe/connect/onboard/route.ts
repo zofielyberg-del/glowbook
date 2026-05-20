@@ -24,19 +24,38 @@ export async function POST(req: Request) {
 
         // 2. Create Stripe Account if it doesn't exist
         if (!stripeAccountId) {
+            // Fetch owner email explicitly
+            let ownerEmail: string | undefined;
+            if (salon.owner_id) {
+                const owner = await prisma.profile.findUnique({
+                    where: { id: salon.owner_id },
+                    select: { email: true }
+                });
+                ownerEmail = owner?.email ?? undefined;
+            }
+
+            if (!ownerEmail) {
+                return NextResponse.json({ error: 'Kunde inte hitta ägarens e-postadress' }, { status: 400 });
+            }
+
+            console.log(`Creating Stripe account for salon "${salon.name}" with email: ${ownerEmail}`);
+
             const account = await stripe.accounts.create({
                 type: 'express',
-                country: salon.country === 'Sverige' ? 'SE' : 'SE', // Default to SE for now or map correctly
-                email: salon.owner_id ? (await prisma.profile.findUnique({ where: { id: salon.owner_id } }))?.email : undefined,
+                country: 'SE',
+                email: ownerEmail,
                 capabilities: {
                     card_payments: { requested: true },
                     transfers: { requested: true },
                 },
                 business_type: 'individual',
+                business_profile: {
+                    name: salon.name,
+                },
                 settings: {
                     payouts: {
                         schedule: {
-                            interval: 'manual', // As per user requirement "25th each month" - actually Stripe handles auto better but we can do manual if we want to control it
+                            interval: 'manual',
                         }
                     }
                 }
