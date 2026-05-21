@@ -55,6 +55,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [giftCardCode, setGiftCardCode] = useState('');
     const [giftCardStatus, setGiftCardStatus] = useState<{ valid: boolean; balance: number; message: string } | null>(null);
     const [isCustomerLoggedIn, setIsCustomerLoggedIn] = useState(false);
+    const [isProviderLoggedIn, setIsProviderLoggedIn] = useState(false);
     const [bookingType, setBookingType] = useState<'none' | 'login' | 'guest'>('none');
     const [customerInfo, setCustomerInfo] = useState({
         firstName: '',
@@ -127,6 +128,14 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             } else {
                 setIsCustomerLoggedIn(false);
                 setBookingType('none');
+            }
+
+            // Sync provider state to warn providers beforehand
+            try {
+                const provider = sessionStorage.getItem('glowbook_salon');
+                setIsProviderLoggedIn(!!provider);
+            } catch {
+                setIsProviderLoggedIn(false);
             }
 
             // Check for success redirect from Stripe
@@ -326,6 +335,31 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
             // 5. Local sync for immediate visibility (Demo & Testing)
             try {
+                // Sync to localStorage (Used by provider calendar & dashboard)
+                const localSalon = localStorage.getItem('glowbook_salon');
+                if (localSalon) {
+                    const data = JSON.parse(localSalon);
+                    if (data.id === salon.id) {
+                        const newApt = {
+                            id: bookingData.appointmentId || Date.now().toString(),
+                            clientName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+                            clientEmail: customerInfo.email,
+                            clientPhone: customerInfo.phone,
+                            service: selectedService.name,
+                            startTime: selectedTime.time,
+                            duration: selectedService.duration || 30,
+                            dayIndex: selectedTime.dayIndex,
+                            price: finalTotal,
+                            status: 'confirmed',
+                            practitionerId: selectedPractitioner?.id || 'owner',
+                            color: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                        };
+                        data.appointments = [...(data.appointments || []), newApt];
+                        localStorage.setItem('glowbook_salon', JSON.stringify(data));
+                    }
+                }
+
+                // Sync to sessionStorage
                 const legacySalon = sessionStorage.getItem('glowbook_salon');
                 if (legacySalon) {
                     const data = JSON.parse(legacySalon);
@@ -498,116 +532,111 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         const currentDayIdx = (now.getDay() + 6) % 7;
         const currentMins = now.getHours() * 60 + now.getMinutes();
 
-        // STRATEGY 1: Use practitioner schedules
         const targetPractitioner = selectedPractitioner || { id: 'any' };
-        
-        let practitionersToConsider: any[] = [];
-        const allowedIds = selectedService.practitionerIds || [];
+        const tier = (salon?.tier || 'bas').toLowerCase();
+        const isLuxe = tier === 'luxe';
 
-        if (targetPractitioner.id === 'any') {
+        if (isLuxe) {
+            // Luxe availability logic: Shared calendar frames INTERSECTED with qualified practitioner schedules
+            const allowedIds = selectedService.practitionerIds || [];
             const serviceCat = getServiceCategory(selectedService, salon.category);
-            practitionersToConsider = (salon?.practitioners || []).filter((p: any) => {
-                // Filter by allowedIds if set
+            const allPractitioners = salon?.practitioners || [];
+
+            // 1. Filter out who is qualified to perform this service
+            let qualifiedPractitioners = allPractitioners.filter((p: any) => {
                 if (allowedIds.length > 0 && !allowedIds.includes(p.id)) return false;
-
-                const pCats = p.categories || [];
-                const schedule = p.schedule || {};
-                const hasSchedule = Object.values(schedule).some((day: any) => day && day.active === true);
-                if (!hasSchedule) return false;
-
-                // Only check category if allowedIds is empty
                 if (allowedIds.length === 0) {
-                    if (!serviceCat) return true;
-                    if (pCats.length === 0) return true;
-                    if (!pCats.includes(serviceCat)) return false;
+                    const pCats = p.categories || [];
+                    if (serviceCat && pCats.length > 0 && !pCats.includes(serviceCat)) return false;
                 }
-
                 return true;
             });
-        } else {
-            practitionersToConsider = [targetPractitioner];
-        }
 
-        if (practitionersToConsider.length > 0) {
+            if (targetPractitioner.id !== 'any') {
+                qualifiedPractitioners = qualifiedPractitioners.filter((p: any) => p.id === targetPractitioner.id);
+            }
 
-            // Check if any practitioner actually has schedule data
-            const hasRealScheduleData = practitionersToConsider.some((p: any) => {
-                const schedule = p.schedule || {};
-                return Object.values(schedule).some((day: any) => day && day.active === true);
+            if (qualifiedPractitioners.length === 0) return [];
+
+            const salonAvailability: any[] = salon?.availability || [];
+            if (salonAvailability.length === 0) return [];
+
+            salonAvailability.forEach((frame: any) => {
+                const frameStart = timeToMins(frame.startTime);
+                const frameEnd = frameStart + frame.duration;
+
+                for (let time = frameStart; time <= frameEnd - serviceDuration; time += step) {
+                    const startTimeStr = minsToTime(time);
+                    const startMins = time;
+                    const endMins = time + serviceDuration;
+
+                    // Filter out past times for today
+                    if (frame.dayIndex === currentDayIdx && startMins < currentMins + 15) continue;
+
+                    // 2. Find at least one qualified practitioner who is scheduled and free during this time
+                    let availablePractitionerId: string | null = null;
+
+                    for (const p of qualifiedPractitioners) {
+                        const schedule = p.schedule || {};
+                        const dayData = schedule[frame.dayIndex];
+                        if (!dayData || dayData.active !== true) continue;
+
+                        const slots = dayData.slots || [];
+                        if (slots.length === 0 && dayData.start && dayData.end) {
+                            slots.push({ start: dayData.start, end: dayData.end });
+                        }
+
+                        // Check if time is within practitioner's work slots
+                        const isWithinPractitionerSlot = slots.some((slot: any) => {
+                            const pStart = timeToMins(slot.start);
+                            const pEnd = timeToMins(slot.end);
+                            return (startMins >= pStart && endMins <= pEnd);
+                        });
+                        if (!isWithinPractitionerSlot) continue;
+
+                        // Check if time overlaps with practitioner's breaks
+                        const breaks = dayData.breaks || [];
+                        const hasBreakOverlap = breaks.some((brk: any) => {
+                            const brkStart = timeToMins(brk.start);
+                            const brkEnd = brkStart + brk.duration;
+                            return (startMins < brkEnd && endMins > brkStart);
+                        });
+                        if (hasBreakOverlap) continue;
+
+                        // Check if time overlaps with practitioner's appointments
+                        const hasAptOverlap = appointments.some((apt: any) => {
+                            if (apt.dayIndex !== frame.dayIndex) return false;
+                            if (apt.status === 'cancelled') return false;
+                            const aptPid = apt.practitionerId || 'owner';
+                            if (aptPid !== p.id && aptPid !== 'any') return false;
+
+                            const aptStart = timeToMins(apt.startTime);
+                            const aptEnd = aptStart + (apt.duration || 30);
+                            return (startMins < aptEnd && endMins > aptStart);
+                        });
+                        if (hasAptOverlap) continue;
+
+                        // Found an available practitioner!
+                        availablePractitionerId = p.id;
+                        break; // One is enough to make the slot bookable
+                    }
+
+                    if (availablePractitionerId) {
+                        allFrames.push({
+                            id: `luxe-${frame.id}-${startTimeStr}`,
+                            startTime: startTimeStr,
+                            duration: serviceDuration,
+                            dayIndex: frame.dayIndex,
+                            practitionerId: targetPractitioner.id === 'any' ? availablePractitionerId : targetPractitioner.id
+                        });
+                    }
+                }
             });
 
-            if (hasRealScheduleData) {
-                practitionersToConsider.forEach((p: any) => {
-                    const schedule = p.schedule || {};
-                    Object.entries(schedule).forEach(([dayIndexStr, dayData]: [string, any]) => {
-                        if (dayData && dayData.active === true) {
-                            const dayIndex = parseInt(dayIndexStr);
-                            if (isNaN(dayIndex)) return;
-                            const slots = dayData.slots || [];
-                            if (slots.length === 0 && dayData.start && dayData.end) {
-                                // Only allow start/end fallback if they are explicitly set
-                                slots.push({ start: dayData.start, end: dayData.end });
-                            }
-                            const breaks = dayData.breaks || [];
-
-                            slots.forEach((slot: any) => {
-                                const slotStart = timeToMins(slot.start);
-                                const slotEnd = timeToMins(slot.end);
-
-                                for (let time = slotStart; time <= slotEnd - serviceDuration; time += step) {
-                                    const startTimeStr = minsToTime(time);
-                                    const startMins = time;
-                                    const endMins = time + serviceDuration;
-
-                                    const hasAptOverlap = appointments.some((apt: any) => {
-                                        if (apt.dayIndex !== dayIndex) return false;
-                                        if (apt.status === 'cancelled') return false;
-
-                                        // Only block if the appointment belongs to this practitioner
-                                        // or if it's a legacy 'owner' appointment and we are the owner
-                                        const aptPid = apt.practitionerId || 'owner';
-                                        if (aptPid !== p.id && aptPid !== 'any') return false;
-
-                                        const aptStart = timeToMins(apt.startTime);
-                                        const aptEnd = aptStart + (apt.duration || 30);
-                                        return (startMins < aptEnd && endMins > aptStart);
-                                    });
-                                    if (hasAptOverlap) continue;
-
-                                    const hasBreakOverlap = breaks.some((brk: any) => {
-                                        const brkStart = timeToMins(brk.start);
-                                        const brkEnd = brkStart + brk.duration;
-                                        return (startMins < brkEnd && endMins > brkStart);
-                                    });
-                                    if (hasBreakOverlap) continue;
-
-                                    // Filter out slots that are in the past for today
-                                    if (dayIndex === currentDayIdx && startMins < currentMins + 15) continue;
-
-                                    allFrames.push({
-                                        id: `p-${p.id}-${dayIndex}-${startTimeStr}`,
-                                        startTime: startTimeStr,
-                                        duration: serviceDuration,
-                                        dayIndex: dayIndex,
-                                        practitionerId: p.id
-                                    });
-                                }
-                            });
-                        }
-                    });
-                });
-
-                if (allFrames.length > 0) return allFrames;
-                // If schedule exists but yields no slots, fall through to Strategy 2
-            }
+            return allFrames;
         }
 
-        // Fix: If a specific practitioner is selected, do NOT fall back to salon-wide availability
-        if (targetPractitioner.id !== 'any') {
-            return [];
-        }
-
-        // STRATEGY 2: Fall back to salon.availability frames (from Calendar page)
+        // Standard/fallback availability logic (BAS & PRO): Salon-wide shared calendar
         const salonAvailability: any[] = salon?.availability || [];
         if (salonAvailability.length === 0) return [];
 
@@ -644,7 +673,6 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
         return allFrames;
     }, [selectedPractitioner, selectedService, salon]);
-
     const matchingPractitioners = useMemo(() => {
         if (!selectedService || !salon) return [];
         const allowedIds = selectedService.practitionerIds || [];
@@ -1071,9 +1099,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             <div className="flex-1 overflow-auto p-5 md:p-8 bg-card no-scrollbar">
                                 {bookingStep === 2 ? (
                                     <div className="space-y-8">
-                                        <div className="bg-champagne-50 dark:bg-champagne-950/20 p-6 rounded-3xl border border-champagne-100 dark:border-champagne-900/10 flex items-center gap-4 text-champagne-800 dark:text-champagne-300">
-                                            <p className="text-sm font-medium">Bokningsbar tid visas i kalendern nedan. Klicka på en ledig tid för att välja.</p>
-                                        </div>
+                                        <div className="bg-champagne-50/70 dark:bg-champagne-950/30 p-5 rounded-3xl border border-champagne-200 dark:border-champagne-900/40 flex items-center gap-3.5 text-neutral-950 dark:text-neutral-50 shadow-sm">
+                                             <span className="w-8 h-8 rounded-full bg-champagne-500/10 text-champagne-600 dark:text-champagne-400 flex items-center justify-center text-base shrink-0 font-bold">📅</span>
+                                             <p className="text-xs sm:text-sm font-semibold tracking-wide leading-relaxed">Bokningsbar tid visas i kalendern nedan. Klicka på en ledig tid för att välja.</p>
+                                         </div>
 
                                         {/* Practitioner Selection — shown when multiple practitioners match */}
                                         {matchingPractitioners.length > 1 && (
@@ -1091,9 +1120,13 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                     : "border-border bg-card hover:border-foreground/10"
                                                             )}
                                                         >
-                                                            <div className="w-16 h-16 rounded-full bg-foreground/5 text-foreground/40 flex items-center justify-center font-bold text-xl">
-                                                                {p.name.charAt(0)}
-                                                            </div>
+                                                            {p.image ? (
+                                                                 <img src={p.image} alt={p.name} className="w-16 h-16 rounded-full object-cover shadow-md" />
+                                                             ) : (
+                                                                 <div className="w-16 h-16 rounded-full bg-foreground/5 text-foreground/40 flex items-center justify-center font-bold text-xl">
+                                                                     {p.name.charAt(0)}
+                                                                 </div>
+                                                             )}
                                                             <div className="text-center">
                                                                 <h5 className="text-sm font-bold text-foreground">{p.name}</h5>
                                                                 <p className="text-[10px] text-foreground/40 font-medium uppercase tracking-wider">{p.role}</p>
@@ -1149,37 +1182,39 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                     <div className="max-w-4xl mx-auto py-8 space-y-10">
                                         <div className="text-center space-y-4">
                                             <h2 className="text-3xl font-heading font-bold text-foreground">Dina uppgifter</h2>
-                                            {!isCustomerLoggedIn && bookingType === 'none' ? (
-                                                <p className="text-foreground/40 text-sm">Välj hur du vill fortsätta med din bokning hos {salon.name}.</p>
-                                            ) : (
-                                                <p className="text-foreground/40 text-sm">Fyll i dina uppgifter för att slutföra bokningen hos {salon.name}.</p>
-                                            )}
+                                            <p className="text-foreground/40 text-sm">Fyll i dina uppgifter för att slutföra bokningen hos {salon.name}.</p>
                                         </div>
 
-                                        {!isCustomerLoggedIn && bookingType === 'none' && (
-                                            <div className="max-w-md mx-auto grid grid-cols-1 gap-4 pt-4">
-                                                <Link
-                                                    href="/auth/login"
-                                                    className="w-full bg-foreground text-background py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-champagne-600 hover:text-white transition-all shadow-lg"
-                                                >
-                                                    <User size={18} /> Logga in på ditt konto
-                                                </Link>
-                                                <div className="relative py-2 text-center text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20">
-                                                    <div className="absolute top-1/2 left-0 w-1/3 h-px bg-border/50"></div>
-                                                    ELLER
-                                                    <div className="absolute top-1/2 right-0 w-1/3 h-px bg-border/50"></div>
+                                        {/* Elegant Provider Warning Banner */}
+                                        {isProviderLoggedIn && (
+                                            <div className="max-w-2xl mx-auto bg-amber-500/5 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-3xl p-5 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <span className="text-xl">⚠️</span>
+                                                <div className="space-y-1 text-left">
+                                                    <h4 className="text-sm font-bold">Du är inloggad som salong/utförare</h4>
+                                                    <p className="text-xs opacity-90 leading-relaxed">
+                                                        Salongskonton kan inte boka tider hos andra salonger. För att testa bokningsflödet hela vägen, vänligen <strong>logga ut</strong> från din salongspanel först eller öppna den här sidan i ett <strong>inkognitofönster</strong>.
+                                                    </p>
                                                 </div>
-                                                <button
-                                                    onClick={() => setBookingType('guest')}
-                                                    className="w-full bg-card border border-border text-foreground/60 py-4 rounded-2xl font-bold hover:border-foreground/20 hover:text-foreground transition-all"
-                                                >
-                                                    Fortsätt som gäst
-                                                </button>
                                             </div>
                                         )}
 
-                                        {(isCustomerLoggedIn || bookingType === 'guest') && (
-                                            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        {/* Elegant Customer Login Banner if not logged in */}
+                                        {!isCustomerLoggedIn && (
+                                            <div className="max-w-2xl mx-auto bg-champagne-500/5 border border-champagne-500/15 rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="space-y-1">
+                                                    <h4 className="text-sm font-bold text-foreground">Redan kund hos oss eller vill tjäna poäng?</h4>
+                                                    <p className="text-xs text-foreground/50 leading-relaxed">Logga in på ditt konto för att spara dina uppgifter och samla lojalitetspoäng.</p>
+                                                </div>
+                                                <Link
+                                                    href="/auth/login"
+                                                    className="bg-foreground text-background px-5 py-2.5 rounded-2xl text-xs font-bold hover:bg-champagne-600 hover:text-white transition-all shadow-md shrink-0"
+                                                >
+                                                    Logga in
+                                                </Link>
+                                            </div>
+                                        )}
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                                 {/* Customer Form */}
                                                 <div className="lg:col-span-3 space-y-6">
                                                     <div className="grid grid-cols-2 gap-4">
@@ -1513,7 +1548,6 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                     </div>
                                                 </div>
                                             </div>
-                                        )}
 
                                         <p className="text-center text-[10px] text-foreground/20 max-w-sm mx-auto">
                                             Genom att boka godkänner du våra användarvillkor. Vi sparar dina uppgifter för att kunna hantera din bokning.
