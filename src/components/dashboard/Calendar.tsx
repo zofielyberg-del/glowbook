@@ -72,6 +72,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     const [addingSlot, setAddingSlot] = useState<{ dayIndex: number; hour: number; date: Date } | null>(null);
     const [newSlotTimes, setNewSlotTimes] = useState({ from: '09:00', to: '17:00' });
     const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+    const [viewingAppointment, setViewingAppointment] = useState<Appointment | null>(null);
 
     const availability = propAvailability || internalAvailability;
 
@@ -212,7 +213,12 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         // If clicking in customer booking mode, select the slot
         if (onSelectSlot && hideAppointments) {
             const day = weekDays[frame.dayIndex];
-            if (day) onSelectSlot(format(day, 'yyyy-MM-dd'), frame.startTime, (frame as any).practitionerId);
+            if (day) {
+                const todayStr = format(new Date(), 'yyyy-MM-dd');
+                const dayStr = format(day, 'yyyy-MM-dd');
+                if (dayStr < todayStr) return; // Prevent selection of past dates
+                onSelectSlot(format(day, 'yyyy-MM-dd'), frame.startTime, (frame as any).practitionerId);
+            }
             return;
         }
 
@@ -223,10 +229,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
     // Handle clicking empty slot to add new time
     const handleEmptySlotClick = (dayIndex: number, hour: number, day: Date) => {
-        if (onSelectSlot && hideAppointments) {
-            onSelectSlot(format(day, 'yyyy-MM-dd'), `${String(hour).padStart(2, '0')}:00`, undefined);
-            return;
-        }
+        if (hideAppointments) return;
         setAddingSlot({ dayIndex, hour, date: day });
         setNewSlotTimes({ from: `${String(hour).padStart(2, '0')}:00`, to: `${String(Math.min(hour + 4, 21)).padStart(2, '0')}:00` });
         setEditingFrame(null);
@@ -377,7 +380,18 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={prevWeek} className="p-2 hover:bg-foreground/5 rounded-lg text-foreground/50 transition-colors"><ChevronLeft size={20} /></button>
+                    <button 
+                        onClick={prevWeek} 
+                        disabled={hideAppointments && startOfWeek(currentDate, { weekStartsOn: 1 }) <= startOfWeek(new Date(), { weekStartsOn: 1 })}
+                        className={clsx(
+                            "p-2 rounded-lg text-foreground/50 transition-colors",
+                            hideAppointments && startOfWeek(currentDate, { weekStartsOn: 1 }) <= startOfWeek(new Date(), { weekStartsOn: 1 })
+                                ? "opacity-30 cursor-not-allowed"
+                                : "hover:bg-foreground/5"
+                        )}
+                    >
+                        <ChevronLeft size={20} />
+                    </button>
                     <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 text-sm font-medium bg-foreground/10 text-foreground rounded-lg hover:bg-foreground/20 transition-colors border border-border">
                         {t('cal_today')}
                     </button>
@@ -444,8 +458,11 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                     {hours.map((hour, i) => (
                                         <div
                                             key={hour}
-                                            onClick={() => handleEmptySlotClick(dayIndex, hour, day)}
-                                            className="absolute w-full h-16 border-b border-border/60 hover:bg-emerald-500/[0.05] cursor-pointer transition-all group/grid"
+                                            onClick={() => !hideAppointments && handleEmptySlotClick(dayIndex, hour, day)}
+                                            className={clsx(
+                                                "absolute w-full h-16 border-b border-border/60 transition-all",
+                                                !hideAppointments && "hover:bg-emerald-500/[0.05] cursor-pointer group/grid"
+                                            )}
                                             style={{ top: `${i * PX_PER_HOUR}px` }}
                                         >
                                             {/* "+" hint on hover */}
@@ -464,7 +481,24 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                     )}
 
                                     {/* Availability Frames — split into segments */}
-                                    {availability.filter(frame => frame.dayIndex === dayIndex).map(frame => {
+                                    {availability.filter(frame => {
+                                        if (frame.dayIndex !== dayIndex) return false;
+                                        if (hideAppointments) {
+                                            const todayStr = format(new Date(), 'yyyy-MM-dd');
+                                            const dayStr = format(day, 'yyyy-MM-dd');
+                                            if (dayStr < todayStr) return false;
+                                            
+                                            // Extra bulletproof check: if today, filter out individual frames that are already in the past
+                                            if (dayStr === todayStr) {
+                                                const [frameHour, frameMin] = frame.startTime.split(':').map(Number);
+                                                const frameMins = frameHour * 60 + frameMin;
+                                                const now = new Date();
+                                                const currentMins = now.getHours() * 60 + now.getMinutes();
+                                                if (frameMins < currentMins + 15) return false;
+                                            }
+                                        }
+                                        return true;
+                                    }).map(frame => {
                                         const segments = getFrameSegments(frame);
                                         const isEditing = editingFrame?.frame.id === frame.id;
                                         const hasBookings = segments.some(s => s.type === 'booked');
@@ -563,10 +597,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                             key={apt.id}
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (onCancelAppointment) {
-                                                    const confirm = window.confirm(`Vill du avboka ${apt.clientName} (${apt.clientEmail || 'Ingen e-post'}, ${apt.clientPhone || 'Inget nummer'}) för ${apt.service}?`);
-                                                    if (confirm) onCancelAppointment(apt.id);
-                                                }
+                                                setViewingAppointment(apt);
                                             }}
                                             className={clsx(
                                                 "absolute inset-x-1 rounded-lg border p-2 text-[10px] cursor-pointer hover:shadow-md transition-all z-10 overflow-hidden",
@@ -586,220 +617,342 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                 </div>
             </div>
 
-            {/* Editing Panel (slides in from right) */}
+            {/* Editing Panel (Luxurious Center Modal with Backdrop Blur) */}
             <AnimatePresence>
                 {editingFrame && (
-                    <motion.div
-                        initial={{ opacity: 0, x: 30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 30 }}
-                        className="absolute right-0 top-0 bottom-0 w-80 bg-card border-l border-border shadow-2xl z-[30] flex flex-col overflow-hidden"
-                    >
-                        {/* Panel header */}
-                        <div className="p-4 border-b border-border bg-foreground/[0.02] flex items-center justify-between shrink-0">
-                            <div>
-                                <h3 className="text-sm font-black text-foreground">Redigera tidsblock</h3>
-                                <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest mt-0.5">
-                                    {['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'][editingFrame.dayIndex]}
-                                </p>
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setEditingFrame(null)}
+                            className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[90]"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-[420px] bg-card border border-border shadow-2xl rounded-3xl z-[100] flex flex-col overflow-hidden max-h-[85vh] transition-all"
+                        >
+                            {/* Panel header */}
+                            <div className="p-4 border-b border-border bg-foreground/[0.02] flex items-center justify-between shrink-0">
+                                <div>
+                                    <h3 className="text-sm font-black text-foreground">Redigera tidsblock</h3>
+                                    <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest mt-0.5">
+                                        {['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'][editingFrame.dayIndex]}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setEditingFrame(null)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-foreground/5 text-foreground/40 hover:text-foreground transition-all"
+                                >
+                                    <X size={16} />
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setEditingFrame(null)}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-foreground/5 text-foreground/40 hover:text-foreground transition-all"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
 
-                        {/* Panel content */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {/* Time inputs */}
-                            <div className="bg-foreground/[0.02] rounded-2xl p-4 border border-border space-y-3">
-                                <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-1.5">
-                                    <Clock size={10} /> Tidsintervall
-                                </h4>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest mb-1 block">Från</label>
-                                        <input
-                                            type="time"
-                                            lang="sv-SE"
-                                            value={editingFrame.frame.startTime}
-                                            onChange={(e) => {
-                                                const end = minsToTime(timeToMins(editingFrame.frame.startTime) + editingFrame.frame.duration);
-                                                updateFrameTimes(editingFrame.frame, e.target.value, end);
-                                            }}
-                                            className="w-full p-2.5 bg-background border border-border rounded-xl font-bold text-sm text-foreground focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
-                                        />
+                            {/* Panel content */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                {/* Time inputs */}
+                                <div className="bg-foreground/[0.02] rounded-2xl p-4 border border-border space-y-3">
+                                    <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-1.5">
+                                        <Clock size={10} /> Tidsintervall
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest mb-1 block">Från</label>
+                                            <input
+                                                type="time"
+                                                lang="sv-SE"
+                                                value={editingFrame.frame.startTime}
+                                                onChange={(e) => {
+                                                    const end = minsToTime(timeToMins(editingFrame.frame.startTime) + editingFrame.frame.duration);
+                                                    updateFrameTimes(editingFrame.frame, e.target.value, end);
+                                                }}
+                                                className="w-full p-2.5 bg-background border border-border rounded-xl font-bold text-sm text-foreground focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest mb-1 block">Till</label>
+                                            <input
+                                                type="time"
+                                                lang="sv-SE"
+                                                value={minsToTime(timeToMins(editingFrame.frame.startTime) + editingFrame.frame.duration)}
+                                                onChange={(e) => {
+                                                    updateFrameTimes(editingFrame.frame, editingFrame.frame.startTime, e.target.value);
+                                                }}
+                                                className="w-full p-2.5 bg-background border border-border rounded-xl font-bold text-sm text-foreground focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest mb-1 block">Till</label>
-                                        <input
-                                            type="time"
-                                            lang="sv-SE"
-                                            value={minsToTime(timeToMins(editingFrame.frame.startTime) + editingFrame.frame.duration)}
-                                            onChange={(e) => {
-                                                updateFrameTimes(editingFrame.frame, editingFrame.frame.startTime, e.target.value);
-                                            }}
-                                            className="w-full p-2.5 bg-background border border-border rounded-xl font-bold text-sm text-foreground focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
-                                        />
-                                    </div>
+                                </div>
+
+                                {/* Segments breakdown */}
+                                <div className="space-y-2">
+                                    <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-1.5 px-1">
+                                        <Edit3 size={10} /> Delar i detta block
+                                    </h4>
+                                    {editingFrame.segments.map((seg, si) => {
+                                        const segDuration = timeToMins(seg.end) - timeToMins(seg.start);
+                                        const segHours = Math.floor(segDuration / 60);
+                                        const segMins = segDuration % 60;
+
+                                        if (seg.type === 'booked') {
+                                            return (
+                                                <div key={si} className="p-3 rounded-xl border border-rose-500/20 bg-rose-500/5 space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <CalendarCheck size={12} className="text-rose-500 shrink-0" />
+                                                        <span className="text-[10px] font-black text-rose-500 uppercase tracking-wider">Bokad</span>
+                                                        <span className="text-[10px] font-black text-rose-400/60 uppercase tracking-wider ml-auto">🔒</span>
+                                                    </div>
+                                                    <div className="text-[11px] font-bold text-foreground/70">{seg.start} – {seg.end}</div>
+                                                    {seg.appointment && (
+                                                        <div className="text-[10px] text-foreground/40 font-bold">
+                                                            {seg.appointment.clientName} — {seg.appointment.service}
+                                                        </div>
+                                                    )}
+                                                    <p className="text-[8px] text-rose-400/60 italic font-medium">Bokad tid — kan avbokas via bokningsdetaljerna</p>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <div key={si} className="p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider">Ledig</span>
+                                                    </div>
+                                                    <span className="text-[9px] text-foreground/30 font-bold">
+                                                        {segHours > 0 ? `${segHours}h` : ''}{segMins > 0 ? `${segMins}m` : ''}
+                                                    </span>
+                                                </div>
+                                                <div className="text-[11px] font-bold text-foreground/70">{seg.start} – {seg.end}</div>
+                                                <button
+                                                    onClick={() => removeSegment(editingFrame.frame, seg.start, seg.end)}
+                                                    className="w-full py-2 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                                                >
+                                                    <Trash2 size={10} />
+                                                    Ta bort denna tid
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
-                            {/* Segments breakdown */}
-                            <div className="space-y-2">
-                                <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-1.5 px-1">
-                                    <Edit3 size={10} /> Delar i detta block
-                                </h4>
-                                {editingFrame.segments.map((seg, si) => {
-                                    const segDuration = timeToMins(seg.end) - timeToMins(seg.start);
-                                    const segHours = Math.floor(segDuration / 60);
-                                    const segMins = segDuration % 60;
-
-                                    if (seg.type === 'booked') {
-                                        return (
-                                            <div key={si} className="p-3 rounded-xl border border-rose-500/20 bg-rose-500/5 space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <CalendarCheck size={12} className="text-rose-500 shrink-0" />
-                                                    <span className="text-[10px] font-black text-rose-500 uppercase tracking-wider">Bokad</span>
-                                                    <span className="text-[10px] font-black text-rose-400/60 uppercase tracking-wider ml-auto">🔒</span>
-                                                </div>
-                                                <div className="text-[11px] font-bold text-foreground/70">{seg.start} – {seg.end}</div>
-                                                {seg.appointment && (
-                                                    <div className="text-[10px] text-foreground/40">
-                                                        {seg.appointment.clientName} — {seg.appointment.service}
-                                                    </div>
-                                                )}
-                                                <p className="text-[8px] text-rose-400/60 italic font-medium">Kan inte ändras eller tas bort</p>
-                                            </div>
-                                        );
-                                    }
-
-                                    return (
-                                        <div key={si} className="p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider">Ledig</span>
-                                                </div>
-                                                <span className="text-[9px] text-foreground/30 font-bold">
-                                                    {segHours > 0 ? `${segHours}h` : ''}{segMins > 0 ? `${segMins}m` : ''}
-                                                </span>
-                                            </div>
-                                            <div className="text-[11px] font-bold text-foreground/70">{seg.start} – {seg.end}</div>
-                                            <button
-                                                onClick={() => removeSegment(editingFrame.frame, seg.start, seg.end)}
-                                                className="w-full py-2 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
-                                            >
-                                                <Trash2 size={10} />
-                                                Ta bort denna tid
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Panel footer */}
-                        <div className="p-4 border-t border-border space-y-3 shrink-0 bg-foreground/[0.01]">
-                            {editingFrame.segments.every(s => s.type === 'free') && (
+                            {/* Panel footer */}
+                            <div className="p-4 border-t border-border space-y-3 shrink-0 bg-foreground/[0.01]">
+                                {editingFrame.segments.every(s => s.type === 'free') && (
+                                    <button
+                                        onClick={() => deleteFrame(editingFrame.frame)}
+                                        className="w-full py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+                                    >
+                                        <Trash2 size={14} />
+                                        Ta bort hela blocket
+                                    </button>
+                                )}
                                 <button
-                                    onClick={() => deleteFrame(editingFrame.frame)}
-                                    className="w-full py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                                    onClick={() => setEditingFrame(null)}
+                                    className="w-full py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-foreground font-bold text-xs transition-all active:scale-95"
                                 >
-                                    <Trash2 size={14} />
-                                    Ta bort hela blocket
+                                    Klar
                                 </button>
-                            )}
-                            <button
-                                onClick={() => setEditingFrame(null)}
-                                className="w-full py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-foreground font-bold text-xs transition-all"
-                            >
-                                Klar
-                            </button>
-                        </div>
-                    </motion.div>
+                            </div>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
 
-            {/* Add New Slot Panel */}
+            {/* Add New Slot Panel (Luxurious Center Modal with Backdrop Blur) */}
             <AnimatePresence>
                 {addingSlot && !hideAppointments && (
-                    <motion.div
-                        initial={{ opacity: 0, x: 30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 30 }}
-                        className="absolute right-0 top-0 bottom-0 w-80 bg-card border-l border-border shadow-2xl z-[30] flex flex-col overflow-hidden"
-                    >
-                        <div className="p-4 border-b border-border bg-foreground/[0.02] flex items-center justify-between shrink-0">
-                            <div>
-                                <h3 className="text-sm font-black text-foreground flex items-center gap-2">
-                                    <Plus size={14} className="text-emerald-500" /> Lägg till tid
-                                </h3>
-                                <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest mt-0.5">
-                                    {['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'][addingSlot.dayIndex]} {format(addingSlot.date, 'd MMMM', { locale })}
-                                </p>
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setAddingSlot(null)}
+                            className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[90]"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-96 bg-card border border-border shadow-2xl rounded-3xl z-[100] flex flex-col overflow-hidden max-h-[85vh] transition-all"
+                        >
+                            <div className="p-4 border-b border-border bg-foreground/[0.02] flex items-center justify-between shrink-0">
+                                <div>
+                                    <h3 className="text-sm font-black text-foreground flex items-center gap-2">
+                                        <Plus size={14} className="text-emerald-500" /> Lägg till tid
+                                    </h3>
+                                    <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest mt-0.5">
+                                        {['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'][addingSlot.dayIndex]} {format(addingSlot.date, 'd MMMM', { locale })}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setAddingSlot(null)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-foreground/5 text-foreground/40 hover:text-foreground transition-all"
+                                >
+                                    <X size={16} />
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setAddingSlot(null)}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-foreground/5 text-foreground/40 hover:text-foreground transition-all"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
-                                <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500 flex items-center gap-1.5">
-                                    <Clock size={10} /> Ny tillgänglig tid
-                                </h4>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest mb-1 block">Från</label>
-                                        <input
-                                            type="time"
-                                            lang="sv-SE"
-                                            value={newSlotTimes.from}
-                                            onChange={(e) => setNewSlotTimes(prev => ({ ...prev, from: e.target.value }))}
-                                            className="w-full p-2.5 bg-background border border-border rounded-xl font-bold text-sm text-foreground focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
-                                        />
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
+                                    <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500 flex items-center gap-1.5">
+                                        <Clock size={10} /> Ny tillgänglig tid
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest mb-1 block">Från</label>
+                                            <input
+                                                type="time"
+                                                lang="sv-SE"
+                                                value={newSlotTimes.from}
+                                                onChange={(e) => setNewSlotTimes(prev => ({ ...prev, from: e.target.value }))}
+                                                className="w-full p-2.5 bg-background border border-border rounded-xl font-bold text-sm text-foreground focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest mb-1 block">Till</label>
+                                            <input
+                                                type="time"
+                                                lang="sv-SE"
+                                                value={newSlotTimes.to}
+                                                onChange={(e) => setNewSlotTimes(prev => ({ ...prev, to: e.target.value }))}
+                                                className="w-full p-2.5 bg-background border border-border rounded-xl font-bold text-sm text-foreground focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest mb-1 block">Till</label>
-                                        <input
-                                            type="time"
-                                            lang="sv-SE"
-                                            value={newSlotTimes.to}
-                                            onChange={(e) => setNewSlotTimes(prev => ({ ...prev, to: e.target.value }))}
-                                            className="w-full p-2.5 bg-background border border-border rounded-xl font-bold text-sm text-foreground focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
-                                        />
+                                    {timeToMins(newSlotTimes.to) > timeToMins(newSlotTimes.from) && (
+                                        <div className="text-[10px] text-emerald-500 font-bold text-center pt-1">
+                                            {Math.floor((timeToMins(newSlotTimes.to) - timeToMins(newSlotTimes.from)) / 60)}h {(timeToMins(newSlotTimes.to) - timeToMins(newSlotTimes.from)) % 60}min tillgänglig
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="p-4 border-t border-border space-y-3 shrink-0 bg-foreground/[0.01]">
+                                <button
+                                    onClick={addNewSlot}
+                                    className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
+                                >
+                                    <Plus size={14} />
+                                    Lägg till tid
+                                </button>
+                                <button
+                                    onClick={() => setAddingSlot(null)}
+                                    className="w-full py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-foreground font-bold text-xs transition-all active:scale-95"
+                                >
+                                    Avbryt
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Viewing / Cancelling Appointment Modal (Stunning Premium Drawer/Modal for mobile compatibility) */}
+            <AnimatePresence>
+                {viewingAppointment && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setViewingAppointment(null)}
+                            className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[90]"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-96 bg-card border border-border shadow-2xl rounded-3xl z-[100] flex flex-col overflow-hidden max-h-[85vh] transition-all"
+                        >
+                            {/* Header */}
+                            <div className="p-4 border-b border-border bg-foreground/[0.02] flex items-center justify-between shrink-0">
+                                <div>
+                                    <h3 className="text-sm font-black text-foreground">Bokningsdetaljer</h3>
+                                    <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest mt-0.5">
+                                        Kundbesök
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setViewingAppointment(null)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-foreground/5 text-foreground/40 hover:text-foreground transition-all"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                                <div className="space-y-1">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-foreground/30">Kund</span>
+                                    <div className="text-lg font-black text-foreground">{viewingAppointment.clientName}</div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-foreground/30">Tjänst</span>
+                                    <div className="text-sm font-bold text-foreground">{viewingAppointment.service}</div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-foreground/30">Tid</span>
+                                        <div className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                                            <Clock size={14} className="text-emerald-500" />
+                                            {viewingAppointment.startTime} ({viewingAppointment.duration} min)
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-foreground/30">Dag</span>
+                                        <div className="text-sm font-bold text-foreground">
+                                            {['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'][viewingAppointment.dayIndex]}
+                                        </div>
                                     </div>
                                 </div>
-                                {timeToMins(newSlotTimes.to) > timeToMins(newSlotTimes.from) && (
-                                    <div className="text-[10px] text-emerald-500 font-bold text-center pt-1">
-                                        {Math.floor((timeToMins(newSlotTimes.to) - timeToMins(newSlotTimes.from)) / 60)}h {(timeToMins(newSlotTimes.to) - timeToMins(newSlotTimes.from)) % 60}min tillgänglig
+
+                                {(viewingAppointment.clientEmail || viewingAppointment.clientPhone) && (
+                                    <div className="p-4 rounded-2xl bg-foreground/[0.02] border border-border space-y-2.5">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-foreground/30 block">Kontaktuppgifter</span>
+                                        {viewingAppointment.clientEmail && (
+                                            <div className="text-xs text-foreground/70 flex items-center gap-2 truncate">
+                                                <span className="text-blue-500 font-bold">✉</span> {viewingAppointment.clientEmail}
+                                            </div>
+                                        )}
+                                        {viewingAppointment.clientPhone && (
+                                            <div className="text-xs text-foreground/70 flex items-center gap-2">
+                                                <span className="text-emerald-500 font-bold">📞</span> {viewingAppointment.clientPhone}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
-                        </div>
 
-                        <div className="p-4 border-t border-border space-y-3 shrink-0 bg-foreground/[0.01]">
-                            <button
-                                onClick={addNewSlot}
-                                className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-600/20"
-                            >
-                                <Plus size={14} />
-                                Lägg till tid
-                            </button>
-                            <button
-                                onClick={() => setAddingSlot(null)}
-                                className="w-full py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-foreground font-bold text-xs transition-all"
-                            >
-                                Avbryt
-                            </button>
-                        </div>
-                    </motion.div>
+                            {/* Footer */}
+                            <div className="p-4 border-t border-border space-y-3 shrink-0 bg-foreground/[0.01]">
+                                <button
+                                    onClick={() => {
+                                        if (onCancelAppointment) {
+                                            onCancelAppointment(viewingAppointment.id);
+                                        }
+                                        setViewingAppointment(null);
+                                    }}
+                                    className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-600/20 active:scale-95"
+                                >
+                                    <Trash2 size={14} />
+                                    Avboka denna bokning
+                                </button>
+                                <button
+                                    onClick={() => setViewingAppointment(null)}
+                                    className="w-full py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-foreground font-bold text-xs transition-all active:scale-95"
+                                >
+                                    Stäng
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
         </div>

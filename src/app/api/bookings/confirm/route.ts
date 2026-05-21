@@ -25,6 +25,13 @@ export async function POST(req: Request) {
         const startDateTime = new Date(`${date}T${startTime}`);
         const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
+        // Check if startDateTime is in the past
+        const now = new Date();
+        // Give 5 minutes buffer for network delays or small clock drift
+        if (startDateTime.getTime() < now.getTime() - 300000) {
+            return NextResponse.json({ error: 'Bokningstiden har redan passerat. Vänligen välj en framtida tid.' }, { status: 400 });
+        }
+
         // 1. Check for Overlaps (Double booking prevention)
         const isUUID = (id: string) => id && id.length > 20;
         const pid = isUUID(practitionerId) ? practitionerId : undefined;
