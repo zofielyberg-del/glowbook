@@ -1985,7 +1985,7 @@ export default function AdminDashboard() {
 
                                 <div className="flex gap-3">
                                     <Link
-                                        href="/provider/dashboard"
+                                        href="/provider"
                                         onClick={() => { 
                                             const salonSession = {
                                                 id: impersonateTarget.id,
