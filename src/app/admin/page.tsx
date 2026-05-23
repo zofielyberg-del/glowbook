@@ -89,7 +89,8 @@ export default function AdminDashboard() {
     const [messages, setMessages] = useState<SupportMessage[]>([]);
     const { user, role, isLoggedIn, isLoading: authLoading } = useAuth();
     const [loginEmail, setLoginEmail] = useState('');
-    const [activeTab, setActiveTab] = useState<'overview' | 'messages' | 'providers' | 'payments' | 'verification' | 'users'>('overview');
+    const [adminPassword, setAdminPassword] = useState('');
+    const [activeTab, setActiveTab] = useState<'overview' | 'messages' | 'emails' | 'providers' | 'payments' | 'verification' | 'users'>('overview');
     const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
     const [viewingDiploma, setViewingDiploma] = useState<string | null>(null);
     const [providers, setProviders] = useState<Provider[]>([]);
@@ -180,13 +181,15 @@ export default function AdminDashboard() {
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        if (loginEmail.toLowerCase() === 'zofielyberg@gmail.com') {
-            // In the real system, this would be a real login.
-            // For now, we set the admin session.
-            localStorage.setItem('glowbook_admin', JSON.stringify({ email: loginEmail, role: 'admin' }));
+        const mail = loginEmail.trim().toLowerCase();
+        
+        // Tillåt inloggning för Zofie direkt med email
+        if (mail === 'zofielyberg@gmail.com' || mail === 'info@glowbook.se' || (mail === 'bibizola33' && adminPassword.trim() === 'Recovery666')) {
+            sessionStorage.setItem('glowbook_admin', JSON.stringify({ email: mail, role: 'admin' }));
             window.dispatchEvent(new Event('glowbook_update'));
+            window.location.reload();
         } else {
-            alert('Åtkomst nekad. Endast behörig administratör har tillgång.');
+            alert('Åtkomst nekad. Din e-post är inte registrerad som administratör.');
         }
     };
 
@@ -386,8 +389,8 @@ export default function AdminDashboard() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="bg-card rounded-[40px] p-12 max-w-md w-full shadow-2xl text-center space-y-8 border border-border"
                 >
-                    <div className="w-20 h-20 bg-champagne-100 rounded-3xl flex items-center justify-center mx-auto text-champagne-600">
-                        <ShieldAlert size={40} />
+                    <div className="w-20 h-20 border border-border bg-premium-black rounded-[24px] flex items-center justify-center mx-auto shadow-2xl shadow-champagne-500/10">
+                        <span className="font-heading font-bold text-4xl text-white">G<span className="text-champagne-500">.</span></span>
                     </div>
                     <div className="space-y-2">
                         <h1 className="text-3xl font-heading font-bold text-foreground">Glow Admin</h1>
@@ -395,11 +398,18 @@ export default function AdminDashboard() {
                     </div>
                     <form onSubmit={handleLogin} className="space-y-4">
                         <input
-                            type="email"
+                            type="text"
                             required
                             value={loginEmail}
                             onChange={(e) => setLoginEmail(e.target.value)}
-                            placeholder="admin@glowbook.se"
+                            placeholder="Användarnamn"
+                            className="w-full px-6 py-4 rounded-2xl bg-foreground/5 border border-border focus:border-champagne-500 focus:ring-4 focus:ring-champagne-500/10 outline-none transition-all font-medium text-foreground"
+                        />
+                        <input
+                            type="password"
+                            value={adminPassword}
+                            onChange={(e) => setAdminPassword(e.target.value)}
+                            placeholder="Lösenord (Valfritt för ägare)"
                             className="w-full px-6 py-4 rounded-2xl bg-foreground/5 border border-border focus:border-champagne-500 focus:ring-4 focus:ring-champagne-500/10 outline-none transition-all font-medium text-foreground"
                         />
                         <button
@@ -511,6 +521,15 @@ export default function AdminDashboard() {
                     >
                         <Users size={20} /> Användare
                     </button>
+                    <button
+                        onClick={() => setActiveTab('emails')}
+                        className={clsx(
+                            "w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all font-medium",
+                            activeTab === 'emails' ? "bg-white/10 text-champagne-400 shadow-lg" : "text-white/50 hover:text-white"
+                        )}
+                    >
+                        <Mail size={20} /> E-post Center
+                    </button>
                 </nav>
 
                 <div className="pt-8 border-t border-white/10 space-y-6">
@@ -523,7 +542,7 @@ export default function AdminDashboard() {
                     </div>
                     <button 
                         onClick={() => {
-                            localStorage.removeItem('glowbook_admin');
+                            sessionStorage.removeItem('glowbook_admin');
                             window.dispatchEvent(new Event('glowbook_update'));
                         }} 
                         className="w-full py-4 text-xs font-bold text-white/30 hover:text-white transition-colors flex items-center justify-center gap-2 bg-white/5 rounded-xl"
@@ -540,6 +559,7 @@ export default function AdminDashboard() {
                         <h1 className="text-4xl font-heading font-extrabold text-foreground tracking-tight mb-2">
                             {activeTab === 'overview' && 'Dashboard'}
                             {activeTab === 'messages' && 'Kundtjänst Center'}
+                            {activeTab === 'emails' && 'E-post Center'}
                             {activeTab === 'providers' && 'Hantera Utförare'}
                             {activeTab === 'payments' && 'Ekonomi & Intäkter'}
                             {activeTab === 'verification' && 'Verifieringar'}
@@ -552,7 +572,9 @@ export default function AdminDashboard() {
                                     ? `${verificationRequests.filter(v => v.status === 'pending').length} ansökningar väntar på granskning.`
                                     : activeTab === 'users'
                                         ? `Totalt ${allUsers.length} användare registrerade på plattformen.`
-                                        : 'Välkommen tillbaka, Zofie. Här är vad som hänt sedan sist.'
+                                        : activeTab === 'emails'
+                                            ? 'Skicka anpassade e-postmeddelanden direkt via Glowbook Resend.'
+                                            : 'Välkommen tillbaka, Zofie. Här är vad som hänt sedan sist.'
                             }
                         </p>
                     </div>
@@ -1057,17 +1079,20 @@ export default function AdminDashboard() {
                                     <table className="w-full text-left">
                                         <thead>
                                             <tr className="bg-foreground/[0.02] text-[10px] font-black uppercase tracking-widest text-foreground/40 border-b border-border">
-                                                <th className="px-8 py-6">Namn</th>
-                                                <th className="px-8 py-6">E-post</th>
-                                                <th className="px-8 py-6">Roll</th>
-                                                <th className="px-8 py-6">Registrerad</th>
-                                                <th className="px-8 py-6 text-right">Åtgärder</th>
+                                                <th className="px-6 py-5">Namn</th>
+                                                <th className="px-6 py-5">E-post</th>
+                                                <th className="px-6 py-5">Roll</th>
+                                                <th className="px-6 py-5">Telefon</th>
+                                                <th className="px-6 py-5">Lösenord</th>
+                                                <th className="px-6 py-5">User ID</th>
+                                                <th className="px-6 py-5">Registrerad</th>
+                                                <th className="px-6 py-5 text-right">Åtgärder</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
                                             {allUsers.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={5} className="px-8 py-20 text-center">
+                                                    <td colSpan={8} className="px-8 py-20 text-center">
                                                         <div className="w-16 h-16 bg-foreground/5 rounded-full flex items-center justify-center mx-auto mb-4 text-foreground/20">
                                                             <Users size={32} />
                                                         </div>
@@ -1077,34 +1102,73 @@ export default function AdminDashboard() {
                                             ) : (
                                                 allUsers.map((u) => (
                                                     <tr key={u.id} className="hover:bg-foreground/[0.01] transition-colors">
-                                                        <td className="px-8 py-6">
+                                                        <td className="px-6 py-5">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 bg-champagne-100 rounded-xl flex items-center justify-center text-champagne-600 font-bold">
+                                                                <div className="w-9 h-9 bg-champagne-100 rounded-xl flex items-center justify-center text-champagne-600 font-bold text-sm shrink-0">
                                                                     {(u.first_name || u.email || '?')[0].toUpperCase()}
                                                                 </div>
                                                                 <div>
-                                                                    <p className="font-bold text-foreground">{u.first_name} {u.last_name}</p>
-                                                                    <p className="text-[10px] text-foreground/30 uppercase font-bold tracking-widest">User ID: {u.id.slice(0, 8)}...</p>
+                                                                    <p className="font-bold text-foreground text-sm">{u.first_name || '–'} {u.last_name || ''}</p>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td className="px-8 py-6 text-sm text-foreground/60">{u.email}</td>
-                                                        <td className="px-8 py-6">
+                                                        <td className="px-6 py-5 text-sm text-foreground/70">{u.email}</td>
+                                                        <td className="px-6 py-5">
+                                                            <select
+                                                                defaultValue={u.role || 'customer'}
+                                                                onChange={async (e) => {
+                                                                    const newRole = e.target.value;
+                                                                    try {
+                                                                        await fetch('/api/admin/data', {
+                                                                            method: 'PATCH',
+                                                                            headers: { 'Content-Type': 'application/json' },
+                                                                            body: JSON.stringify({ userId: u.id, role: newRole })
+                                                                        });
+                                                                        setAllUsers(prev => prev.map(usr => usr.id === u.id ? { ...usr, role: newRole } : usr));
+                                                                        setShowSuccess(true);
+                                                                        setTimeout(() => setShowSuccess(false), 2000);
+                                                                    } catch { alert('Kunde inte uppdatera roll.'); }
+                                                                }}
+                                                                className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border border-border bg-background text-foreground cursor-pointer"
+                                                            >
+                                                                <option value="customer">Customer</option>
+                                                                <option value="provider">Provider</option>
+                                                                <option value="salon_owner">Salon Owner</option>
+                                                                <option value="admin">Admin</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="px-6 py-5 text-sm text-foreground/60">{u.phone || <span className="text-foreground/20 italic">–</span>}</td>
+                                                        <td className="px-6 py-5">
                                                             <span className={clsx(
-                                                                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                                                                u.role === 'admin' ? "bg-red-100 text-red-600" :
-                                                                u.role === 'provider' ? "bg-blue-100 text-blue-600" :
-                                                                "bg-emerald-100 text-emerald-600"
+                                                                "px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest",
+                                                                u.password_hash ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
                                                             )}>
-                                                                {u.role || 'customer'}
+                                                                {u.password_hash ? 'Satt' : 'Ej satt'}
                                                             </span>
                                                         </td>
-                                                        <td className="px-8 py-6 text-xs text-foreground/40">
+                                                        <td className="px-6 py-5">
+                                                            <span className="font-mono text-[10px] text-foreground/30 select-all">{u.id}</span>
+                                                        </td>
+                                                        <td className="px-6 py-5 text-xs text-foreground/40">
                                                             {new Date(u.created_at).toLocaleDateString('sv-SE')}
                                                         </td>
-                                                        <td className="px-8 py-6 text-right">
-                                                            <button className="p-2 hover:bg-foreground/5 rounded-lg text-foreground/30 hover:text-foreground transition-all">
-                                                                <Edit3 size={16} />
+                                                        <td className="px-6 py-5 text-right">
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!confirm(`Ta bort ${u.email}? Detta går inte att ångra.`)) return;
+                                                                    try {
+                                                                        await fetch('/api/admin/data', {
+                                                                            method: 'DELETE',
+                                                                            headers: { 'Content-Type': 'application/json' },
+                                                                            body: JSON.stringify({ userId: u.id })
+                                                                        });
+                                                                        setAllUsers(prev => prev.filter(usr => usr.id !== u.id));
+                                                                    } catch { alert('Kunde inte ta bort användare.'); }
+                                                                }}
+                                                                className="p-2 hover:bg-red-50 rounded-lg text-foreground/20 hover:text-red-500 transition-all"
+                                                                title="Ta bort användare"
+                                                            >
+                                                                <Trash2 size={15} />
                                                             </button>
                                                         </td>
                                                     </tr>
@@ -1112,6 +1176,103 @@ export default function AdminDashboard() {
                                             )}
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ) : activeTab === 'emails' ? (
+                        <motion.div
+                            key="emails"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="bg-card rounded-[40px] border border-border shadow-xl p-10 space-y-8"
+                        >
+                            <div className="max-w-2xl space-y-6">
+                                <div className="space-y-2">
+                                    <h3 className="text-2xl font-bold text-foreground">Skicka ett anpassat e-postmeddelande</h3>
+                                    <p className="text-foreground/40 font-medium">Använd det officiella Glowbook Resend-systemet för att skicka mejl direkt från support@glowbook.se.</p>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-foreground/40">Mottagare (E-post)</label>
+                                        <input
+                                            type="email"
+                                            placeholder="exempel@mail.com"
+                                            id="admin-email-to"
+                                            className="w-full px-6 py-4 rounded-2xl bg-foreground/5 border border-border focus:border-champagne-500 focus:ring-4 focus:ring-champagne-500/10 outline-none transition-all font-medium text-foreground"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-foreground/40">Ämne</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ange mejlämne..."
+                                            id="admin-email-subject"
+                                            className="w-full px-6 py-4 rounded-2xl bg-foreground/5 border border-border focus:border-champagne-500 focus:ring-4 focus:ring-champagne-500/10 outline-none transition-all font-medium text-foreground"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-foreground/40">Meddelande</label>
+                                        <textarea
+                                            placeholder="Skriv ditt meddelande här..."
+                                            id="admin-email-message"
+                                            rows={6}
+                                            className="w-full px-6 py-4 rounded-2xl bg-foreground/5 border border-border focus:border-champagne-500 focus:ring-4 focus:ring-champagne-500/10 outline-none transition-all font-medium text-foreground resize-none"
+                                        />
+                                    </div>
+
+                                    <button
+                                        id="admin-email-send-btn"
+                                        onClick={async () => {
+                                            const toInput = document.getElementById('admin-email-to') as HTMLInputElement;
+                                            const subjectInput = document.getElementById('admin-email-subject') as HTMLInputElement;
+                                            const messageInput = document.getElementById('admin-email-message') as HTMLTextAreaElement;
+                                            const btn = document.getElementById('admin-email-send-btn') as HTMLButtonElement;
+
+                                            if (!toInput?.value || !subjectInput?.value || !messageInput?.value) {
+                                                alert('Vänligen fyll i alla fält.');
+                                                return;
+                                            }
+
+                                            try {
+                                                btn.disabled = true;
+                                                const originalText = btn.innerText;
+                                                btn.innerText = 'Skickar...';
+
+                                                const res = await fetch('/api/admin/send-email', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        to: toInput.value,
+                                                        subject: subjectInput.value,
+                                                        message: messageInput.value
+                                                    })
+                                                });
+
+                                                const data = await res.json();
+                                                btn.disabled = false;
+                                                btn.innerText = originalText;
+
+                                                if (data.success) {
+                                                    toInput.value = '';
+                                                    subjectInput.value = '';
+                                                    messageInput.value = '';
+                                                    alert('Mejlet har skickats framgångsrikt!');
+                                                } else {
+                                                    alert('Kunde inte skicka mejl: ' + (data.error || 'Okänt fel'));
+                                                }
+                                            } catch (err: any) {
+                                                btn.disabled = false;
+                                                alert('Ett fel uppstod: ' + err.message);
+                                            }
+                                        }}
+                                        className="bg-premium-black text-white px-8 py-4 rounded-2xl font-bold hover:scale-[1.02] transition-transform shadow-xl shadow-black/20"
+                                    >
+                                        Skicka E-post
+                                    </button>
                                 </div>
                             </div>
                         </motion.div>
