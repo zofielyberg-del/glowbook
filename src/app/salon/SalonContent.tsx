@@ -1174,6 +1174,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         )}
                                         <Calendar
                                             availability={computedAvailability}
+                                            appointments={salon.appointments || []}
                                             onSelectSlot={onSelectSlot}
                                             hideAppointments={true}
                                         />
