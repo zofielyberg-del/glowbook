@@ -17,7 +17,7 @@ export const getHtmlWrapper = (content: string) => `
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
     <meta name="supported-color-schemes" content="dark">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700;900&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
       :root {
         color-scheme: dark;
@@ -52,7 +52,7 @@ export const getHtmlWrapper = (content: string) => `
               <tr>
                 <td align="center" style="padding:0 0 40px 0;background-color:#000000;">
                   <a href="https://www.glowbook.se" style="text-decoration:none;">
-                    <span style="font-family:'Outfit',sans-serif;font-size:42px;font-weight:800;color:#fdfdfd;letter-spacing:-1px;">Glow</span><span style="font-family:'Outfit',sans-serif;font-size:42px;font-weight:400;color:#C1B363;letter-spacing:-1px;">book</span>
+                    <span style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:900;color:#fdfdfd;letter-spacing:-2px;">Glow</span><span style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:400;color:#C5B358;letter-spacing:-2px;">book</span>
                   </a>
                 </td>
               </tr>
