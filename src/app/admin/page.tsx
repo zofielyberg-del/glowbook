@@ -389,8 +389,8 @@ export default function AdminDashboard() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="bg-card rounded-[40px] p-12 max-w-md w-full shadow-2xl text-center space-y-8 border border-border"
                 >
-                    <div className="w-20 h-20 border border-border bg-premium-black rounded-[24px] flex items-center justify-center mx-auto shadow-2xl shadow-champagne-500/10">
-                        <span className="font-heading font-bold text-4xl text-white">G<span className="text-champagne-500">.</span></span>
+                    <div className="w-20 h-20 bg-champagne-100 rounded-3xl flex items-center justify-center mx-auto text-champagne-600">
+                        <ShieldAlert size={40} />
                     </div>
                     <div className="space-y-2">
                         <h1 className="text-3xl font-heading font-bold text-foreground">Glow Admin</h1>
