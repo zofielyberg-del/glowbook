@@ -1,7 +1,7 @@
 
 'use client';
 
-import { ShieldCheck, Users, BarChart3, Settings, MessageSquare, AlertCircle, CheckCircle2, Search, ArrowRight, ShieldAlert, Send, X, Mail, CreditCard, TrendingUp, Wallet, Star, Tag, Edit3, Check, Trash2, ChevronDown, Clock, Crown, LogIn, Eye, FileCheck, Download, XCircle, Image } from "lucide-react";
+import { ShieldCheck, Users, BarChart3, Settings, MessageSquare, AlertCircle, CheckCircle2, Search, ArrowRight, ShieldAlert, Send, X, Mail, CreditCard, TrendingUp, Wallet, Star, Tag, Edit3, Check, Trash2, ChevronDown, Clock, Crown, LogIn, Eye, FileCheck, Download, XCircle, Image, BookOpen } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -390,7 +390,7 @@ export default function AdminDashboard() {
                     className="bg-card rounded-[40px] p-12 max-w-md w-full shadow-2xl text-center space-y-8 border border-border"
                 >
                     <div className="w-20 h-20 bg-champagne-100 rounded-3xl flex items-center justify-center mx-auto text-champagne-600">
-                        <ShieldAlert size={40} />
+                        <BookOpen size={40} />
                     </div>
                     <div className="space-y-2">
                         <h1 className="text-3xl font-heading font-bold text-foreground">Glow Admin</h1>
