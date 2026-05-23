@@ -49,6 +49,9 @@ model Salon {
   owner_id            String?
   availability        Json?
   cancellation_window_hours Int?               @default(24)
+  duration            Int?               @default(1)
+  is_verified         Boolean?           @default(false)
+  verification_requested Boolean?        @default(false)
   created_at          DateTime?          @default(now())
   appointments        Appointment[]
   loyalty_balances    LoyaltyBalance[]

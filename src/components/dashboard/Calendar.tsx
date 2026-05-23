@@ -214,6 +214,12 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             const bookedPids = overlapping.map((apt: any) => apt.practitioner_id || apt.practitionerId || 'owner');
             const allBooked = frame.practitionerIds.every(pid => bookedPids.includes(pid));
             if (!allBooked) {
+                // Find the actual free practitioner and assign them to this frame
+                const firstFreePid = frame.practitionerIds.find(pid => !bookedPids.includes(pid));
+                if (firstFreePid) {
+                    frame.practitionerId = firstFreePid;
+                }
+                
                 // At least one qualified practitioner is free, so the slot remains free
                 return [{ start: frame.startTime, end: minsToTime(frameEnd), type: 'free' }];
             }

@@ -267,6 +267,30 @@ export default function AdminDashboard() {
         setTimeout(() => setShowSuccess(false), 3000);
     };
 
+    // Toggle Verification
+    const handleVerifySalon = (providerId: string, verified: boolean) => {
+        const updated = providers.map(p => {
+            if (p.id === providerId) {
+                const updatedProvider = { ...p, verified };
+                const activeSalonRaw = localStorage.getItem('glowbook_salon');
+                if (activeSalonRaw) {
+                    const salon = JSON.parse(activeSalonRaw);
+                    if (salon.email === p.email) {
+                        salon.verified = verified;
+                        localStorage.setItem('glowbook_salon', JSON.stringify(salon));
+                    }
+                }
+                return updatedProvider;
+            }
+            return p;
+        });
+        setProviders(updated);
+        localStorage.setItem('glowbook_providers', JSON.stringify(updated));
+        window.dispatchEvent(new Event('glowbook_update'));
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+    };
+
     // Change binding duration
     const handleChangeDuration = (providerId: string, newDuration: number) => {
         const updated = providers.map(p => {

@@ -533,13 +533,8 @@ export default function ExploreContent() {
                                     <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-md relative transition-transform duration-300 group-hover:-translate-y-1 border border-black/5 dark:border-white/5 bg-card">
                                         <img src={(salon.banner_url || salon.backgroundImage || salon.profileImage || salon.logo_url || salon.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=100').replace(/w=\d+/g, 'w=1200').replace(/q=\d+/g, 'q=100')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={salon.name} />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                                        {salon.tier && salon.tier !== 'bas' && (
-                                            <div className={clsx("absolute top-5 left-5 px-3 py-1.5 rounded-full text-[10px] font-bold backdrop-blur-md", salon.tier === 'luxe' ? "bg-amber-500 text-white" : "bg-white/90 dark:bg-black/80")}>
-                                                {salon.tier.toUpperCase()}
-                                            </div>
-                                        )}
-                                        {salon.verified && (
-                                            <div className="absolute top-5 right-5 bg-blue-500 text-white p-1.5 rounded-full"><BadgeCheck size={14} /></div>
+                                        {salon.is_verified && (
+                                            <div className="absolute top-5 right-5 bg-blue-500 text-white p-1.5 rounded-full shadow-md" title="Verifierad Salong"><BadgeCheck size={14} /></div>
                                         )}
                                         {salon.priceFrom && (
                                             <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between">
@@ -606,10 +601,8 @@ function SalonMiniCard({ salon, currency }: { salon: any; currency: string }) {
             <div className="bg-card rounded-2xl border border-border overflow-hidden hover:border-champagne-300 dark:hover:border-champagne-600 transition-all hover:shadow-lg">
                 <div className="aspect-[3/2] overflow-hidden relative">
                     <img src={(salon.banner_url || salon.backgroundImage || salon.profileImage || salon.logo_url || salon.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=100').replace(/w=\d+/g, 'w=800').replace(/q=\d+/g, 'q=100')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={salon.name} />
-                    {salon.tier && salon.tier !== 'bas' && (
-                        <div className={clsx("absolute top-3 left-3 px-2 py-1 rounded-full text-[9px] font-bold backdrop-blur-sm", salon.tier === 'luxe' ? "bg-amber-500 text-white" : "bg-white/90 dark:bg-black/80")}>
-                            {salon.tier.toUpperCase()}
-                        </div>
+                    {salon.is_verified && (
+                        <div className="absolute top-3 right-3 bg-blue-500 text-white p-1 rounded-full shadow-md" title="Verifierad Salong"><BadgeCheck size={10} /></div>
                     )}
                 </div>
                 <div className="p-4 space-y-2">
