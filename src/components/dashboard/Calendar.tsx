@@ -160,10 +160,10 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                 if (apt.start_time) {
                     const sDate = new Date(apt.start_time);
                     aptDateStr = format(sDate, 'yyyy-MM-dd');
-                    aptStartMins = sDate.getHours() * 60 + sDate.getMinutes();
+                    aptStartMins = sDate.getUTCHours() * 60 + sDate.getUTCMinutes();
                     if (apt.end_time) {
                         const eDate = new Date(apt.end_time);
-                        aptEndMins = eDate.getHours() * 60 + eDate.getMinutes();
+                        aptEndMins = eDate.getUTCHours() * 60 + eDate.getUTCMinutes();
                     } else {
                         aptEndMins = aptStartMins + (apt.duration || apt.duration_minutes || 60);
                     }
@@ -203,8 +203,8 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         // Sort appointments by start time
         const sorted = [...overlapping].sort((aRaw: any, bRaw: any) => {
             const a = aRaw; const b = bRaw;
-            const aStart = a.start_time ? (new Date(a.start_time).getHours() * 60 + new Date(a.start_time).getMinutes()) : timeToMins(a.startTime || '00:00');
-            const bStart = b.start_time ? (new Date(b.start_time).getHours() * 60 + new Date(b.start_time).getMinutes()) : timeToMins(b.startTime || '00:00');
+            const aStart = a.start_time ? (new Date(a.start_time).getUTCHours() * 60 + new Date(a.start_time).getUTCMinutes()) : timeToMins(a.startTime || '00:00');
+            const bStart = b.start_time ? (new Date(b.start_time).getUTCHours() * 60 + new Date(b.start_time).getUTCMinutes()) : timeToMins(b.startTime || '00:00');
             return aStart - bStart;
         });
 
@@ -213,8 +213,8 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
         for (const aptRaw of sorted) {
             const apt: any = aptRaw;
-            const aptStart = apt.start_time ? (new Date(apt.start_time).getHours() * 60 + new Date(apt.start_time).getMinutes()) : timeToMins(apt.startTime || '00:00');
-            const aptEnd = apt.end_time ? (new Date(apt.end_time).getHours() * 60 + new Date(apt.end_time).getMinutes()) : (aptStart + (apt.duration || 60));
+            const aptStart = apt.start_time ? (new Date(apt.start_time).getUTCHours() * 60 + new Date(apt.start_time).getUTCMinutes()) : timeToMins(apt.startTime || '00:00');
+            const aptEnd = apt.end_time ? (new Date(apt.end_time).getUTCHours() * 60 + new Date(apt.end_time).getUTCMinutes()) : (aptStart + (apt.duration || 60));
 
             // Free gap before this appointment
             if (aptStart > cursor) {
