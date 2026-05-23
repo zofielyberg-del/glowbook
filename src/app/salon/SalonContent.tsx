@@ -536,6 +536,19 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         const tier = (salon?.tier || 'bas').toLowerCase();
         const isLuxe = tier === 'luxe';
 
+        let salonAvailability: any[] = salon?.availability || [];
+        if (salonAvailability.length === 0) {
+            // Provide a default 10:00 - 19:00 schedule for all 7 days as a fallback
+            // since the new database schema relies on practitioners but the calendar 
+            // intersects with salon.availability for bounds.
+            salonAvailability = [0, 1, 2, 3, 4, 5, 6].map(dayIndex => ({
+                id: `fallback-${dayIndex}`,
+                dayIndex,
+                startTime: '10:00',
+                duration: 540 // 9 hours (10:00 to 19:00)
+            }));
+        }
+
         if (isLuxe) {
             // Luxe availability logic: Shared calendar frames INTERSECTED with qualified practitioner schedules
             const allowedIds = selectedService.practitionerIds || [];
@@ -557,9 +570,6 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             }
 
             if (qualifiedPractitioners.length === 0) return [];
-
-            const salonAvailability: any[] = salon?.availability || [];
-            if (salonAvailability.length === 0) return [];
 
             salonAvailability.forEach((frame: any) => {
                 const frameStart = timeToMins(frame.startTime);
@@ -625,9 +635,6 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         }
 
         // Standard/fallback availability logic (BAS & PRO): Salon-wide shared calendar
-        const salonAvailability: any[] = salon?.availability || [];
-        if (salonAvailability.length === 0) return [];
-
         salonAvailability.forEach((frame: any) => {
             const frameStart = timeToMins(frame.startTime);
             const frameEnd = frameStart + frame.duration;

@@ -23,7 +23,7 @@ export function useAuth() {
         const salonDataString = sessionStorage.getItem('glowbook_salon');
         const customerData = sessionStorage.getItem('glowbook_customer');
 
-        if (adminData) {
+        if (adminData && (!salonDataString || !JSON.parse(salonDataString).isImpersonated)) {
             setState({ user: JSON.parse(adminData), role: 'admin', isLoading: false });
         } else if (salonDataString) {
             let data = JSON.parse(salonDataString);

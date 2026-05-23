@@ -1,33 +1,35 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Rensar databasen på all testdata...');
-
-  // Delete in order to avoid foreign key constraint violations
-  await prisma.pointTransaction.deleteMany({});
-  await prisma.loyaltyBalance.deleteMany({});
-  await prisma.appointment.deleteMany({});
-  await prisma.service.deleteMany({});
-  await prisma.practitioner.deleteMany({});
-  await prisma.salon.deleteMany({});
-  await prisma.profile.deleteMany({});
-  await prisma.giftCard.deleteMany({});
-
-  console.log('Databasen är nu helt tom och redo för skarpa registreringar! 🧹✨');
+    try {
+        console.log('Clearing DB...');
+        await prisma.appointment.deleteMany({});
+        await prisma.loyaltyBalance.deleteMany({});
+        await prisma.pointTransaction.deleteMany({});
+        await prisma.availability.deleteMany({});
+        await prisma.service.deleteMany({});
+        await prisma.practitioner.deleteMany({});
+        
+        const nonAdminProfiles = await prisma.profile.findMany({
+            where: { role: { not: 'admin' } },
+            select: { id: true }
+        });
+        const nonAdminIds = nonAdminProfiles.map(p => p.id);
+        
+        if (nonAdminIds.length > 0) {
+            await prisma.salon.deleteMany({
+                where: { owner_id: { in: nonAdminIds } }
+            });
+            await prisma.profile.deleteMany({
+                where: { id: { in: nonAdminIds } }
+            });
+        }
+        console.log('Cleared DB!');
+    } catch (e) {
+        console.error(e);
+    }
 }
-
-main()
-  .catch((e) => {
-    console.error('Ett fel uppstod vid rensningen:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().finally(() => prisma.$disconnect());

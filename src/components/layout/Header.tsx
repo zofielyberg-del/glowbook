@@ -109,6 +109,17 @@ export default function Header() {
 
                 {/* Right side buttons */}
                 <div className="flex items-center justify-end gap-4 md:gap-8 flex-1">
+                    {user?.isImpersonated && (
+                        <button
+                            onClick={() => {
+                                sessionStorage.removeItem('glowbook_salon');
+                                window.location.href = '/admin';
+                            }}
+                            className="hidden md:flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-colors animate-pulse"
+                        >
+                            <X size={12} /> Avsluta inloggning
+                        </button>
+                    )}
                     <button
                         onClick={toggleTheme}
                         className="p-2 rounded-full hover:bg-foreground/5 transition-colors text-foreground/40 hover:text-foreground"
