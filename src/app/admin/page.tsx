@@ -1962,7 +1962,19 @@ export default function AdminDashboard() {
                                 <div className="flex gap-3">
                                     <Link
                                         href="/provider/dashboard"
-                                        onClick={() => { setShowImpersonateModal(false); setImpersonateTarget(null); }}
+                                        onClick={() => { 
+                                            const salonSession = {
+                                                id: impersonateTarget.id,
+                                                email: impersonateTarget.email,
+                                                name: impersonateTarget.salon,
+                                                tier: impersonateTarget.tier || 'bas',
+                                                role: 'owner',
+                                                isImpersonated: true
+                                            };
+                                            sessionStorage.setItem('glowbook_salon', JSON.stringify(salonSession));
+                                            setShowImpersonateModal(false); 
+                                            setImpersonateTarget(null); 
+                                        }}
                                         className="flex-1 bg-violet-500 text-white py-4 rounded-2xl font-bold hover:bg-violet-600 transition-all flex items-center justify-center gap-2 text-center"
                                     >
                                         <LogIn size={16} />
