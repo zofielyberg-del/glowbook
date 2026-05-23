@@ -573,8 +573,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     // Filter out past times for today
                     if (frame.dayIndex === currentDayIdx && startMins < currentMins + 15) continue;
 
-                    // 2. Find at least one qualified practitioner who is scheduled and free during this time
-                    let availablePractitionerId: string | null = null;
+                    // 2. Find all qualified practitioners who are scheduled to work during this time
+                    const availablePractitionerIds: string[] = [];
 
                     for (const p of qualifiedPractitioners) {
                         const schedule = p.schedule || {};
@@ -603,31 +603,19 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         });
                         if (hasBreakOverlap) continue;
 
-                        // Check if time overlaps with practitioner's appointments
-                        const hasAptOverlap = appointments.some((apt: any) => {
-                            if (apt.dayIndex !== frame.dayIndex) return false;
-                            if (apt.status === 'cancelled') return false;
-                            const aptPid = apt.practitionerId || 'owner';
-                            if (aptPid !== p.id && aptPid !== 'any') return false;
+                        // Note: Appointment overlap check is handled dynamically by the Calendar component
 
-                            const aptStart = timeToMins(apt.startTime);
-                            const aptEnd = aptStart + (apt.duration || 30);
-                            return (startMins < aptEnd && endMins > aptStart);
-                        });
-                        if (hasAptOverlap) continue;
-
-                        // Found an available practitioner!
-                        availablePractitionerId = p.id;
-                        break; // One is enough to make the slot bookable
+                        availablePractitionerIds.push(p.id);
                     }
 
-                    if (availablePractitionerId) {
+                    if (availablePractitionerIds.length > 0) {
                         allFrames.push({
                             id: `luxe-${frame.id}-${startTimeStr}`,
                             startTime: startTimeStr,
                             duration: serviceDuration,
                             dayIndex: frame.dayIndex,
-                            practitionerId: targetPractitioner.id === 'any' ? availablePractitionerId : targetPractitioner.id
+                            practitionerId: targetPractitioner.id === 'any' ? availablePractitionerIds[0] : targetPractitioner.id,
+                            practitionerIds: availablePractitionerIds
                         });
                     }
                 }

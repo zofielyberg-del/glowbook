@@ -15,6 +15,7 @@ type TimeFrame = {
     duration: number;
     dayIndex: number;
     practitionerId?: string;
+    practitionerIds?: string[]; // Array of qualified practitioners for this slot
 };
 
 type Appointment = {
@@ -151,6 +152,14 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         return appointments.filter((aptRaw: any) => {
             const apt = aptRaw;
             if (apt.status === 'cancelled') return false;
+
+            // Check practitioner overlap for multi-practitioner salons
+            if (frame.practitionerId && frame.practitionerId !== 'any') {
+                const aptPid = apt.practitioner_id || apt.practitionerId || 'owner';
+                if (aptPid !== frame.practitionerId && aptPid !== 'any') {
+                    return false;
+                }
+            }
             
             if (columnDateStr) {
                 let aptDateStr = '';
@@ -198,6 +207,16 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
         if (overlapping.length === 0) {
             return [{ start: frame.startTime, end: minsToTime(frameEnd), type: 'free' }];
+        }
+
+        // If 'Any' practitioner is selected, we only block the slot if ALL working practitioners are booked
+        if (frame.practitionerIds && frame.practitionerIds.length > 0) {
+            const bookedPids = overlapping.map((apt: any) => apt.practitioner_id || apt.practitionerId || 'owner');
+            const allBooked = frame.practitionerIds.every(pid => bookedPids.includes(pid));
+            if (!allBooked) {
+                // At least one qualified practitioner is free, so the slot remains free
+                return [{ start: frame.startTime, end: minsToTime(frameEnd), type: 'free' }];
+            }
         }
 
         // Sort appointments by start time
