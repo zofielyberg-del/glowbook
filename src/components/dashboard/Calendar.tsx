@@ -142,38 +142,79 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         }
     };
 
-    // Get appointments that overlap a given frame
-    const getAppointmentsInFrame = useCallback((frame: TimeFrame) => {
+    // Get appointments that overlap a given frame for a specific column date
+    const getAppointmentsInFrame = useCallback((frame: TimeFrame, columnDate?: Date) => {
         const frameStart = timeToMins(frame.startTime);
         const frameEnd = frameStart + frame.duration;
-        return appointments.filter(apt => {
-            if (apt.dayIndex !== frame.dayIndex) return false;
+        const columnDateStr = columnDate ? format(columnDate, 'yyyy-MM-dd') : null;
+
+        return appointments.filter((aptRaw: any) => {
+            const apt = aptRaw;
             if (apt.status === 'cancelled') return false;
-            const aptStart = timeToMins(apt.startTime);
-            const aptEnd = aptStart + apt.duration;
-            return aptStart < frameEnd && aptEnd > frameStart;
+            
+            if (columnDateStr) {
+                let aptDateStr = '';
+                let aptStartMins = 0;
+                let aptEndMins = 0;
+
+                if (apt.start_time) {
+                    const sDate = new Date(apt.start_time);
+                    aptDateStr = format(sDate, 'yyyy-MM-dd');
+                    aptStartMins = sDate.getHours() * 60 + sDate.getMinutes();
+                    if (apt.end_time) {
+                        const eDate = new Date(apt.end_time);
+                        aptEndMins = eDate.getHours() * 60 + eDate.getMinutes();
+                    } else {
+                        aptEndMins = aptStartMins + (apt.duration || apt.duration_minutes || 60);
+                    }
+                } else if (apt.booking_date) {
+                    const bDate = new Date(apt.booking_date);
+                    aptDateStr = format(bDate, 'yyyy-MM-dd');
+                    aptStartMins = timeToMins(apt.startTime || '00:00');
+                    aptEndMins = aptStartMins + (apt.duration || 60);
+                } else {
+                    if (apt.dayIndex !== frame.dayIndex) return false;
+                    aptStartMins = timeToMins(apt.startTime || '00:00');
+                    aptEndMins = aptStartMins + (apt.duration || 60);
+                    aptDateStr = columnDateStr;
+                }
+
+                if (aptDateStr !== columnDateStr) return false;
+                return aptStartMins < frameEnd && aptEndMins > frameStart;
+            } else {
+                if (apt.dayIndex !== frame.dayIndex) return false;
+                const aptStart = timeToMins(apt.startTime);
+                const aptEnd = aptStart + (apt.duration || 60);
+                return aptStart < frameEnd && aptEnd > frameStart;
+            }
         });
     }, [appointments]);
 
     // Split a frame into free/booked segments
-    const getFrameSegments = useCallback((frame: TimeFrame): FrameSegment[] => {
+    const getFrameSegments = useCallback((frame: TimeFrame, columnDate?: Date): FrameSegment[] => {
         const frameStart = timeToMins(frame.startTime);
         const frameEnd = frameStart + frame.duration;
-        const overlapping = getAppointmentsInFrame(frame);
+        const overlapping = getAppointmentsInFrame(frame, columnDate);
 
         if (overlapping.length === 0) {
             return [{ start: frame.startTime, end: minsToTime(frameEnd), type: 'free' }];
         }
 
         // Sort appointments by start time
-        const sorted = [...overlapping].sort((a, b) => timeToMins(a.startTime) - timeToMins(b.startTime));
+        const sorted = [...overlapping].sort((aRaw: any, bRaw: any) => {
+            const a = aRaw; const b = bRaw;
+            const aStart = a.start_time ? (new Date(a.start_time).getHours() * 60 + new Date(a.start_time).getMinutes()) : timeToMins(a.startTime || '00:00');
+            const bStart = b.start_time ? (new Date(b.start_time).getHours() * 60 + new Date(b.start_time).getMinutes()) : timeToMins(b.startTime || '00:00');
+            return aStart - bStart;
+        });
 
         const segments: FrameSegment[] = [];
         let cursor = frameStart;
 
-        for (const apt of sorted) {
-            const aptStart = timeToMins(apt.startTime);
-            const aptEnd = aptStart + apt.duration;
+        for (const aptRaw of sorted) {
+            const apt: any = aptRaw;
+            const aptStart = apt.start_time ? (new Date(apt.start_time).getHours() * 60 + new Date(apt.start_time).getMinutes()) : timeToMins(apt.startTime || '00:00');
+            const aptEnd = apt.end_time ? (new Date(apt.end_time).getHours() * 60 + new Date(apt.end_time).getMinutes()) : (aptStart + (apt.duration || 60));
 
             // Free gap before this appointment
             if (aptStart > cursor) {
@@ -208,7 +249,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     }, [getAppointmentsInFrame]);
 
     // Handle clicking on a frame to edit
-    const handleFrameClick = (frame: TimeFrame, e: React.MouseEvent) => {
+    const handleFrameClick = (frame: TimeFrame, e: React.MouseEvent, columnDate?: Date) => {
         e.stopPropagation();
         // If clicking in customer booking mode, select the slot
         if (onSelectSlot && hideAppointments) {
@@ -222,7 +263,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             return;
         }
 
-        const segments = getFrameSegments(frame);
+        const segments = getFrameSegments(frame, columnDate);
         setEditingFrame({ frame, dayIndex: frame.dayIndex, segments });
         setAddingSlot(null);
     };
@@ -496,10 +537,14 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                 const currentMins = now.getHours() * 60 + now.getMinutes();
                                                 if (frameMins < currentMins + 15) return false;
                                             }
+
+                                            // THE FIX: Hide completely if it overlaps with ANY appointment for THIS DAY
+                                            const overlapping = getAppointmentsInFrame(frame, day);
+                                            if (overlapping.length > 0) return false;
                                         }
                                         return true;
                                     }).map(frame => {
-                                        const segments = getFrameSegments(frame);
+                                        const segments = getFrameSegments(frame, day);
                                         const isEditing = editingFrame?.frame.id === frame.id;
                                         const hasBookings = segments.some(s => s.type === 'booked');
                                         const frameStartMins = timeToMins(frame.startTime);
@@ -509,7 +554,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                             <div key={frame.id}>
                                                 {/* Full frame outline */}
                                                 <div
-                                                    onClick={(e) => handleFrameClick(frame, e)}
+                                                    onClick={(e) => handleFrameClick(frame, e, day)}
                                                     className={clsx(
                                                         "absolute inset-x-0.5 rounded-lg z-[5] cursor-pointer transition-all",
                                                         isEditing
