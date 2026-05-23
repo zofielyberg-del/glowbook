@@ -1600,13 +1600,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                     </div>
                                     <button
                                         onClick={() => {
-                                            setIsBookingModalOpen(false);
-                                            setIsBooked(false);
-                                            setBookingStep(1);
-                                            setSelectedService(null);
-                                            setSelectedPractitioner(null);
-                                            setSelectedTime(null);
-                                            setCustomerInfo({ firstName: '', lastName: '', email: '', phone: '', id: '' });
+                                            window.location.href = window.location.pathname;
                                         }}
                                         className="w-full max-w-md py-5 bg-foreground text-background rounded-2xl font-bold hover:scale-[1.02] transition-transform"
                                     >
