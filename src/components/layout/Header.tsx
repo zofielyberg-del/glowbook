@@ -31,7 +31,7 @@ export default function Header() {
     const { t, language, setLanguage } = useLanguage();
     const { theme, toggleTheme } = useTheme();
     const pathname = usePathname();
-    const { isLoggedIn, role, isSalonOwner, isPractitioner: isPractitionerRole, logout } = useAuth();
+    const { isLoggedIn, role, isSalonOwner, isPractitioner: isPractitionerRole, logout, user } = useAuth();
     const isProvider = isSalonOwner || isPractitionerRole;
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -84,7 +84,7 @@ export default function Header() {
                             <>
                                 <NavItem href="/search" icon={Search} label={t('nav_search')} />
                                 <NavItem href="/explore" icon={Compass} label={t('discover')} />
-                                <NavItem href="/provider" icon={User} label={t('my_pages')} />
+                                <NavItem href="/provider" icon={User} label="Översikt" />
                                 <NavItem href="/provider/settings?tab=inbox" icon={MessageSquare} label={t('nav_inbox')} />
                             </>
                         ) : (
@@ -123,16 +123,15 @@ export default function Header() {
                                 onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                                 className="bg-foreground text-background px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-champagne-500 hover:text-white transition-all shadow-md flex items-center gap-2"
                             >
-                                {t('my_pages')}
+                                {isProvider ? 'Översikt' : t('my_pages')}
                                 <ChevronDown size={12} className={clsx("transition-transform", isUserDropdownOpen && "rotate-180")} />
                             </button>
-
                             {isUserDropdownOpen && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
                                     <div className="absolute right-0 mt-3 w-48 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-50 p-2">
                                         <Link href={isProvider ? "/provider" : "/profile"} onClick={() => setIsUserDropdownOpen(false)} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-xl transition-all">
-                                            <User size={14} /> {isProvider ? t('nav_dashboard') : t('my_pages')}
+                                            <User size={14} /> {isProvider ? 'Översikt' : t('my_pages')}
                                         </Link>
                                         {isProvider && (
                                             <Link href="/provider/settings" onClick={() => setIsUserDropdownOpen(false)} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-xl transition-all">
@@ -197,7 +196,21 @@ export default function Header() {
                                         </div>
                                         <div>
                                             <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#C5B358', marginBottom: '4px' }}>Inloggad</p>
-                                            <p style={{ fontSize: '18px', fontWeight: 700, color: theme === 'dark' ? '#fff' : '#1A1A1A' }}>{isProvider ? 'Studio Partner' : 'Glow Member'}</p>
+                                            <p style={{ fontSize: '18px', fontWeight: 700, color: theme === 'dark' ? '#fff' : '#1A1A1A' }}>
+                                                {(() => {
+                                                    if (isProvider) {
+                                                        if (user) {
+                                                            const tier = (user.tier || user.membership_tier || 'bas').toLowerCase();
+                                                            if (tier === 'luxe') {
+                                                                return user.name || 'Studio Luxe';
+                                                            }
+                                                            return user.firstName || 'Studio Partner';
+                                                        }
+                                                        return 'Studio Partner';
+                                                    }
+                                                    return user?.firstName || 'Glow Member';
+                                                })()}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -206,7 +219,7 @@ export default function Header() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {[
                                     ...(showLoggedInUI ? [
-                                        { href: isProvider ? "/provider" : "/profile", icon: User, label: t('my_pages') },
+                                        { href: isProvider ? "/provider" : "/profile", icon: User, label: isProvider ? 'Översikt' : t('my_pages') },
                                         { href: "/explore", icon: Compass, label: t('discover') },
                                         { href: "/search", icon: Search, label: t('nav_search') },
                                         { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },

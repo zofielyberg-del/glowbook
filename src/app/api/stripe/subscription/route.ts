@@ -44,17 +44,19 @@ export async function POST(req: Request) {
                 },
             ],
             subscription_data: {
-                trial_period_days: 30, // 30 days trial for ALL tiers as per requirements
+                trial_period_days: 30,
                 metadata: {
                     salonId,
                     tier,
+                    duration: String(duration || 1),
                 },
             },
-            success_url: `${process.env.NEXT_PUBLIC_APP_URL}/provider/settings?tab=membership&success=true`,
-            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/provider/settings?tab=membership&canceled=true`,
+            success_url: `${process.env.NEXT_PUBLIC_APP_URL}/provider?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/provider?canceled=true`,
             metadata: {
                 salonId,
                 tier,
+                duration: String(duration || 1),
             },
         });
 

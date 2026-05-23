@@ -48,9 +48,9 @@ export default function ProviderOnboarding() {
     const [hasPreFilledName, setHasPreFilledName] = useState(false);
 
 
-    // Initial load from localStorage
+    // Initial load from sessionStorage (registration saves here)
     useEffect(() => {
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = sessionStorage.getItem('glowbook_salon');
         if (saved) {
             const data = JSON.parse(saved);
             setFormData(prev => ({
@@ -101,7 +101,7 @@ export default function ProviderOnboarding() {
         const pricing = calculatePrice(formData.tier, formData.duration);
 
         // 1. Prepare Salon Data
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = sessionStorage.getItem('glowbook_salon');
         let initialData = {} as any;
         if (saved) {
             try {
@@ -110,7 +110,8 @@ export default function ProviderOnboarding() {
         }
 
         const salonId = initialData.id || (formData.businessName ? formData.businessName.toLowerCase().replace(/\s+/g, '-') : `studio-${Date.now()}`);
-        const salonEmail = initialData.email || (formData.businessName ? `${formData.businessName.toLowerCase().replace(/\s+/g, '')}@glowbook.se` : 'studio@glowbook.se');
+        // Use the actual registered email - never generate a fake one
+        const salonEmail = initialData.email;
 
         const newSalon: any = {
             ...initialData,
@@ -160,15 +161,11 @@ export default function ProviderOnboarding() {
             if (stripeData.url) {
                 setKlarnaStatus('success');
                 // Save to local storage
-                localStorage.setItem('glowbook_salon', JSON.stringify({ ...newSalon, id: realId }));
+                sessionStorage.setItem('glowbook_salon', JSON.stringify({ ...newSalon, id: realId }));
                 
-                // Small delay for the success UI, then open in new window
+                // Open in the same tab so sessionStorage/session state is preserved
                 setTimeout(() => {
-                    const newWindow = window.open(stripeData.url, '_blank');
-                    // Fallback: If popup blocker blocks the new tab, redirect in the same tab instead of breaking the flow
-                    if (!newWindow) {
-                        window.location.href = stripeData.url;
-                    }
+                    window.location.href = stripeData.url;
                 }, 800);
             } else {
                 throw new Error(stripeData.error || 'Failed to create payment session');

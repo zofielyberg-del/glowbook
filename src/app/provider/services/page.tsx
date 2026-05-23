@@ -152,26 +152,30 @@ export default function ServicesPage() {
 
     // Save salon profile changes
     const updateSalonData = (updates: any) => {
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
         const data = saved ? JSON.parse(saved) : {};
         const newData = { ...data, ...updates };
         localStorage.setItem('glowbook_salon', JSON.stringify(newData));
+        sessionStorage.setItem('glowbook_salon', JSON.stringify(newData));
     };
 
-    const handleGlobalSave = async () => {
+    const autoSaveServices = async (updatedServices: any[]) => {
         setIsSaving(true);
         setSaveStatus('idle');
         try {
-            const saved = localStorage.getItem('glowbook_salon');
+            const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
             const baseData = saved ? JSON.parse(saved) : {};
 
-            // MERGE: Take what's in localStorage BUT overwrite with current page state
             const payload = {
                 ...baseData,
                 id: baseData.id && baseData.id !== 'undefined' ? baseData.id : 'luxe-by-essi',
-                services: services, // Current state services
-                practitioners: practitioners // Current state practitioners
+                services: updatedServices,
+                practitioners: practitioners
             };
+
+            // Update localStorage and sessionStorage instantly for fast UI
+            localStorage.setItem('glowbook_salon', JSON.stringify(payload));
+            sessionStorage.setItem('glowbook_salon', JSON.stringify(payload));
 
             const response = await fetch('/api/salons/update', {
                 method: 'POST',
@@ -181,14 +185,14 @@ export default function ServicesPage() {
 
             if (response.ok) {
                 setSaveStatus('success');
-                // Ensure localStorage is also updated to avoid mismatches
-                localStorage.setItem('glowbook_salon', JSON.stringify(payload));
+                // Trigger event to sync other pages
+                window.dispatchEvent(new Event('glowbook_update'));
                 setTimeout(() => setSaveStatus('idle'), 3000);
             } else {
                 setSaveStatus('error');
             }
         } catch (error) {
-            console.error('Failed to save services:', error);
+            console.error('Failed to auto-save services:', error);
             setSaveStatus('error');
         } finally {
             setIsSaving(false);
@@ -197,7 +201,7 @@ export default function ServicesPage() {
 
     // Load data on mount
     useEffect(() => {
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
         if (saved) {
             const data = JSON.parse(saved);
             if (data.category) {
@@ -247,6 +251,11 @@ export default function ServicesPage() {
     const handleAddService = (e: React.FormEvent) => {
         e.preventDefault();
 
+        const isLuxe = salonTier === 'luxe';
+        const finalPractitioners = isLuxe && newService.practitionerIds.length > 0
+            ? newService.practitionerIds
+            : ['owner'];
+
         const serviceData = {
             id: editingService ? editingService.id : Date.now().toString(),
             name: newService.name,
@@ -256,7 +265,7 @@ export default function ServicesPage() {
             duration: Number(newService.duration),
             description: newService.description,
             category: newService.category || category,
-            practitionerIds: newService.practitionerIds
+            practitionerIds: finalPractitioners
         };
 
         let updatedServices;
@@ -267,7 +276,7 @@ export default function ServicesPage() {
         }
 
         setServices(updatedServices);
-        updateSalonData({ services: updatedServices });
+        autoSaveServices(updatedServices);
 
         setIsModalOpen(false);
         setEditingService(null);
@@ -303,7 +312,7 @@ export default function ServicesPage() {
     const handleDeleteService = (id: string) => {
         const updatedServices = services.filter(s => s.id !== id);
         setServices(updatedServices);
-        updateSalonData({ services: updatedServices });
+        autoSaveServices(updatedServices);
     };
 
     const handleImageUpload = (type: 'profile' | 'background', file: File) => {
@@ -328,7 +337,41 @@ export default function ServicesPage() {
                 <section>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                         <div>
-                            <h1 className="text-2xl font-heading font-bold text-foreground">{t('dash_nav_services') || 'Tjänster'}</h1>
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-2xl font-heading font-bold text-foreground">{t('dash_nav_services') || 'Tjänster'}</h1>
+                                <AnimatePresence mode="wait">
+                                    {isSaving ? (
+                                        <motion.span
+                                            key="saving"
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.9 }}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-champagne-500/10 text-champagne-600 dark:text-champagne-400 rounded-full text-[10px] font-black uppercase tracking-wider"
+                                        >
+                                            <RefreshCw size={10} className="animate-spin" /> Sparar...
+                                        </motion.span>
+                                    ) : saveStatus === 'error' ? (
+                                        <motion.span
+                                            key="error"
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.9 }}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/10 text-red-600 dark:text-red-400 rounded-full text-[10px] font-black uppercase tracking-wider"
+                                        >
+                                            <X size={10} strokeWidth={4} /> Kunde ej spara
+                                        </motion.span>
+                                    ) : (
+                                        <motion.span
+                                            key="saved"
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-wider"
+                                        >
+                                            <Check size={10} strokeWidth={4} /> Sparat
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                             <p className="text-foreground/50 text-sm">{t('dash_nav_services_desc') || 'Skapa och hantera de tjänster du erbjuder.'}</p>
                         </div>
                         <button
@@ -388,44 +431,7 @@ export default function ServicesPage() {
                     </div>
                 </section>
 
-                {/* Floating Save Button */}
-                <div className="fixed bottom-10 right-10 z-50">
-                    <motion.button
-                        layout
-                        onClick={handleGlobalSave}
-                        disabled={isSaving}
-                        className={clsx(
-                            "flex items-center gap-3 px-8 py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 disabled:opacity-50",
-                            saveStatus === 'success' 
-                                ? "bg-emerald-500 text-white" 
-                                : saveStatus === 'error'
-                                ? "bg-red-500 text-white"
-                                : "bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-champagne-600 dark:hover:bg-champagne-600 dark:hover:text-white"
-                        )}
-                    >
-                        {isSaving ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                Sparar...
-                            </>
-                        ) : saveStatus === 'success' ? (
-                            <>
-                                <Check size={18} strokeWidth={3} />
-                                Sparat!
-                            </>
-                        ) : saveStatus === 'error' ? (
-                            <>
-                                <X size={18} strokeWidth={3} />
-                                Fel vid sparning
-                            </>
-                        ) : (
-                            <>
-                                <Check size={18} strokeWidth={3} />
-                                Spara ändringar
-                            </>
-                        )}
-                    </motion.button>
-                </div>
+
 
                 {/* Create Service Modal */}
                 <AnimatePresence>
@@ -674,48 +680,50 @@ export default function ServicesPage() {
                                                 )}
                                             </div>
 
-                                            <div>
-                                                <label className="block text-sm font-bold text-foreground mb-4">Vilka utför tjänsten? *</label>
-                                                {practitioners.length > 0 ? (
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        {practitioners.map(p => (
-                                                            <button
-                                                                key={p.id}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const ids = newService.practitionerIds;
-                                                                    setNewService({
-                                                                        ...newService,
-                                                                        practitionerIds: ids.includes(p.id)
-                                                                            ? ids.filter(id => id !== p.id)
-                                                                            : [...ids, p.id]
-                                                                    });
-                                                                }}
-                                                                className={clsx(
-                                                                    "px-4 py-4 rounded-2xl text-xs font-bold transition-all border flex items-center gap-3",
-                                                                    newService.practitionerIds.includes(p.id)
-                                                                        ? "bg-[#111] dark:bg-white text-white dark:text-[#111] border-transparent shadow-xl ring-4 ring-black/5 dark:ring-white/10"
-                                                                        : "bg-foreground/5 text-foreground/40 border-border hover:border-foreground/20"
-                                                                )}
-                                                            >
-                                                                <div className={clsx(
-                                                                    "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black",
-                                                                    newService.practitionerIds.includes(p.id) ? "bg-emerald-500 text-white" : "bg-foreground/10 text-foreground/40"
-                                                                )}>
-                                                                    {newService.practitionerIds.includes(p.id) ? "✓" : p.name.charAt(0)}
-                                                                </div>
-                                                                {p.name}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-100 dark:border-amber-900/10">
-                                                        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">
-                                                            Inga medarbetare tillagda än. Gå till Inställningar → Utförare.
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            {salonTier === 'luxe' && (
+                                                <div>
+                                                    <label className="block text-sm font-bold text-foreground mb-4">Vilka utför tjänsten? *</label>
+                                                    {practitioners.length > 0 ? (
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            {practitioners.map(p => (
+                                                                <button
+                                                                    key={p.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const ids = newService.practitionerIds;
+                                                                        setNewService({
+                                                                            ...newService,
+                                                                            practitionerIds: ids.includes(p.id)
+                                                                                ? ids.filter(id => id !== p.id)
+                                                                                : [...ids, p.id]
+                                                                        });
+                                                                    }}
+                                                                    className={clsx(
+                                                                        "px-4 py-4 rounded-2xl text-xs font-bold transition-all border flex items-center gap-3",
+                                                                        newService.practitionerIds.includes(p.id)
+                                                                            ? "bg-[#111] dark:bg-white text-white dark:text-[#111] border-transparent shadow-xl ring-4 ring-black/5 dark:ring-white/10"
+                                                                            : "bg-foreground/5 text-foreground/40 border-border hover:border-foreground/20"
+                                                                    )}
+                                                                >
+                                                                    <div className={clsx(
+                                                                        "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black",
+                                                                        newService.practitionerIds.includes(p.id) ? "bg-emerald-500 text-white" : "bg-foreground/10 text-foreground/40"
+                                                                    )}>
+                                                                        {newService.practitionerIds.includes(p.id) ? "✓" : p.name.charAt(0)}
+                                                                    </div>
+                                                                    {p.name}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-100 dark:border-amber-900/10">
+                                                            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">
+                                                                Inga medarbetare tillagda än. Gå till Inställningar → Utförare.
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             <div>
                                                 <label className="block text-sm font-bold text-foreground mb-2">{t('label_description')} <span className="text-foreground/50 font-normal">{t('label_optional')}</span></label>

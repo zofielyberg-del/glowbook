@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { stripe } from '@/lib/stripe';
 import { resend } from '@/lib/resend';
 import { prisma } from '@/lib/prisma';
+import { sendProviderWelcomeEmail, sendProviderReceiptEmail } from '@/lib/email';
 
 // Bullseye: Core Gift Card Generation Logic
 function generateCode(): string {
@@ -165,20 +166,54 @@ export async function POST(req: Request) {
     // 💎 Handle Subscription Success / Initial Activation
     if (event.type === 'checkout.session.completed' && session.mode === 'subscription') {
         const salonId = session.metadata?.salonId;
-        const tier = session.metadata?.tier;
+        const tier = session.metadata?.tier || 'pro';
         const customerId = session.customer;
         const subscriptionId = session.subscription;
 
         if (salonId) {
-            await prisma.salon.update({
+            const updatedSalon = await prisma.salon.update({
                 where: { id: salonId },
                 data: { 
                     subscription_status: 'active',
                     membership_tier: tier ? tier.toLowerCase() : undefined,
                     stripe_customer_id: customerId as string,
                     stripe_subscription_id: subscriptionId as string
-                }
+                },
+                include: { owner: true }
             });
+
+            console.log(`[Webhook] Salon ${salonId} active. Owner: ${updatedSalon.owner?.email}`);
+
+            // Send Welcome and Receipt emails to the provider
+            if (updatedSalon.owner?.email) {
+                const firstName = updatedSalon.owner.first_name || updatedSalon.name || 'Utförare';
+                
+                // 1. Send Welcome Email
+                try {
+                    await sendProviderWelcomeEmail(updatedSalon.owner.email, firstName);
+                    console.log(`[Webhook] Welcome email sent to ${updatedSalon.owner.email}`);
+                } catch (err) {
+                    console.error('[Webhook] Failed to send welcome email:', err);
+                }
+
+                // 2. Send Receipt Email (Base Pricing: Bas 79, Pro 149, Luxe 249)
+                const priceMap: Record<string, number> = { bas: 79, pro: 149, luxe: 249 };
+                const basePrice = priceMap[tier.toLowerCase()] || 149;
+
+                try {
+                    await sendProviderReceiptEmail(
+                        updatedSalon.owner.email,
+                        firstName,
+                        updatedSalon.name,
+                        tier,
+                        basePrice,
+                        'SEK'
+                    );
+                    console.log(`[Webhook] Receipt email sent to ${updatedSalon.owner.email}`);
+                } catch (err) {
+                    console.error('[Webhook] Failed to send receipt email:', err);
+                }
+            }
         }
     }
 

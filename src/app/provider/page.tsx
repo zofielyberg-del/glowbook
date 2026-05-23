@@ -52,6 +52,62 @@ export default function ProviderDashboard() {
 
     const { user, isLoggedIn, isLoading: authLoading } = useAuth();
 
+    // Sync Stripe Checkout session if returned from Stripe Checkout
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get('session_id');
+        const subscriptionParam = params.get('subscription');
+        
+        if (subscriptionParam === 'success' && sessionId) {
+            console.log('[Sync] Found Stripe session_id in URL, triggering database sync...');
+            
+            // Clean up the URL so the query parameter is hidden from the user
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+
+            // Call backend sync-session API
+            fetch('/api/stripe/sync-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.salon) {
+                    console.log('[Sync] Stripe session synced successfully!', data.salon);
+                    
+                    const updateStorage = (storage: Storage) => {
+                        const cached = storage.getItem('glowbook_salon');
+                        if (cached) {
+                            try {
+                                const parsed = JSON.parse(cached);
+                                const updated = {
+                                    ...parsed,
+                                    subscription_status: data.salon.subscription_status,
+                                    membership_tier: data.salon.membership_tier,
+                                    stripe_subscription_id: data.salon.stripe_subscription_id
+                                };
+                                storage.setItem('glowbook_salon', JSON.stringify(updated));
+                            } catch (e) {
+                                console.error('Error parsing storage during sync:', e);
+                            }
+                        }
+                    };
+                    updateStorage(sessionStorage);
+                    updateStorage(localStorage);
+                    
+                    // Trigger custom events to refresh dashboard components
+                    window.dispatchEvent(new Event('glowbook_update'));
+                    window.dispatchEvent(new Event('storage'));
+                }
+            })
+            .catch(err => {
+                console.error('[Sync] Failed to sync Stripe session:', err);
+            });
+        }
+    }, []);
+
     useEffect(() => {
         if (authLoading) return;
         if (!user) {
@@ -152,33 +208,63 @@ export default function ProviderDashboard() {
         setBookingData({ clientName: '', service: '', startTime: '10:00', date: format(new Date(), 'yyyy-MM-dd'), duration: 60 });
     };
 
-    const handleCancelAppointment = (aptId: string) => {
-        const saved = localStorage.getItem('glowbook_salon');
-        if (!saved) return;
-        const data = JSON.parse(saved);
-        const appointments = data.appointments || [];
+    const handleCancelAppointment = async (aptId: string) => {
+        // 1. Sync deletion to database immediately using bypassPolicy
+        try {
+            const res = await fetch('/api/bookings/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appointmentId: aptId, bypassPolicy: true })
+            });
+            const result = await res.json();
+            if (!res.ok) {
+                console.warn('Database cancellation note:', result.error);
+            }
+        } catch (e) {
+            console.error('Failed to sync database cancellation:', e);
+        }
 
-        const apt = appointments.find((a: any) => a.id === aptId);
-        if (!apt) return;
+        // 2. Keep local sessionStorage & localStorage updated as fallback
+        const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+        if (saved) {
+            const data = JSON.parse(saved);
+            const appointments = data.appointments || [];
+            const apt = appointments.find((a: any) => a.id === aptId);
+            const filtered = appointments.filter((a: any) => a.id !== aptId);
+            const updated = { ...data, appointments: filtered };
+            
+            sessionStorage.setItem('glowbook_salon', JSON.stringify(updated));
+            localStorage.setItem('glowbook_salon', JSON.stringify(updated));
 
-        const filtered = appointments.filter((a: any) => a.id !== aptId);
-        const updated = {
-            ...data,
-            appointments: filtered
-        };
+            // Show cancellation notice
+            const msg = (apt && apt.clientEmail)
+                ? `Avbokning bekräftad. Ett mail har skickats till ${apt.clientEmail}`
+                : `Bokningen har tagits bort.`;
 
-        localStorage.setItem('glowbook_salon', JSON.stringify(updated));
+            setCancellationNotice(msg);
+            setTimeout(() => setCancellationNotice(null), 5000);
+            
+            setSalonName(updated.name);
+        }
+
+        // 3. Background fetch fresh data from server
+        const savedData = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            if (data.id) {
+                try {
+                    const response = await fetch(`/api/salons/get?id=${data.id}`);
+                    const serverResult = await response.json();
+                    if (serverResult.success) {
+                        const merged = { ...data, ...serverResult.salon };
+                        sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                        localStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                    }
+                } catch (e) {}
+            }
+        }
+
         window.dispatchEvent(new Event('glowbook_update'));
-
-        // Show cancellation notice
-        const msg = apt.clientEmail
-            ? `Avbokning bekräftad. Ett mail har skickats till ${apt.clientEmail}`
-            : `Bokningen för ${apt.clientName} har tagits bort.`;
-
-        setCancellationNotice(msg);
-        setTimeout(() => setCancellationNotice(null), 5000);
-
-        setSalonName(updated.name); // Trigger re-render
     };
 
     const handleApproveAppointment = async (aptId: string) => {

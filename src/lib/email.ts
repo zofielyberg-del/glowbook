@@ -87,10 +87,10 @@ export const getHtmlWrapper = (content: string) => `
 /**
  * 1. Welcome Email for New Providers
  */
-export const sendProviderWelcomeEmail = async (email: string, salonName: string) => {
+export const sendProviderWelcomeEmail = async (email: string, firstName: string) => {
     const htmlContent = `
         <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Välkommen till Glowbook</h1>
-        <p style="color:#d4d4d4;margin:0 0 16px 0;">Bästa ${salonName},</p>
+        <p style="color:#d4d4d4;margin:0 0 16px 0;">Bästa ${firstName},</p>
         <p style="color:#d4d4d4;margin:0 0 16px 0;">Det gläder oss oerhört att ni har valt att ansluta er till Glowbook – Sveriges ledande bokningsplattform för exklusiv skönhet och hälsa.</p>
         <p style="color:#d4d4d4;margin:0 0 40px 0;">Er profil är nu skapad. Ni kan omgående konfigurera er kalender, lägga till behandlingar samt anpassa er presentation för att återspegla er salongs unika karaktär.</p>
         

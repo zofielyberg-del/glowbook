@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "@/components/layout/Header";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,7 +45,7 @@ function SettingsContent() {
         description: '',
         email: '',
         tier: 'pro',
-        duration: 6,
+        duration: 1,
         profileImage: null as string | null,
         backgroundImage: null as string | null,
         isVerified: false,
@@ -64,7 +64,7 @@ function SettingsContent() {
     const [isAddPractitionerModalOpen, setIsAddPractitionerModalOpen] = useState(false);
     const [managingScheduleId, setManagingScheduleId] = useState<string | null>(null);
     const [editingPractitionerId, setEditingPractitionerId] = useState<string | null>(null);
-    const [newPractitioner, setNewPractitioner] = useState({ name: '', role: '', title: '', categories: [] as string[] });
+    const [newPractitioner, setNewPractitioner] = useState({ name: '', role: '', title: '', categories: [] as string[], image: '' });
     const [scheduleBuffer, setScheduleBuffer] = useState<any>({});
     const [uploadedDiploma, setUploadedDiploma] = useState<string | null>(null);
     const [loyaltyState, setLoyaltyState] = useState<ProviderLoyaltyState>(getDefaultLoyaltyState());
@@ -208,20 +208,22 @@ function SettingsContent() {
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
+    const isFirstRender = useRef(true);
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const handleSave = async () => {
+    const handleSave = async (dataToSave = salonData) => {
         setIsSaving(true);
         setSaveStatus('idle');
         setErrorMessage('');
-        const salonId = salonData.id || (salonData.name ? salonData.name.toLowerCase().replace(/\s+/g, '-') : `salon-${Date.now()}`);
+        const salonId = dataToSave.id || (dataToSave.name ? dataToSave.name.toLowerCase().replace(/\s+/g, '-') : `salon-${Date.now()}`);
 
         // Auto-generate slug from name if PRO/LUXE
-        const computedSlug = (salonData.tier !== 'bas' && salonData.name)
-            ? salonData.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-            : (salonData as any).slug;
+        const computedSlug = (dataToSave.tier !== 'bas' && dataToSave.name)
+            ? dataToSave.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+            : (dataToSave as any).slug;
 
         const updatedData = {
-            ...salonData,
+            ...dataToSave,
             id: salonId,
             currency: currency,
             slug: computedSlug
@@ -256,6 +258,21 @@ function SettingsContent() {
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 3000);
     };
+
+    // Auto-save: debounce 1.5s after salonData changes (skip first render)
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => {
+            handleSave(salonData);
+        }, 1500);
+        return () => {
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        };
+    }, [salonData]);
 
     const loyaltyInfo = calculateLoyaltyStatus(loyaltyState, new Date());
 
@@ -324,37 +341,69 @@ function SettingsContent() {
         window.dispatchEvent(new Event('glowbook_update'));
     };
 
-    const handleCancelMembership = () => {
+    const [isReactivating, setIsReactivating] = useState(false);
+
+    const handleCancelMembership = async () => {
         setIsCancelling(true);
-        // Simulate API call to register cancellation intent
-        setTimeout(() => {
-            const updated = {
-                ...salonData,
-                cancellationRequested: true,
-                cancellationDate: new Date().toISOString(),
-                cancellationReason
-            };
-            setSalonData(updated as any);
-            localStorage.setItem('glowbook_salon', JSON.stringify(updated));
-
-            // Notify Admin (Mock message)
-            const adminNotify = {
-                id: Date.now().toString(),
-                name: salonData.name,
-                email: salonData.email,
-                subject: 'Uppsägning av medlemskap',
-                message: `Jag vill avsluta mitt medlemskap efter bindningstiden. Anledning: ${cancellationReason}`,
-                status: 'unread',
-                timestamp: new Date().toISOString()
-            };
-            const existingMessages = JSON.parse(localStorage.getItem('glowbook_messages') || '[]');
-            localStorage.setItem('glowbook_messages', JSON.stringify([...existingMessages, adminNotify]));
-
-            setIsCancelModalOpen(false);
+        try {
+            const response = await fetch('/api/stripe/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ salonId: salonData.id })
+            });
+            const data = await response.json();
+            if (data.success) {
+                const updated = {
+                    ...salonData,
+                    subscription_status: 'canceling'
+                };
+                setSalonData(updated as any);
+                sessionStorage.setItem('glowbook_salon', JSON.stringify(updated));
+                window.dispatchEvent(new Event('glowbook_update'));
+                
+                setIsCancelModalOpen(false);
+                setSavedSuccess(true);
+                setTimeout(() => setSavedSuccess(false), 3000);
+            } else {
+                alert(data.error || 'Kunde inte avsluta medlemskap');
+            }
+        } catch (error) {
+            console.error('Error canceling membership:', error);
+            alert('Ett nätverksfel uppstod.');
+        } finally {
             setIsCancelling(false);
-            setSavedSuccess(true);
-            setTimeout(() => setSavedSuccess(false), 3000);
-        }, 1500);
+        }
+    };
+
+    const handleReactivateMembership = async () => {
+        setIsReactivating(true);
+        try {
+            const response = await fetch('/api/stripe/reactivate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ salonId: salonData.id })
+            });
+            const data = await response.json();
+            if (data.success) {
+                const updated = {
+                    ...salonData,
+                    subscription_status: 'active'
+                };
+                setSalonData(updated as any);
+                sessionStorage.setItem('glowbook_salon', JSON.stringify(updated));
+                window.dispatchEvent(new Event('glowbook_update'));
+                
+                setSavedSuccess(true);
+                setTimeout(() => setSavedSuccess(false), 3000);
+            } else {
+                alert(data.error || 'Kunde inte återaktivera medlemskap');
+            }
+        } catch (error) {
+            console.error('Error reactivating membership:', error);
+            alert('Ett nätverksfel uppstod.');
+        } finally {
+            setIsReactivating(false);
+        }
     };
 
     const TABS = [
@@ -371,7 +420,7 @@ function SettingsContent() {
         { key: 'notifications' as TabKey, label: 'Inställningar', icon: Bell },
         { key: 'marketing' as TabKey, label: t('tab_marketing'), icon: Sparkles },
         { key: 'templates' as TabKey, label: t('tab_templates'), icon: ClipboardList },
-        { key: 'practitioners' as TabKey, label: t('tab_practitioners'), icon: Users },
+        ...(salonData.tier === 'luxe' ? [{ key: 'practitioners' as TabKey, label: t('tab_practitioners'), icon: Users }] : []),
     ];
 
     return (
@@ -760,23 +809,27 @@ function SettingsContent() {
                                     </div>
                                 </section>
 
-                                {/* Save Button */}
-                                <div className="flex justify-end gap-4 items-center">
-                                    {savedSuccess && (
+                                {/* Auto-save status indicator */}
+                                <div className="flex justify-end items-center h-8">
+                                    {isSaving && (
+                                        <span className="text-foreground/40 text-xs font-medium flex items-center gap-1.5">
+                                            <RefreshCw size={12} className="animate-spin" /> Sparar...
+                                        </span>
+                                    )}
+                                    {!isSaving && saveStatus === 'success' && (
                                         <motion.span
-                                            initial={{ opacity: 0, x: 10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            className="text-green-600 dark:text-green-400 text-sm font-medium flex items-center gap-1"
+                                            initial={{ opacity: 0, y: 4 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="text-green-600 dark:text-green-400 text-xs font-medium flex items-center gap-1.5"
                                         >
-                                            <Check size={16} /> {t('msg_changes_saved')}
+                                            <Check size={12} /> Sparat automatiskt
                                         </motion.span>
                                     )}
-                                    <button
-                                        onClick={handleSave}
-                                        className="bg-[#111] dark:bg-white text-white dark:text-[#111] px-10 py-4 rounded-full font-bold hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-all flex items-center gap-2 shadow-lg"
-                                    >
-                                        <Save size={18} /> {t('btn_save_changes')}
-                                    </button>
+                                    {!isSaving && saveStatus === 'error' && (
+                                        <span className="text-red-500 text-xs font-medium flex items-center gap-1.5">
+                                            <AlertTriangle size={12} /> {errorMessage || 'Kunde inte spara'}
+                                        </span>
+                                    )}
                                 </div>
 
                                 {/* Verification Section */}
@@ -973,7 +1026,7 @@ function SettingsContent() {
                                         </div>
                                     </div>
 
-                                    {(salonData as any).cancellationRequested ? (
+                                    {salonData.subscription_status === 'canceling' ? (
                                         <div className="mt-8 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-6 rounded-3xl flex items-center justify-between">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center text-amber-600">
@@ -984,7 +1037,13 @@ function SettingsContent() {
                                                     <p className="text-xs text-foreground/50">Ditt medlemskap avslutas efter bindningstidens slut.</p>
                                                 </div>
                                             </div>
-                                            <button className="text-xs font-bold text-amber-600 hover:underline">Ångra uppsägning</button>
+                                            <button 
+                                                onClick={handleReactivateMembership}
+                                                disabled={isReactivating}
+                                                className="text-xs font-bold text-amber-600 hover:underline disabled:opacity-50 flex items-center gap-1"
+                                            >
+                                                {isReactivating ? <div className="w-3 h-3 border-2 border-amber-600/30 border-t-amber-600 rounded-full animate-spin" /> : 'Ångra uppsägning'}
+                                            </button>
                                         </div>
                                     ) : (
                                         <button
@@ -1679,7 +1738,7 @@ function SettingsContent() {
                                                     setActiveTab('membership');
                                                 } else {
                                                     setEditingPractitionerId(null);
-                                                    setNewPractitioner({ name: '', role: '', title: '', categories: [] });
+                                                    setNewPractitioner({ name: '', role: '', title: '', categories: [], image: '' });
                                                     setIsAddPractitionerModalOpen(true);
                                                 }
                                             }}
@@ -1703,9 +1762,13 @@ function SettingsContent() {
                                                 <div key={p.id} className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                                     <div className="p-6 rounded-[32px] border border-border bg-foreground/[0.02] flex items-center justify-between group hover:border-blue-500/30 transition-all">
                                                         <div className="flex items-center gap-4">
-                                                            <div className="w-14 h-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-500/10">
-                                                                {p.name.charAt(0)}
-                                                            </div>
+                                                            {p.image ? (
+                                                                <img src={p.image} alt={p.name} className="w-14 h-14 rounded-2xl object-cover shadow-lg shadow-blue-500/10" />
+                                                            ) : (
+                                                                <div className="w-14 h-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-500/10">
+                                                                    {p.name.charAt(0)}
+                                                                </div>
+                                                            )}
                                                             <div>
                                                                 <h4 className="font-bold text-lg">{p.name}</h4>
                                                                 <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-[0.2em]">{p.title || p.role}</p>
@@ -1729,7 +1792,8 @@ function SettingsContent() {
                                                                         name: p.name,
                                                                         role: p.role,
                                                                         title: p.title,
-                                                                        categories: p.categories || []
+                                                                        categories: p.categories || [],
+                                                                        image: p.image || ''
                                                                     });
                                                                     setIsAddPractitionerModalOpen(true);
                                                                 }}
@@ -1797,54 +1861,27 @@ function SettingsContent() {
                     </div>
                 </div >
 
-                {/* Floating Save Button */}
-                <div className="fixed bottom-10 right-10 z-[100]">
-                    <motion.button
-                        layout
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className={clsx(
-                            "flex items-center gap-3 px-8 py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 disabled:opacity-50",
-                            saveStatus === 'success' 
-                                ? "bg-emerald-500 text-white" 
-                                : saveStatus === 'error'
-                                ? "bg-red-500 text-white"
-                                : "bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-champagne-600 dark:hover:bg-champagne-600 dark:hover:text-white"
-                        )}
-                    >
-                        {isSaving ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                Sparar...
-                            </>
-                        ) : saveStatus === 'success' ? (
-                            <>
-                                <Check size={18} strokeWidth={3} />
-                                Sparat!
-                            </>
-                        ) : saveStatus === 'error' ? (
-                            <>
-                                <X size={18} strokeWidth={3} />
-                                {errorMessage || 'Fel vid sparning'}
-                            </>
-                        ) : (
-                            <>
-                                <Check size={18} strokeWidth={3} />
-                                Spara ändringar
-                            </>
-                        )}
-                    </motion.button>
-
-                    {saveStatus === 'error' && (
-                        <div className="mt-4 p-6 bg-red-50 dark:bg-red-950/20 rounded-[32px] border border-red-100 dark:border-red-900/30 text-[10px] font-mono whitespace-pre-wrap max-w-sm overflow-auto max-h-[200px] shadow-2xl">
-                            <p className="font-bold text-red-600 mb-2 uppercase tracking-widest">Debug Info:</p>
-                            ID: {salonData.id || 'Saknas'}
-                            Namn: {salonData.name || 'Saknas'}
-                            Slug: {salonData.slug || 'Saknas'}
-                            Server Error: {errorMessage}
-                        </div>
-                    )}
-                </div>
+                {/* Auto-save floating indicator */}
+                {(isSaving || saveStatus !== 'idle') && (
+                    <div className="fixed bottom-10 right-10 z-[100]">
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className={clsx(
+                                "flex items-center gap-2 px-5 py-3 rounded-full text-xs font-bold shadow-xl",
+                                saveStatus === 'success' ? "bg-emerald-500 text-white"
+                                : saveStatus === 'error' ? "bg-red-500 text-white"
+                                : "bg-[#111] text-white"
+                            )}
+                        >
+                            {isSaving && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                            {!isSaving && saveStatus === 'success' && <Check size={14} strokeWidth={3} />}
+                            {!isSaving && saveStatus === 'error' && <X size={14} strokeWidth={3} />}
+                            {isSaving ? 'Sparar...' : saveStatus === 'success' ? 'Sparat!' : errorMessage || 'Fel'}
+                        </motion.div>
+                    </div>
+                )}
             </main >
 
             {/* Verification Modal */}
@@ -1988,7 +2025,7 @@ function SettingsContent() {
                                     <button onClick={() => {
                                         setIsAddPractitionerModalOpen(false);
                                         setEditingPractitionerId(null);
-                                        setNewPractitioner({ name: '', role: '', title: '', categories: [] });
+                                        setNewPractitioner({ name: '', role: '', title: '', categories: [], image: '' });
                                     }} className="hover:rotate-90 transition-transform"><Plus size={24} className="rotate-45" /></button>
                                 </div>
 
@@ -2074,6 +2111,22 @@ function SettingsContent() {
                                                 placeholder="T.ex. Specialiserad på balayage"
                                             />
                                         </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-foreground/30 mb-2">Profilbilds-URL (valfritt)</label>
+                                            <input
+                                                type="text"
+                                                value={newPractitioner.image}
+                                                onChange={(e) => setNewPractitioner({ ...newPractitioner, image: e.target.value })}
+                                                className="w-full px-5 py-4 rounded-2xl bg-foreground/5 border border-border focus:border-blue-500 outline-none transition-all placeholder:text-foreground/20 text-xs"
+                                                placeholder="Klistra in bildlänk (t.ex. https://image.com/my-pic.jpg)"
+                                            />
+                                            {newPractitioner.image && (
+                                                <div className="mt-3 flex items-center gap-3 bg-foreground/5 p-3 rounded-2xl border border-border">
+                                                    <img src={newPractitioner.image} alt="Preview" className="w-10 h-10 rounded-full object-cover shadow-md" onError={(e) => { (e.target as any).style.display = 'none'; }} />
+                                                    <span className="text-[10px] text-foreground/50 font-bold uppercase tracking-wider">Förhandsvisning</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="p-4 bg-blue-500/10 rounded-2xl border border-blue-500/20">
@@ -2097,7 +2150,8 @@ function SettingsContent() {
                                                             name: newPractitioner.name,
                                                             title: newPractitioner.title,
                                                             role: newPractitioner.role || newPractitioner.title,
-                                                            categories: newPractitioner.categories.length > 0 ? newPractitioner.categories : [newPractitioner.title]
+                                                            categories: newPractitioner.categories.length > 0 ? newPractitioner.categories : [newPractitioner.title],
+                                                            image: newPractitioner.image
                                                         }
                                                         : ptr
                                                 );
@@ -2112,7 +2166,7 @@ function SettingsContent() {
                                                     name: newPractitioner.name,
                                                     title: newPractitioner.title,
                                                     role: newPractitioner.role || newPractitioner.title,
-                                                    image: '',
+                                                    image: newPractitioner.image,
                                                     schedule: {},
                                                     status: 'active',
                                                     categories: newPractitioner.categories.length > 0 ? newPractitioner.categories : [newPractitioner.title]
@@ -2126,7 +2180,7 @@ function SettingsContent() {
                                             }
 
                                             setIsAddPractitionerModalOpen(false);
-                                            setNewPractitioner({ name: '', role: '', title: '', categories: [] });
+                                            setNewPractitioner({ name: '', role: '', title: '', categories: [], image: '' });
                                             setSavedSuccess(true);
                                             setTimeout(() => setSavedSuccess(false), 2000);
                                         }}

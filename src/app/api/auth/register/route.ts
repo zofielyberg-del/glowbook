@@ -65,13 +65,7 @@ export async function POST(req: Request) {
                 });
                 console.log('SALON & PRACTITIONER CREATED SUCCESSFULLY:', salon.id);
 
-                // Send Welcome Email to the Provider
-                try {
-                    await sendProviderWelcomeEmail(email, salon.name);
-                    console.log(`Welcome email successfully sent to ${email}`);
-                } catch (emailErr) {
-                    console.error('Failed to send welcome email:', emailErr);
-                }
+                // Welcome email is sent via Stripe webhook after payment confirmation
 
             } catch (salonError) {
                 console.error('CRITICAL SALON CREATION ERROR:', salonError);

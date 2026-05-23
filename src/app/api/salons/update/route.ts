@@ -19,6 +19,14 @@ export async function POST(req: Request) {
         // 1. Update Salon basic info
         let realSalonId = id;
         try {
+            // Try find by ID first
+            let existing = await prisma.salon.findUnique({ where: { id } });
+            
+            // If not found by ID, maybe it's found by SLUG?
+            if (!existing && salonInfo.slug) {
+                existing = await prisma.salon.findUnique({ where: { slug: salonInfo.slug } });
+            }
+
             // Combine category (primary) and categories (additional) into a single JSON array
             const allCategories = Array.from(new Set([
                 ...(salonInfo.category ? [salonInfo.category] : []),
@@ -35,22 +43,19 @@ export async function POST(req: Request) {
                 slug: salonInfo.slug,
                 category: salonInfo.category,
                 categories: salonInfo.categories || [],
-                logo_url: salonInfo.profileImage || salonInfo.logo_url,
-                banner_url: salonInfo.backgroundImage || salonInfo.banner_url,
-                gallery_images: salonInfo.galleryImages || salonInfo.gallery_images || [],
+                // 🎯 Race-Condition Protection: Fall back to existing database assets if payload is empty/null
+                logo_url: salonInfo.profileImage || salonInfo.logo_url || (existing ? existing.logo_url : null),
+                banner_url: salonInfo.backgroundImage || salonInfo.banner_url || (existing ? existing.banner_url : null),
+                gallery_images: (salonInfo.galleryImages && salonInfo.galleryImages.length > 0) 
+                    ? salonInfo.galleryImages 
+                    : (salonInfo.gallery_images && salonInfo.gallery_images.length > 0)
+                        ? salonInfo.gallery_images
+                        : (existing ? existing.gallery_images : []),
                 membership_tier: (salonInfo.tier || salonInfo.membership_tier || 'bas').toLowerCase(),
-                subscription_status: salonInfo.subscription_status || 'active',
                 availability: salonInfo.availability || [],
+                duration: salonInfo.duration !== undefined ? parseInt(salonInfo.duration) : undefined,
                 cancellation_window_hours: salonInfo.cancellation_window_hours !== undefined ? parseInt(salonInfo.cancellation_window_hours) : 24
             };
-
-            // Try find by ID first
-            let existing = await prisma.salon.findUnique({ where: { id } });
-            
-            // If not found by ID, maybe it's found by SLUG?
-            if (!existing && salonInfo.slug) {
-                existing = await prisma.salon.findUnique({ where: { slug: salonInfo.slug } });
-            }
 
             if (existing) {
                 realSalonId = existing.id; // Use the real DB record ID
@@ -72,7 +77,11 @@ export async function POST(req: Request) {
                 }
             } else {
                 const newSalon = await prisma.salon.create({
-                    data: { ...updateData, id }
+                    data: { 
+                        ...updateData, 
+                        id,
+                        subscription_status: salonInfo.subscription_status || 'active'
+                    }
                 });
                 realSalonId = newSalon.id;
 
@@ -96,8 +105,14 @@ export async function POST(req: Request) {
 
         // 2. Sync Practitioners
         if (practitioners && Array.isArray(practitioners)) {
+            const tierStr = (salonInfo.tier || salonInfo.membership_tier || 'bas').toLowerCase();
+            let finalPractitioners = practitioners;
+            if (tierStr !== 'luxe' && practitioners.length > 1) {
+                // If not LUXE, strictly limit to 1 practitioner
+                finalPractitioners = [practitioners[0]];
+            }
             const processedPractitionerIds: string[] = [];
-            for (const p of practitioners) {
+            for (const p of finalPractitioners) {
                 try {
                     const pid = p.id && p.id.length > 20 ? p.id : undefined;
                     const pData = {

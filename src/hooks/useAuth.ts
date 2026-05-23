@@ -27,48 +27,50 @@ export function useAuth() {
             setState({ user: JSON.parse(adminData), role: 'admin', isLoading: false });
         } else if (salonDataString) {
             let data = JSON.parse(salonDataString);
-
-            // Try to fetch fresh data from server if we have an ID
-            if (data.id && data.id.length > 20) {
-                try {
-                    const response = await fetch(`/api/salons/get?id=${data.id}`);
-                    const serverResult = await response.json();
-                    if (serverResult.success) {
-                        data = { ...data, ...serverResult.salon };
-                        sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
-                    } else if (serverResult.error === 'Salon not found') {
-                        // DB was cleared, remove from local storage
-                        sessionStorage.removeItem('glowbook_salon');
-                        setState({ user: null, role: 'guest', isLoading: false });
-                        return;
-                    }
-                } catch (e) {
-                    console.error('Failed to refresh salon data from server:', e);
-                }
-            }
-
             const role: Role = data.role === 'practitioner' ? 'practitioner' : 'salon_owner';
+
+            // ⚡️ Instant render: Set the state immediately using local sessionStorage data
             setState({ user: data, role, isLoading: false });
+
+            // 🔄 Background Sync: Refresh data from server without blocking the UI
+            if (data.id && data.id.length > 20) {
+                fetch(`/api/salons/get?id=${data.id}`)
+                    .then(res => res.json())
+                    .then(serverResult => {
+                        if (serverResult.success) {
+                            const refreshedData = { ...data, ...serverResult.salon };
+                            sessionStorage.setItem('glowbook_salon', JSON.stringify(refreshedData));
+                            setState({ user: refreshedData, role, isLoading: false });
+                        } else if (serverResult.error === 'Salon not found') {
+                            sessionStorage.removeItem('glowbook_salon');
+                            setState({ user: null, role: 'guest', isLoading: false });
+                        }
+                    })
+                    .catch(e => {
+                        console.error('Background salon sync failed:', e);
+                    });
+            }
         } else if (customerData) {
             const data = JSON.parse(customerData);
             
-            // For customers, also try to verify if they exist if they have a real ID
-            if (data.id && data.id.length > 20) {
-                try {
-                    const response = await fetch(`/api/admin/data`); // We can use the admin data or a specific user check
-                    const result = await response.json();
-                    if (result.success) {
-                        const exists = result.users.some((u: any) => u.id === data.id);
-                        if (!exists) {
-                            sessionStorage.removeItem('glowbook_customer');
-                            setState({ user: null, role: 'guest', isLoading: false });
-                            return;
-                        }
-                    }
-                } catch (e) {}
-            }
-            
+            // ⚡️ Instant render for customers
             setState({ user: data, role: 'customer', isLoading: false });
+            
+            // 🔄 Background verify
+            if (data.id && data.id.length > 20) {
+                fetch(`/api/admin/data`)
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            const exists = result.users.some((u: any) => u.id === data.id);
+                            if (!exists) {
+                                sessionStorage.removeItem('glowbook_customer');
+                                setState({ user: null, role: 'guest', isLoading: false });
+                            }
+                        }
+                    })
+                    .catch(() => {});
+            }
         } else {
             setState({ user: null, role: 'guest', isLoading: false });
         }

@@ -24,36 +24,48 @@ export default function CalendarPage() {
     }, []);
 
     const handleCancelAppointment = async (aptId: string) => {
-        const saved = localStorage.getItem('glowbook_salon');
-        if (!saved) return;
-        const data = JSON.parse(saved);
-        const appointments = data.appointments || [];
-
-        const apt = appointments.find((a: any) => a.id === aptId);
-        if (!apt) return;
-
-        const filtered = appointments.filter((a: any) => a.id !== aptId);
-        const updatedData = {
-            ...data,
-            appointments: filtered
-        };
-
-        // Sync to server
+        // 1. Sync deletion to database immediately using bypassPolicy
         try {
-            await fetch('/api/salons/update', {
+            const res = await fetch('/api/bookings/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedData)
+                body: JSON.stringify({ appointmentId: aptId, bypassPolicy: true })
             });
+            const result = await res.json();
+            if (!res.ok) {
+                console.warn('Database cancellation note:', result.error);
+            }
         } catch (e) {
-            console.error('Failed to sync cancellation:', e);
+            console.error('Failed to sync database cancellation:', e);
         }
 
-        localStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
+        // 2. Keep local sessionStorage & localStorage updated
+        const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+        if (saved) {
+            const data = JSON.parse(saved);
+            const appointments = data.appointments || [];
+            const filtered = appointments.filter((a: any) => a.id !== aptId);
+            const updatedData = { ...data, appointments: filtered };
+            
+            sessionStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
+            localStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
+        }
 
-        // Notify of email sent
-        if (apt.clientEmail) {
-            alert(`Avbokning bekräftad. En bekräftelse har skickats till ${apt.clientEmail}.`);
+        // 3. Background fetch fresh data from server
+        const savedData = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            if (data.id) {
+                try {
+                    const response = await fetch(`/api/salons/get?id=${data.id}`);
+                    const serverResult = await response.json();
+                    if (serverResult.success) {
+                        const merged = { ...data, ...serverResult.salon };
+                        sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                        localStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                    }
+                } catch (e) {}
+            }
         }
 
         window.dispatchEvent(new Event('glowbook_update'));
@@ -157,14 +169,7 @@ export default function CalendarPage() {
                                 </div>
                                 <Plus size={18} />
                             </button>
-
-                            <button className="w-full flex items-center justify-between p-4 bg-card text-foreground border border-border rounded-2xl font-bold hover:bg-foreground/5 transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <CalendarDays size={20} />
-                                    <span>{t('dash_new_booking')}</span>
-                                </div>
-                                <Plus size={18} />
-                            </button>
+                            {/* Manual bookings button removed */}
                         </div>
                     </div>
 
