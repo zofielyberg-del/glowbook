@@ -52,7 +52,7 @@ export const getHtmlWrapper = (content: string) => `
               <tr>
                 <td align="center" style="padding:0 0 40px 0;background-color:#000000;">
                   <a href="https://www.glowbook.se" style="text-decoration:none;">
-                    <span style="font-family:'Outfit',sans-serif;font-size:42px;font-weight:400;color:#ffffff;letter-spacing:-1px;">Glow</span><span style="font-family:'Outfit',sans-serif;font-size:42px;font-weight:400;color:#C1B363;letter-spacing:-1px;">book</span>
+                    <span style="font-family:'Outfit',sans-serif;font-size:42px;font-weight:800;color:#fdfdfd;letter-spacing:-1px;">Glow</span><span style="font-family:'Outfit',sans-serif;font-size:42px;font-weight:400;color:#C1B363;letter-spacing:-1px;">book</span>
                   </a>
                 </td>
               </tr>
