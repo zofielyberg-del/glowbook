@@ -593,6 +593,10 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                     {/* Availability Frames — split into segments */}
                                     {availability.filter(frame => {
                                         if (frame.dayIndex !== dayIndex) return false;
+
+                                        const weekStartStr = format(startOfWeek(day, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+                                        if ((frame as any).week && (frame as any).week !== weekStartStr) return false;
+
                                         if (hideAppointments) {
                                             const todayStr = format(new Date(), 'yyyy-MM-dd');
                                             const dayStr = format(day, 'yyyy-MM-dd');

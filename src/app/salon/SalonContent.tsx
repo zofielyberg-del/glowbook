@@ -705,7 +705,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             duration: serviceDuration,
                             dayIndex: frame.dayIndex,
                             practitionerId: targetPractitioner.id === 'any' ? availablePractitionerIds[0] : targetPractitioner.id,
-                            practitionerIds: availablePractitionerIds
+                            practitionerIds: availablePractitionerIds,
+                            week: frame.week
                         });
                     }
                 }
@@ -741,7 +742,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     startTime: startTimeStr,
                     duration: serviceDuration,
                     dayIndex: frame.dayIndex,
-                    practitionerId: 'owner'
+                    practitionerId: 'owner',
+                    week: frame.week
                 });
             }
         });

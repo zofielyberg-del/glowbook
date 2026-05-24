@@ -9,6 +9,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import Calendar from "@/components/dashboard/Calendar";
 import Link from "next/link";
 import clsx from "clsx";
+import { format, addDays, startOfWeek } from "date-fns";
+import { sv } from "date-fns/locale";
 
 export default function CalendarPage() {
     const { t } = useLanguage();
@@ -16,6 +18,33 @@ export default function CalendarPage() {
     const [selectedFrames, setSelectedFrames] = useState<string[]>([]);
     const [frameTimes, setFrameTimes] = useState({ from: '09:00', to: '17:00' });
     const [lastUpdate, setLastUpdate] = useState(Date.now());
+    const [selectedWeek, setSelectedWeek] = useState<string>(() => {
+        return format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    });
+
+    const getWeekOptions = () => {
+        const options = [];
+        const now = new Date();
+        
+        // Start of current week (Monday)
+        let monday = startOfWeek(now, { weekStartsOn: 1 });
+        
+        for (let i = 0; i < 6; i++) {
+            const start = addDays(monday, i * 7);
+            const end = addDays(start, 6);
+            const weekNum = format(start, 'w', { locale: sv });
+            const weekStr = format(start, 'yyyy-MM-dd');
+            
+            let label = `Vecka ${weekNum}: ${format(start, 'd MMM', { locale: sv })} – ${format(end, 'd MMM', { locale: sv })}`;
+            if (i === 0) label = `Denna vecka (v.${weekNum}): ${format(start, 'd MMM', { locale: sv })} – ${format(end, 'd MMM', { locale: sv })}`;
+            else if (i === 1) label = `Nästa vecka (v.${weekNum}): ${format(start, 'd MMM', { locale: sv })} – ${format(end, 'd MMM', { locale: sv })}`;
+            
+            options.push({ value: weekStr, label });
+        }
+        
+        options.push({ value: 'recurring', label: 'Alla veckor (Återkommande)' });
+        return options;
+    };
 
     useEffect(() => {
         const handleUpdate = () => setLastUpdate(Date.now());
@@ -106,7 +135,8 @@ export default function CalendarPage() {
                 id: (Date.now() + Math.random()).toString(),
                 startTime: frameTimes.from,
                 duration: duration,
-                dayIndex: dayData.dayIndex
+                dayIndex: dayData.dayIndex,
+                week: selectedWeek === 'recurring' ? undefined : selectedWeek
             };
             
             updatedFrames.push(newFrame);
@@ -236,6 +266,27 @@ export default function CalendarPage() {
                                         {day.label}
                                     </button>
                                 ))}
+                            </div>
+
+                            <div className="mb-8">
+                                <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest mb-2 block">Välj vecka</label>
+                                <select
+                                    value={selectedWeek}
+                                    onChange={(e) => setSelectedWeek(e.target.value)}
+                                    className="w-full p-4 bg-background border border-border rounded-2xl font-bold text-foreground focus:ring-2 focus:ring-champagne-300 outline-none appearance-none cursor-pointer"
+                                    style={{
+                                        backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                                        backgroundRepeat: 'no-repeat',
+                                        backgroundPosition: 'right 16px center',
+                                        backgroundSize: '16px'
+                                    }}
+                                >
+                                    {getWeekOptions().map(opt => (
+                                        <option key={opt.value} value={opt.value} className="bg-card text-foreground">
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6 mb-10">
