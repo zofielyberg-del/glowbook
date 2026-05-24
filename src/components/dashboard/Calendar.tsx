@@ -31,6 +31,10 @@ type Appointment = {
     status?: 'confirmed' | 'completed' | 'cancelled';
     color: string;
     practitionerId?: string;
+    start_time?: string;
+    end_time?: string;
+    date?: string;
+    booking_date?: string;
 };
 
 type CalendarProps = {
