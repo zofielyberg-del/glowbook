@@ -41,11 +41,14 @@ function minsToTime(m: number) {
 
 function mapDbAppointment(apt: any) {
     if (!apt) return apt;
-    if (apt.startTime && apt.dayIndex !== undefined && apt.clientName) {
-        return apt;
-    }
+    
     const sDate = apt.start_time ? new Date(apt.start_time) : null;
-    if (!sDate) return apt;
+    if (!sDate) {
+        return {
+            ...apt,
+            color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
+        };
+    }
     
     const pad = (n: number) => String(n).padStart(2, '0');
     const startTime = `${pad(sDate.getHours())}:${pad(sDate.getMinutes())}`;
@@ -65,17 +68,19 @@ function mapDbAppointment(apt: any) {
     
     return {
         id: apt.id,
-        clientName: apt.customer_name || apt.customer_email || 'Kund',
-        clientEmail: apt.customer_email || '',
-        clientPhone: apt.customer_phone || '',
-        service: apt.service_name || 'Tjänst',
+        clientName: apt.customer_name || apt.customer_email || apt.clientName || 'Kund',
+        clientEmail: apt.customer_email || apt.clientEmail || '',
+        clientPhone: apt.customer_phone || apt.clientPhone || '',
+        service: apt.service_name || apt.service || 'Tjänst',
         startTime: startTime,
         duration: duration,
         dayIndex: dayIndex,
         date: dateFormatted,
         status: apt.status || 'confirmed',
-        practitionerId: apt.practitioner_id || 'owner',
-        color: 'bg-pink-100/90 dark:bg-pink-950/30 border-pink-300 dark:border-pink-800/50 text-pink-800 dark:text-pink-300'
+        practitionerId: apt.practitioner_id || apt.practitionerId || 'owner',
+        start_time: apt.start_time,
+        end_time: apt.end_time,
+        color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
     };
 }
 
@@ -374,6 +379,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             setIsBooked(true);
 
             // Add the new appointment to the local salon.appointments state for immediate local update
+            const localStart = new Date(`${selectedTime.fullDate}T${selectedTime.time}:00`);
+            const start_time = localStart.toISOString();
+            const end_time = new Date(localStart.getTime() + (selectedService.duration || 30) * 60000).toISOString();
+
             const mappedApt = {
                 id: bookingData.appointmentId || Date.now().toString(),
                 clientName: `${customerInfo.firstName} ${customerInfo.lastName}`,
@@ -386,7 +395,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 price: finalTotal,
                 status: 'confirmed',
                 practitionerId: selectedPractitioner?.id || 'owner',
-                color: 'bg-pink-100/90 dark:bg-pink-950/30 border-pink-300 dark:border-pink-800/50 text-pink-800 dark:text-pink-300'
+                start_time,
+                end_time,
+                color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
             };
             setSalon((prev: any) => {
                 if (!prev || prev === 'not_found') return prev;
@@ -415,7 +426,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             price: finalTotal,
                             status: 'confirmed',
                             practitionerId: selectedPractitioner?.id || 'owner',
-                            color: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                            start_time,
+                            end_time,
+                            color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
                         };
                         data.appointments = [...(data.appointments || []), newApt];
                         localStorage.setItem('glowbook_salon', JSON.stringify(data));
@@ -439,7 +452,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             price: finalTotal,
                             status: 'confirmed',
                             practitionerId: selectedPractitioner?.id || 'owner',
-                            color: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                            start_time,
+                            end_time,
+                            color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
                         };
                         data.appointments = [...(data.appointments || []), newApt];
                         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));

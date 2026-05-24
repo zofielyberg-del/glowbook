@@ -191,10 +191,16 @@ export default function ProviderDashboard() {
         const data = saved ? JSON.parse(saved) : {};
         const appointments = data.appointments || [];
 
+        const localStart = new Date(`${bookingData.date}T${bookingData.startTime}:00`);
+        const start_time = localStart.toISOString();
+        const end_time = new Date(localStart.getTime() + (bookingData.duration || 60) * 60000).toISOString();
+
         const newApt = {
             id: Date.now().toString(),
             ...bookingData,
-            color: 'bg-champagne-50 dark:bg-champagne-950/30 border-champagne-200 dark:border-champagne-800 text-champagne-700 dark:text-champagne-400'
+            start_time,
+            end_time,
+            color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
         };
 
         const updated = {
