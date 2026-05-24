@@ -39,6 +39,46 @@ function minsToTime(m: number) {
     return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 
+function mapDbAppointment(apt: any) {
+    if (!apt) return apt;
+    if (apt.startTime && apt.dayIndex !== undefined && apt.clientName) {
+        return apt;
+    }
+    const sDate = apt.start_time ? new Date(apt.start_time) : null;
+    if (!sDate) return apt;
+    
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startTime = `${pad(sDate.getHours())}:${pad(sDate.getMinutes())}`;
+    
+    let duration = 30;
+    if (apt.end_time) {
+        const eDate = new Date(apt.end_time);
+        duration = Math.round((eDate.getTime() - sDate.getTime()) / 60000);
+    } else if (apt.duration_minutes) {
+        duration = apt.duration_minutes;
+    }
+    
+    const day = sDate.getDay();
+    const dayIndex = day === 0 ? 6 : day - 1;
+    
+    const dateFormatted = `${sDate.getFullYear()}-${pad(sDate.getMonth() + 1)}-${pad(sDate.getDate())}`;
+    
+    return {
+        id: apt.id,
+        clientName: apt.customer_name || apt.customer_email || 'Kund',
+        clientEmail: apt.customer_email || '',
+        clientPhone: apt.customer_phone || '',
+        service: apt.service_name || 'Tjänst',
+        startTime: startTime,
+        duration: duration,
+        dayIndex: dayIndex,
+        date: dateFormatted,
+        status: apt.status || 'confirmed',
+        practitionerId: apt.practitioner_id || 'owner',
+        color: 'bg-pink-100/90 dark:bg-pink-950/30 border-pink-300 dark:border-pink-800/50 text-pink-800 dark:text-pink-300'
+    };
+}
+
 export default function SalonContent({ params }: { params?: { id: string } }) {
     const { t } = useLanguage();
     const [salon, setSalon] = useState<any>(null);
@@ -333,6 +373,29 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             // 4. Success state for non-redirect payments
             setIsBooked(true);
 
+            // Add the new appointment to the local salon.appointments state for immediate local update
+            const mappedApt = {
+                id: bookingData.appointmentId || Date.now().toString(),
+                clientName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+                clientEmail: customerInfo.email,
+                clientPhone: customerInfo.phone,
+                service: selectedService.name,
+                startTime: selectedTime.time,
+                duration: selectedService.duration || 30,
+                dayIndex: selectedTime.dayIndex,
+                price: finalTotal,
+                status: 'confirmed',
+                practitionerId: selectedPractitioner?.id || 'owner',
+                color: 'bg-pink-100/90 dark:bg-pink-950/30 border-pink-300 dark:border-pink-800/50 text-pink-800 dark:text-pink-300'
+            };
+            setSalon((prev: any) => {
+                if (!prev || prev === 'not_found') return prev;
+                return {
+                    ...prev,
+                    appointments: [...(prev.appointments || []), mappedApt]
+                };
+            });
+
             // 5. Local sync for immediate visibility (Demo & Testing)
             try {
                 // Sync to localStorage (Used by provider calendar & dashboard)
@@ -422,8 +485,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         }
                     } catch { }
 
+                    const mappedApts = (s.appointments || []).map(mapDbAppointment);
                     setSalon({
                         ...s,
+                        appointments: mappedApts,
                         profileImage: s.logo_url || s.profileImage,
                         backgroundImage: s.banner_url || s.backgroundImage,
                         tier: (s.membership_tier || s.tier || 'bas').toLowerCase(),
@@ -441,8 +506,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                    const searchData = await searchRes.json();
                    if (searchData.success && searchData.salons?.length > 0) {
                        const s = searchData.salons[0];
+                       const mappedApts = (s.appointments || []).map(mapDbAppointment);
                        setSalon({
                            ...s,
+                           appointments: mappedApts,
                            profileImage: s.logo_url || s.profileImage,
                            backgroundImage: s.banner_url || s.backgroundImage,
                            tier: (s.membership_tier || s.tier || 'bas').toLowerCase()
@@ -456,12 +523,14 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             }
 
             // Fallback to local
-            const saved = sessionStorage.getItem('glowbook_salon');
+            const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
             if (saved) {
                 const localData = JSON.parse(saved);
                 if (localData.id === salonId || localData.slug === salonId) {
+                    const mappedApts = (localData.appointments || []).map(mapDbAppointment);
                     setSalon({
                         ...localData,
+                        appointments: mappedApts,
                         tier: (localData.tier || 'bas').toLowerCase(),
                     });
                     setStatus('ready');
@@ -613,7 +682,18 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         });
                         if (hasBreakOverlap) continue;
 
-                        // Note: Appointment overlap check is handled dynamically by the Calendar component
+                        // Check if time overlaps with practitioner's bookings
+                        const hasBookingOverlap = appointments.some((apt: any) => {
+                            const aptPid = apt.practitionerId || apt.practitioner_id || 'owner';
+                            if (aptPid !== p.id) return false;
+                            if (apt.dayIndex !== frame.dayIndex) return false;
+                            if (apt.status === 'cancelled') return false;
+                            
+                            const aptStart = timeToMins(apt.startTime);
+                            const aptEnd = aptStart + (apt.duration || 30);
+                            return (startMins < aptEnd && endMins > aptStart);
+                        });
+                        if (hasBookingOverlap) continue;
 
                         availablePractitionerIds.push(p.id);
                     }
@@ -1169,6 +1249,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         )}
                                         <Calendar
                                             availability={computedAvailability}
+                                            appointments={salon?.appointments}
                                             onSelectSlot={onSelectSlot}
                                             hideAppointments={true}
                                         />

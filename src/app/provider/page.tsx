@@ -203,6 +203,7 @@ export default function ProviderDashboard() {
         };
 
         localStorage.setItem('glowbook_salon', JSON.stringify(updated));
+        sessionStorage.setItem('glowbook_salon', JSON.stringify(updated));
         window.dispatchEvent(new Event('glowbook_update'));
         setIsBookingModalOpen(false);
         setBookingData({ clientName: '', service: '', startTime: '10:00', date: format(new Date(), 'yyyy-MM-dd'), duration: 60 });
@@ -306,6 +307,7 @@ export default function ProviderDashboard() {
         };
 
         localStorage.setItem('glowbook_salon', JSON.stringify(updated));
+        sessionStorage.setItem('glowbook_salon', JSON.stringify(updated));
         window.dispatchEvent(new Event('glowbook_update'));
     };
 

@@ -84,7 +84,7 @@ export default function CalendarPage() {
     const handleSaveSchedule = async () => {
         if (selectedFrames.length === 0) return;
 
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         const data = saved ? JSON.parse(saved) : {};
         let updatedFrames = [...(data.availability || [])];
 
@@ -133,6 +133,7 @@ export default function CalendarPage() {
         }
 
         localStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
+        sessionStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
 
         // Dispatch event for same-tab update
         window.dispatchEvent(new Event('glowbook_update'));

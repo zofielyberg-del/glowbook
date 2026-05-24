@@ -37,6 +37,7 @@ type CalendarProps = {
     onSelectSlot?: (date: string, startTime: string, practitionerId?: string) => void;
     onCancelAppointment?: (appointmentId: string) => void;
     availability?: TimeFrame[];
+    appointments?: Appointment[];
     hideAppointments?: boolean;
 };
 
@@ -64,11 +65,11 @@ type FrameSegment = {
     appointment?: Appointment;
 };
 
-export default function Calendar({ onSelectSlot, onCancelAppointment, availability: propAvailability, hideAppointments = false }: CalendarProps) {
+export default function Calendar({ onSelectSlot, onCancelAppointment, availability: propAvailability, appointments: propAppointments, hideAppointments = false }: CalendarProps) {
     const { language, t } = useLanguage();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [internalAvailability, setInternalAvailability] = useState<TimeFrame[]>([]);
-    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [internalAppointments, setInternalAppointments] = useState<Appointment[]>([]);
     const [editingFrame, setEditingFrame] = useState<EditingFrame | null>(null);
     const [addingSlot, setAddingSlot] = useState<{ dayIndex: number; hour: number; date: Date } | null>(null);
     const [newSlotTimes, setNewSlotTimes] = useState({ from: '09:00', to: '17:00' });
@@ -76,15 +77,54 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     const [viewingAppointment, setViewingAppointment] = useState<Appointment | null>(null);
 
     const availability = propAvailability || internalAvailability;
+    const appointments = propAppointments || internalAppointments;
 
     // Load data on mount and listen for changes
     useEffect(() => {
         const loadData = () => {
-            const saved = sessionStorage.getItem('glowbook_salon');
+            const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
             if (saved) {
                 const data = JSON.parse(saved);
                 if (data.availability) setInternalAvailability(data.availability);
-                if (data.appointments) setAppointments(data.appointments);
+                if (data.appointments) {
+                    const mapped = data.appointments.map((apt: any) => {
+                        // Check if it's already mapped
+                        if (apt.startTime && apt.dayIndex !== undefined && apt.clientName) {
+                            return apt;
+                        }
+                        const sDate = apt.start_time ? new Date(apt.start_time) : null;
+                        if (!sDate) return apt;
+                        
+                        const pad = (n: number) => String(n).padStart(2, '0');
+                        const startTime = `${pad(sDate.getHours())}:${pad(sDate.getMinutes())}`;
+                        
+                        let duration = 30;
+                        if (apt.end_time) {
+                            const eDate = new Date(apt.end_time);
+                            duration = Math.round((eDate.getTime() - sDate.getTime()) / 60000);
+                        } else if (apt.duration_minutes) {
+                            duration = apt.duration_minutes;
+                        }
+                        
+                        const day = sDate.getDay();
+                        const dayIndex = day === 0 ? 6 : day - 1;
+                        
+                        return {
+                            id: apt.id,
+                            clientName: apt.customer_name || apt.customer_email || 'Kund',
+                            clientEmail: apt.customer_email || '',
+                            clientPhone: apt.customer_phone || '',
+                            service: apt.service_name || 'Tjänst',
+                            startTime: startTime,
+                            duration: duration,
+                            dayIndex: dayIndex,
+                            date: format(sDate, 'yyyy-MM-dd'),
+                            status: apt.status || 'confirmed',
+                            color: 'bg-pink-100/90 dark:bg-pink-950/30 border-pink-300 dark:border-pink-800/50 text-pink-800 dark:text-pink-300'
+                        };
+                    });
+                    setInternalAppointments(mapped);
+                }
             }
         };
 
@@ -303,7 +343,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
     // Remove a free segment from a frame (split the frame around booked parts)
     const removeSegment = (frame: TimeFrame, segStart: string, segEnd: string) => {
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         if (!saved) return;
         const data = JSON.parse(saved);
         const frames: TimeFrame[] = data.availability || [];
@@ -336,6 +376,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
         data.availability = remaining;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
+        sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
         syncWithServer(remaining);
         window.dispatchEvent(new Event('glowbook_update'));
         setEditingFrame(null);
@@ -349,12 +390,13 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             return;
         }
 
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         if (!saved) return;
         const data = JSON.parse(saved);
         const updatedAvailability = (data.availability || []).filter((f: any) => f.id !== frame.id);
         data.availability = updatedAvailability;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
+        sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
         syncWithServer(updatedAvailability);
         window.dispatchEvent(new Event('glowbook_update'));
         setEditingFrame(null);
@@ -382,7 +424,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             }
         }
 
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         if (!saved) return;
         const data = JSON.parse(saved);
         const frames: TimeFrame[] = data.availability || [];
@@ -391,6 +433,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             frames[idx] = { ...frames[idx], startTime: newStart, duration: newDuration };
             data.availability = frames;
             localStorage.setItem('glowbook_salon', JSON.stringify(data));
+            sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
             syncWithServer(frames);
             window.dispatchEvent(new Event('glowbook_update'));
 
@@ -420,11 +463,12 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             dayIndex: addingSlot.dayIndex
         };
 
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         const data = saved ? JSON.parse(saved) : {};
         const updatedAvailability = [...(data.availability || []), newFrame];
         data.availability = updatedAvailability;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
+        sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
         syncWithServer(updatedAvailability);
         window.dispatchEvent(new Event('glowbook_update'));
         setAddingSlot(null);
@@ -670,14 +714,33 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                 setViewingAppointment(apt);
                                             }}
                                             className={clsx(
-                                                "absolute inset-x-1 rounded-lg border p-2 text-[10px] cursor-pointer hover:shadow-md transition-all z-10 overflow-hidden",
-                                                apt.color || "bg-white dark:bg-[#1a1a1a] border-border"
+                                                "absolute inset-x-1 rounded-lg border p-2 text-[10px] cursor-pointer hover:shadow-md transition-all z-10 overflow-hidden flex flex-col justify-between",
+                                                "bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm"
                                             )}
                                             style={getItemStyle(apt)}
                                             title={`Kund: ${apt.clientName}\nEmail: ${apt.clientEmail || '-'}\nTel: ${apt.clientPhone || '-'}\nTjänst: ${apt.service}`}
                                         >
-                                            <div className="font-bold truncate">{apt.service}</div>
-                                            <div className="text-foreground/50 truncate">{apt.startTime} - {apt.clientName}</div>
+                                            <div className="space-y-0.5">
+                                                <div className="font-black truncate text-[9px] uppercase tracking-wider text-pink-900 dark:text-pink-200">
+                                                    {apt.service}
+                                                </div>
+                                                <div className="font-bold truncate text-[10px] text-pink-850 dark:text-pink-100">
+                                                    {apt.clientName}
+                                                </div>
+                                                {apt.clientEmail && (
+                                                    <div className="text-[8px] opacity-75 truncate font-medium">
+                                                        {apt.clientEmail}
+                                                    </div>
+                                                )}
+                                                {apt.clientPhone && apt.clientPhone !== '-' && (
+                                                    <div className="text-[8px] opacity-75 truncate font-medium">
+                                                        📞 {apt.clientPhone}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="text-[8px] font-black text-pink-600/60 dark:text-pink-400/50 text-right mt-1 shrink-0">
+                                                {apt.startTime} ({apt.duration} min)
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

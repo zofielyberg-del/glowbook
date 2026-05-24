@@ -122,6 +122,7 @@ export default function CustomersPage() {
             
             data.customers = [...localCusts, newCust];
             localStorage.setItem('glowbook_salon', JSON.stringify(data));
+            sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
             
             // Trigger API sync if exists
             fetch('/api/salons/update', {
