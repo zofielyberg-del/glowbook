@@ -77,6 +77,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     const [editingFrame, setEditingFrame] = useState<EditingFrame | null>(null);
     const [addingSlot, setAddingSlot] = useState<{ dayIndex: number; hour: number; date: Date } | null>(null);
     const [newSlotTimes, setNewSlotTimes] = useState({ from: '09:00', to: '17:00' });
+    const [applyToAllWeeks, setApplyToAllWeeks] = useState(true);
     const [conflictWarning, setConflictWarning] = useState<string | null>(null);
     const [viewingAppointment, setViewingAppointment] = useState<Appointment | null>(null);
 
@@ -345,6 +346,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         if (hideAppointments) return;
         setAddingSlot({ dayIndex, hour, date: day });
         setNewSlotTimes({ from: `${String(hour).padStart(2, '0')}:00`, to: `${String(Math.min(hour + 4, 21)).padStart(2, '0')}:00` });
+        setApplyToAllWeeks(true);
         setEditingFrame(null);
     };
 
@@ -467,7 +469,8 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             id: Date.now().toString(),
             startTime: newSlotTimes.from,
             duration: duration,
-            dayIndex: addingSlot.dayIndex
+            dayIndex: addingSlot.dayIndex,
+            ...(!applyToAllWeeks && { week: format(startOfWeek(addingSlot.date, { weekStartsOn: 1 }), 'yyyy-MM-dd') })
         };
 
         const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
@@ -989,6 +992,16 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                             {Math.floor((timeToMins(newSlotTimes.to) - timeToMins(newSlotTimes.from)) / 60)}h {(timeToMins(newSlotTimes.to) - timeToMins(newSlotTimes.from)) % 60}min tillgänglig
                                         </div>
                                     )}
+                                </div>
+                                
+                                <div className="bg-foreground/[0.02] border border-border rounded-2xl p-4 flex items-center justify-between cursor-pointer" onClick={() => setApplyToAllWeeks(!applyToAllWeeks)}>
+                                    <div>
+                                        <h4 className="text-xs font-bold text-foreground">Upprepa varje vecka</h4>
+                                        <p className="text-[10px] text-foreground/50">Gäller för alla framtida veckor</p>
+                                    </div>
+                                    <div className={clsx("w-10 h-6 rounded-full flex items-center p-1 transition-colors", applyToAllWeeks ? "bg-emerald-500" : "bg-foreground/20")}>
+                                        <div className={clsx("w-4 h-4 rounded-full bg-white transition-transform shadow-sm", applyToAllWeeks ? "translate-x-4" : "translate-x-0")} />
+                                    </div>
                                 </div>
                             </div>
 

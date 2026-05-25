@@ -697,18 +697,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         });
                         if (hasBreakOverlap) continue;
 
-                        // Check if time overlaps with practitioner's bookings
-                        const hasBookingOverlap = appointments.some((apt: any) => {
-                            const aptPid = apt.practitionerId || apt.practitioner_id || 'owner';
-                            if (aptPid !== p.id) return false;
-                            if (apt.dayIndex !== frame.dayIndex) return false;
-                            if (apt.status === 'cancelled') return false;
-                            
-                            const aptStart = timeToMins(apt.startTime);
-                            const aptEnd = aptStart + (apt.duration || 30);
-                            return (startMins < aptEnd && endMins > aptStart);
-                        });
-                        if (hasBookingOverlap) continue;
+                        // Appointments check removed here because Calendar filters them based on specific dates, whereas here it incorrectly filters by dayIndex across all weeks.
+
 
                         availablePractitionerIds.push(p.id);
                     }
@@ -740,14 +730,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 const startMins = time;
                 const endMins = time + serviceDuration;
 
-                const hasAptOverlap = appointments.some((apt: any) => {
-                    if (apt.dayIndex !== frame.dayIndex) return false;
-                    if (apt.status === 'cancelled') return false;
-                    const aptStart = timeToMins(apt.startTime);
-                    const aptEnd = aptStart + (apt.duration || 30);
-                    return (startMins < aptEnd && endMins > aptStart);
-                });
-                if (hasAptOverlap) continue;
+                // Appointments check removed here because Calendar filters them based on specific dates, whereas here it incorrectly filters by dayIndex across all weeks.
+
 
                 // Filter out slots that are in the past for today
                 if (frame.dayIndex === currentDayIdx && startMins < currentMins + 15) continue;
