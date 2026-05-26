@@ -1,22 +1,29 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-export async function POST(req: Request) {
+async function main() {
     try {
+        console.log("Starting DB clearance...");
+        
         // Delete all appointments
-        await prisma.$executeRawUnsafe('DELETE FROM appointments');
+        const apts = await prisma.$executeRawUnsafe('DELETE FROM appointments');
+        console.log("Appointments deleted");
         
         // Delete all loyalty balances
         await prisma.$executeRawUnsafe('DELETE FROM loyalty_balances');
+        console.log("Loyalty deleted");
         
         // Delete all point transactions
         await prisma.$executeRawUnsafe('DELETE FROM point_transactions');
+        console.log("Points deleted");
 
         // Delete all services
         await prisma.$executeRawUnsafe('DELETE FROM services');
+        console.log("Services deleted");
         
         // Delete all practitioners
         await prisma.$executeRawUnsafe('DELETE FROM practitioners');
+        console.log("Practitioners deleted");
         
         // Find non-admin profiles
         const nonAdminProfiles = await prisma.profile.findMany({
@@ -31,16 +38,21 @@ export async function POST(req: Request) {
             await prisma.salon.deleteMany({
                 where: { owner_id: { in: nonAdminProfileIds } }
             });
+            console.log("Salons deleted");
             
             // Delete the profiles themselves
             await prisma.profile.deleteMany({
                 where: { id: { in: nonAdminProfileIds } }
             });
+            console.log("Non-admin profiles deleted");
         }
         
-        return NextResponse.json({ success: true, message: `Deleted ${nonAdminProfileIds.length} users and their salons.` });
-    } catch (error: any) {
+        console.log("DB cleared successfully.");
+    } catch (error) {
         console.error('Clear DB Error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } finally {
+        await prisma.$disconnect();
     }
 }
+
+main();
