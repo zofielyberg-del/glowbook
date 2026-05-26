@@ -636,6 +636,17 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                         const hasBookings = segments.some(s => s.type === 'booked');
                                         const frameStartMins = timeToMins(frame.startTime);
                                         const frameEndMins = frameStartMins + frame.duration;
+                                        const freeSegments = segments.filter(s => s.type === 'free');
+                                        let labelTopMins = frameStartMins + frame.duration / 2;
+                                        if (freeSegments.length > 0) {
+                                            const largest = freeSegments.reduce((prev, curr) => {
+                                                const prevDur = timeToMins(prev.end) - timeToMins(prev.start);
+                                                const currDur = timeToMins(curr.end) - timeToMins(curr.start);
+                                                return currDur > prevDur ? curr : prev;
+                                            });
+                                            labelTopMins = timeToMins(largest.start) + (timeToMins(largest.end) - timeToMins(largest.start)) / 2;
+                                        }
+                                        const labelTopPx = ((labelTopMins - frameStartMins) / 60) * PX_PER_HOUR;
 
                                         return (
                                             <div key={frame.id}>
@@ -713,9 +724,12 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                         "absolute inset-0 rounded-lg border-2 pointer-events-none",
                                                         hasBookings ? "border-emerald-500/30" : "border-emerald-500/50"
                                                     )} />
-
+                                                    
                                                     {/* Frame label */}
-                                                    <div className="absolute inset-x-0 top-0 bottom-0 flex items-center justify-center pointer-events-none">
+                                                    <div 
+                                                        className="absolute inset-x-0 flex items-center justify-center pointer-events-none transition-all duration-300"
+                                                        style={{ top: `${labelTopPx}px`, transform: 'translateY(-50%)' }}
+                                                    >
                                                         {!isEditing && (
                                                             <div className={clsx(
                                                                 "text-[10px] font-black px-3 py-1 rounded-full shadow-2xl uppercase tracking-[0.15em] border border-emerald-400/30 transition-all group-hover/frame:scale-110",
@@ -728,7 +742,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                         )}
                                                         {isEditing && (
                                                             <div className="bg-emerald-600 text-white text-[9px] font-black px-4 py-2 rounded-full shadow-2xl uppercase tracking-[0.2em] animate-pulse border-2 border-white/20">
-                                                                ✨ Redigerar
+                                                                Ändrar...
                                                             </div>
                                                         )}
                                                     </div>
