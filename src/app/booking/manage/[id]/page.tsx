@@ -513,6 +513,11 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
 
                             {/* Modal Body / Calendar Scroll */}
                             <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                                <div className="p-4 bg-red-500 text-white font-bold text-center z-50">
+                                    SYSTEM DEBUG: Hittade {computedAvailability.length} lediga tider.
+                                    Om detta nummer är 0, så ser systemet inga tider. 
+                                    Om det är mer än 0 och kalendern är tom, så gömmer kalendern dem.
+                                </div>
                                 <Calendar 
                                     availability={computedAvailability}
                                     onSelectSlot={handleSelectSlot}
