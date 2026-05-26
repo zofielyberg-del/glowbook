@@ -329,6 +329,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
             const isStripePayment = actualPaymentMethod === 'stripe';
 
+            const localStart = new Date(`${selectedTime.fullDate}T${selectedTime.time}:00`);
+            const start_time = localStart.toISOString();
+            const end_time = new Date(localStart.getTime() + (selectedService.duration || 30) * 60000).toISOString();
+
             // 2. Create Appointment
             const bookingResponse = await fetch('/api/bookings/confirm', {
                 method: 'POST',
@@ -345,7 +349,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     customerInfo,
                     paymentMethod: actualPaymentMethod,
                     rewardInfo: useGlowpoints ? selectedReward : null,
-                    status: isStripePayment ? 'pending_payment' : 'confirmed'
+                    status: isStripePayment ? 'pending_payment' : 'confirmed',
+                    start_time,
+                    end_time
                 }),
             });
 
@@ -379,9 +385,6 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             setIsBooked(true);
 
             // Add the new appointment to the local salon.appointments state for immediate local update
-            const localStart = new Date(`${selectedTime.fullDate}T${selectedTime.time}:00`);
-            const start_time = localStart.toISOString();
-            const end_time = new Date(localStart.getTime() + (selectedService.duration || 30) * 60000).toISOString();
 
             const mappedApt = {
                 id: bookingData.appointmentId || Date.now().toString(),

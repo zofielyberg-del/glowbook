@@ -14,16 +14,18 @@ export async function POST(req: Request) {
             price,
             customerInfo,
             paymentMethod,
-            status = 'confirmed'
+            status = 'confirmed',
+            start_time, // Exact UTC string from frontend
+            end_time    // Exact UTC string from frontend
         } = await req.json();
 
         if (!salonId || !serviceName || !customerInfo?.email || !date || !startTime) {
             return NextResponse.json({ error: 'Missing required booking data' }, { status: 400 });
         }
 
-        // Parse date and time correctly
-        const startDateTime = new Date(`${date}T${startTime}`);
-        const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
+        // Parse date and time correctly. Prefer exact UTC timestamps if provided to avoid server timezone drift.
+        const startDateTime = start_time ? new Date(start_time) : new Date(`${date}T${startTime}`);
+        const endDateTime = end_time ? new Date(end_time) : new Date(startDateTime.getTime() + duration * 60000);
 
         // Check if startDateTime is in the past
         const now = new Date();
