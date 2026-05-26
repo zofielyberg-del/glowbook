@@ -140,21 +140,30 @@ export default function ProviderDashboard() {
 
                 // Calculate real statistics from appointments
                 const confirmedApts = apts.filter((a: any) => a.status !== 'cancelled');
-                const uniqueCustomers = new Set(confirmedApts.map((a: any) => a.clientName)).size;
+                const uniqueCustomers = new Set(confirmedApts.map((a: any) => a.clientName || a.customer_name)).size;
 
-                // Top service calculation
+                // Top service & time calculation
                 const serviceCounts: Record<string, number> = {};
+                const timeCounts: Record<string, number> = {};
                 const revenueByDay = [0, 0, 0, 0, 0, 0, 0];
 
                 confirmedApts.forEach((a: any) => {
-                    if (a.service) serviceCounts[a.service] = (serviceCounts[a.service] || 0) + 1;
+                    const serviceName = a.service_name || a.service;
+                    if (serviceName) serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
+                    
                     if (a.status === 'completed' && typeof a.dayIndex === 'number') {
-                        revenueByDay[a.dayIndex] += (a.price || 0);
+                        revenueByDay[a.dayIndex] += (a.price || a.total_price || 0);
                     }
+
+                    const aptTime = a.startTime || (a.start_time ? format(new Date(a.start_time), 'HH:mm') : '');
+                    if (aptTime) timeCounts[aptTime] = (timeCounts[aptTime] || 0) + 1;
                 });
 
                 const sortedServices = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1]);
                 const topService = sortedServices[0] ? sortedServices[0][0] : '';
+
+                const sortedTimes = Object.entries(timeCounts).sort((a, b) => b[1] - a[1]);
+                const topTime = sortedTimes[0] ? sortedTimes[0][0] : '';
 
                 setDailyRevenue(revenueByDay);
                 setStats(prev => ({
@@ -162,6 +171,7 @@ export default function ProviderDashboard() {
                     bookings: confirmedApts.length,
                     newCustomers: uniqueCustomers,
                     topService,
+                    topTime,
                 }));
             }
             setIsLoading(false);
@@ -331,16 +341,25 @@ export default function ProviderDashboard() {
         .filter((apt: any) => apt.status === 'completed')
         .reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
 
-    const currentDayIndex = (() => {
-        const day = getDay(new Date());
-        return day === 0 ? 6 : day - 1;
-    })();
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
 
     const UPCOMING_TODAY = allAppointments
         .filter((apt: any) => {
-            return apt.status !== 'cancelled' && apt.dayIndex === currentDayIndex;
+            let aptDateStr = '';
+            if (apt.date) {
+                aptDateStr = apt.date;
+            } else if (apt.start_time) {
+                aptDateStr = format(new Date(apt.start_time), 'yyyy-MM-dd');
+            } else if (apt.booking_date) {
+                aptDateStr = format(new Date(apt.booking_date), 'yyyy-MM-dd');
+            }
+            return apt.status !== 'cancelled' && aptDateStr === todayStr;
         })
-        .sort((a: any, b: any) => a.startTime.localeCompare(b.startTime));
+        .sort((a: any, b: any) => {
+            const timeA = a.startTime || (a.start_time ? format(new Date(a.start_time), 'HH:mm') : '');
+            const timeB = b.startTime || (b.start_time ? format(new Date(b.start_time), 'HH:mm') : '');
+            return timeA.localeCompare(timeB);
+        });
 
     const DAYS = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
 
@@ -704,14 +723,14 @@ export default function ProviderDashboard() {
                                                 <div className="w-12 text-sm font-black text-foreground/60">{item.startTime}</div>
                                                 <div className={`w-1 h-8 ${item.status === 'cancelled' ? 'bg-red-500/50' : 'bg-champagne-500'} rounded-full`} />
                                                 <div>
-                                                    <h4 className={`font-bold text-sm ${item.status === 'cancelled' ? 'text-red-500 dark:text-red-400 line-through' : 'text-foreground'}`}>{item.clientName}</h4>
-                                                    <p className="text-[10px] font-medium text-foreground/60">{item.service}</p>
+                                                    <h4 className={`font-bold text-sm ${item.status === 'cancelled' ? 'text-red-500 dark:text-red-400 line-through' : 'text-foreground'}`}>{item.clientName || item.customer_name || 'Kund'}</h4>
+                                                    <p className="text-[10px] font-medium text-foreground/60">{item.service || item.service_name || 'Tjänst'}</p>
                                                     <div className="flex items-center gap-3 mt-1">
                                                         <span className="text-[9px] text-foreground/40 flex items-center gap-1">
-                                                            <Eye size={10} className="text-blue-400" /> {item.clientEmail || 'Ingen e-post'}
+                                                            <Eye size={10} className="text-blue-400" /> {item.clientEmail || item.customer_email || 'Ingen e-post'}
                                                         </span>
                                                         <span className="text-[9px] text-foreground/40 flex items-center gap-1">
-                                                            <MousePointerClick size={10} className="text-emerald-400" /> {item.clientPhone || 'Inget nummer'}
+                                                            <MousePointerClick size={10} className="text-emerald-400" /> {item.clientPhone || item.customer_phone || 'Inget nummer'}
                                                         </span>
                                                     </div>
                                                 </div>
