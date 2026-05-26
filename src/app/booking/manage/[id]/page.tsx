@@ -207,7 +207,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
         }
 
         // Fix: If a specific practitioner is selected, do NOT fall back to salon-wide availability
-        if (targetP.id && targetP.id !== 'any') {
+        if (targetP.id && targetP.id !== 'any' && targetP.id !== 'owner') {
             return [];
         }
 

@@ -312,7 +312,7 @@ export const sendCustomerRescheduleEmail = async (
     timeStr: string
 ) => {
     const htmlContent = `
-        <h1 style="color: #111111;">Bokning ombokad</h1>
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Bokning ombokad</h1>
         <p>Hej ${customerName},</p>
         <p>Din bokning har nu blivit ombokad enligt önskemål.</p>
         <p><strong>Ny tid:</strong></p>
