@@ -516,6 +516,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                                 <Calendar 
                                     availability={computedAvailability}
                                     onSelectSlot={handleSelectSlot}
+                                    hideAppointments={true}
                                 />
                             </div>
 
