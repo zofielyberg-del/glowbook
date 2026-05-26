@@ -4,7 +4,7 @@ import { sendCustomerRescheduleEmail, sendProviderBookingNotification } from '@/
 
 export async function POST(req: Request) {
     try {
-        const { appointmentId, newDate, newStartTime } = await req.json();
+        const { appointmentId, newDate, newStartTime, newStartTimeUtc } = await req.json();
 
         if (!appointmentId || !newDate || !newStartTime) {
             return NextResponse.json({ error: 'Missing required rescheduling data' }, { status: 400 });
@@ -43,8 +43,8 @@ export async function POST(req: Request) {
         const endTime = appointment.end_time || new Date(appointment.start_time.getTime() + 30 * 60000);
         const duration = Math.round((endTime.getTime() - appointment.start_time.getTime()) / 60000);
 
-        // Parse new date and time correctly
-        const startDateTime = new Date(`${newDate}T${newStartTime}`);
+        // Parse new date and time correctly using UTC ISO string from client if available
+        const startDateTime = newStartTimeUtc ? new Date(newStartTimeUtc) : new Date(`${newDate}T${newStartTime}`);
         const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
         // 2. Check for Overlaps (excluding this current appointment itself!)

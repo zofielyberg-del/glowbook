@@ -86,13 +86,17 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
         if (!selectedDateSlot) return;
         try {
             setRescheduling(true);
+            const localStart = new Date(`${selectedDateSlot.fullDate}T${selectedDateSlot.time}:00`);
+            const newStartTimeUtc = localStart.toISOString();
+
             const res = await fetch('/api/bookings/reschedule', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     appointmentId,
                     newDate: selectedDateSlot.fullDate,
-                    newStartTime: selectedDateSlot.time
+                    newStartTime: selectedDateSlot.time,
+                    newStartTimeUtc
                 })
             });
             const data = await res.json();
