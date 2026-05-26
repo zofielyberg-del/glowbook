@@ -129,8 +129,8 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
         async function fetchAvailability() {
             try {
                 const salonId = appointment.salon.id;
-                // If service_id is missing, find it by service_name
-                const service = (appointment.salon.services || []).find((s: any) => s.name === appointment.service_name);
+                // If service_id is missing, find it by service_name or fallback to first service
+                const service = (appointment.salon.services || []).find((s: any) => s.name === appointment.service_name) || (appointment.salon.services || [])[0];
                 const serviceId = appointment.service_id || service?.id;
                 const practitionerId = appointment.practitioner_id || 'any';
                 
@@ -138,11 +138,18 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                 const res = await fetch(url);
                 const data = await res.json();
                 
-                if (isMounted && data.success) {
-                    setComputedAvailability(data.availability);
+                if (isMounted) {
+                    if (data.success) {
+                        setComputedAvailability(data.availability);
+                    } else {
+                        setComputedAvailability([{ error: JSON.stringify(data), url: url } as any]);
+                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch availability", err);
+                if (isMounted) {
+                    setComputedAvailability([{ error: err?.toString() } as any]);
+                }
             }
         }
 
@@ -422,9 +429,19 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                             {/* Modal Body / Calendar Scroll */}
                             <div className="p-6 overflow-y-auto space-y-6 flex-1">
                                 <div className="p-4 bg-red-500 text-white font-bold text-center z-50">
-                                    SYSTEM DEBUG: Hittade {computedAvailability.length} lediga tider.
-                                    Om detta nummer är 0, så ser systemet inga tider. 
-                                    Om det är mer än 0 och kalendern är tom, så gömmer kalendern dem.
+                                    {computedAvailability.length > 0 && computedAvailability[0].error ? (
+                                        <div>
+                                            SYSTEM FEL: API returnerade ett fel.<br/>
+                                            <span className="text-xs font-normal">{computedAvailability[0].error}</span><br/>
+                                            <span className="text-xs font-normal">URL: {computedAvailability[0].url}</span>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            SYSTEM DEBUG: Hittade {computedAvailability.length} lediga tider.
+                                            Om detta nummer är 0, betyder det att inga tider fanns i databasen för denna kalender,
+                                            eller att alla tider filtrerades bort på grund av brist på personal/överlappningar.
+                                        </div>
+                                    )}
                                 </div>
                                 <Calendar 
                                     availability={computedAvailability}

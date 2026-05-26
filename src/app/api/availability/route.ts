@@ -23,7 +23,7 @@ export async function GET(req: Request) {
         const targetPractitionerId = searchParams.get('practitionerId');
         const excludeAppointmentId = searchParams.get('excludeAppointmentId');
 
-        if (!salonId || !serviceId) {
+        if (!salonId || !serviceId || serviceId === 'undefined') {
             return NextResponse.json({ error: 'Missing salonId or serviceId' }, { status: 400 });
         }
 
@@ -61,8 +61,8 @@ export async function GET(req: Request) {
 
         const isLuxe = (salon.membership_tier || 'bas').toLowerCase() === 'luxe';
         
-        let salonAvailability: any[] = salon.availability ? (salon.availability as any[]) : [];
-        if (salonAvailability.length === 0) {
+        let salonAvailability: any[] = Array.isArray(salon.availability) ? salon.availability : [];
+        if (!salonAvailability || salonAvailability.length === 0) {
             salonAvailability = [0, 1, 2, 3, 4, 5, 6].map(dayIndex => ({
                 dayIndex,
                 startTime: '10:00',
@@ -97,11 +97,15 @@ export async function GET(req: Request) {
                         let isAvailable = true;
                         let availablePractitionerId = 'owner';
 
-                        if (isLuxe) {
-                            const qualifiedPractitioners = salon.practitioners.filter(p => {
+                        if (isLuxe && salon.practitioners && salon.practitioners.length > 0) {
+                            let qualifiedPractitioners = salon.practitioners.filter(p => {
                                 if (targetPractitionerId && targetPractitionerId !== 'any' && p.id !== targetPractitionerId) return false;
                                 return true;
                             });
+
+                            if (qualifiedPractitioners.length === 0) {
+                                qualifiedPractitioners = salon.practitioners; // Fallback to 'any' if the specified practitioner doesn't exist anymore
+                            }
 
                             const availablePractitioners = qualifiedPractitioners.filter(p => {
                                 const schedule = p.schedule as any || {};
