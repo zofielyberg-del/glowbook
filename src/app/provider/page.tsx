@@ -338,7 +338,7 @@ export default function ProviderDashboard() {
 
     const UPCOMING_TODAY = allAppointments
         .filter((apt: any) => {
-            return apt.dayIndex === currentDayIndex;
+            return apt.status !== 'cancelled' && apt.dayIndex === currentDayIndex;
         })
         .sort((a: any, b: any) => a.startTime.localeCompare(b.startTime));
 

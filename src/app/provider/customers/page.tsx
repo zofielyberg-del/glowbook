@@ -14,6 +14,7 @@ type Customer = {
     email: string;
     lastVisit: string;
     totalBookings: number;
+    totalCancellations: number;
     status: string;
 };
 
@@ -46,6 +47,7 @@ export default function CustomersPage() {
                     phone: c.phone || '-',
                     lastVisit: c.lastVisit || '-',
                     totalBookings: c.totalBookings || 0,
+                    totalCancellations: c.totalCancellations || 0,
                     status: c.status || 'Active'
                 };
             });
@@ -54,16 +56,22 @@ export default function CustomersPage() {
             appts.forEach((apt: any) => {
                 const emailKey = (apt.clientEmail || '').toLowerCase().trim();
                 if (!emailKey) return;
+                
+                const isCancelled = apt.status === 'cancelled';
 
                 const nameParts = (apt.clientName || '').split(' ');
                 const firstName = nameParts[0] || 'Gäst';
                 const lastName = nameParts.slice(1).join(' ') || '';
 
                 if (customerMap[emailKey]) {
-                    customerMap[emailKey].totalBookings += 1;
-                    // Keep the latest visit date
-                    if (apt.date && (!customerMap[emailKey].lastVisit || apt.date > customerMap[emailKey].lastVisit)) {
-                        customerMap[emailKey].lastVisit = apt.date;
+                    if (isCancelled) {
+                        customerMap[emailKey].totalCancellations += 1;
+                    } else {
+                        customerMap[emailKey].totalBookings += 1;
+                        // Keep the latest visit date
+                        if (apt.date && (!customerMap[emailKey].lastVisit || apt.date > customerMap[emailKey].lastVisit)) {
+                            customerMap[emailKey].lastVisit = apt.date;
+                        }
                     }
                     if (apt.clientPhone && apt.clientPhone !== '-') {
                         customerMap[emailKey].phone = apt.clientPhone;
@@ -75,8 +83,9 @@ export default function CustomersPage() {
                         lastName,
                         email: apt.clientEmail,
                         phone: apt.clientPhone || '-',
-                        lastVisit: apt.date || '-',
-                        totalBookings: 1,
+                        lastVisit: isCancelled ? '-' : (apt.date || '-'),
+                        totalBookings: isCancelled ? 0 : 1,
+                        totalCancellations: isCancelled ? 1 : 0,
                         status: 'Active'
                     };
                 }
@@ -117,6 +126,7 @@ export default function CustomersPage() {
                 phone: invitePhone || '-',
                 lastVisit: '-',
                 totalBookings: 0,
+                totalCancellations: 0,
                 status: 'Active'
             };
             
@@ -157,7 +167,7 @@ export default function CustomersPage() {
             <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                     <div>
-                        <h1 className="text-4xl font-heading font-black text-foreground tracking-tight">Kundregister</h1>
+                        <h1 className="text-4xl font-heading font-black text-foreground tracking-tight">Kunder</h1>
                         <p className="text-foreground/40 text-sm font-medium mt-1">
                             Dina slutkunder sparas automatiskt vid bokning. Lägg till eller sök efter kunder i ditt nätverk.
                         </p>
@@ -221,6 +231,7 @@ export default function CustomersPage() {
                                         <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest">Telefon</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest">Senaste besök</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-center">Bokningar</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-center">Avbokningar</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-right">Status</th>
                                     </tr>
                                 </thead>
@@ -249,8 +260,13 @@ export default function CustomersPage() {
                                                 ) : '-'}
                                             </td>
                                             <td className="px-6 py-5 text-sm font-black text-foreground text-center">
-                                                <span className="px-2.5 py-1 bg-foreground/[0.04] rounded-lg border border-border/40">
+                                                <span className="px-2.5 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg border border-green-500/20">
                                                     {c.totalBookings}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-5 text-sm font-black text-foreground text-center">
+                                                <span className={`px-2.5 py-1 ${c.totalCancellations > 0 ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20' : 'bg-foreground/[0.04] text-foreground/40 border border-border/40'} rounded-lg`}>
+                                                    {c.totalCancellations}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-5 text-right">

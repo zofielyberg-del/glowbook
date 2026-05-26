@@ -164,7 +164,7 @@ const translations: Record<Language, Record<string, string>> = {
         'dash_stat_customers': 'Nya kunder',
         'dash_stat_revenue': 'Intäkter',
         'dash_stat_points': 'Glow Points',
-        'dash_nav_customers': 'Kundregister',
+        'dash_nav_customers': 'Kunder',
         'dash_nav_customers_desc': 'Se alla dina befintliga kunder, historik och kontaktuppgifter.',
         'dash_nav_services': 'Tjänster',
         'dash_nav_services_desc': 'Skapa nya tjänster, sätt priser och tider, samt anpassa din profil.',
