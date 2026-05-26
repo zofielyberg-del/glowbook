@@ -155,7 +155,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                 }
             } catch (err: any) {
                 console.error("Fel vid hämtning av tider:", err);
-                if (isMounted) setComputedAvailability([{ error: err.message || "Catch block error", url } as any]);
+                if (isMounted) setComputedAvailability([{ error: err.message || "Catch block error" } as any]);
             }
         }
 
