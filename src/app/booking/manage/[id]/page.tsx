@@ -116,131 +116,37 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
         }
     };
 
-    // Availability computer for Rescheduling
-    const computedAvailability = useMemo(() => {
-        if (!appointment || !appointment.salon) return [];
+    const [computedAvailability, setComputedAvailability] = useState<any[]>([]);
 
-        const salon = appointment.salon;
-        // Find matching service from the salon's list
-        const service = (salon.services || []).find((s: any) => s.name === appointment.service_name) || { duration: 30 };
-        const serviceDuration = service.duration || 30;
-        const step = serviceDuration;
-        
-        const appointments = salon.appointments || [];
-        const allFrames: any[] = [];
-        const now = new Date();
-        const currentDayIdx = (now.getDay() + 6) % 7;
-        const currentMins = now.getHours() * 60 + now.getMinutes();
+    useEffect(() => {
+        if (!appointment || !appointment.salon) {
+            setComputedAvailability([]);
+            return;
+        }
 
-        // Target practitioner
-        const pid = appointment.practitioner_id || 'owner';
-        const targetP = (salon.practitioners || []).find((p: any) => p.id === pid) || { id: pid };
+        let isMounted = true;
 
-        const practitionersToConsider = [targetP];
-
-        if (practitionersToConsider.length > 0) {
-            const hasRealScheduleData = practitionersToConsider.some((p: any) => {
-                const schedule = p.schedule || {};
-                return Object.values(schedule).some((day: any) => day && day.active === true);
-            });
-
-            if (hasRealScheduleData) {
-                practitionersToConsider.forEach((p: any) => {
-                    const schedule = p.schedule || {};
-                    Object.entries(schedule).forEach(([dayIndexStr, dayData]: [string, any]) => {
-                        if (dayData && dayData.active === true) {
-                            const dayIndex = parseInt(dayIndexStr);
-                            if (isNaN(dayIndex)) return;
-                            const slots = dayData.slots || [];
-                            if (slots.length === 0 && dayData.start && dayData.end) {
-                                slots.push({ start: dayData.start, end: dayData.end });
-                            }
-                            const breaks = dayData.breaks || [];
-
-                            slots.forEach((slot: any) => {
-                                const slotStart = timeToMins(slot.start);
-                                const slotEnd = timeToMins(slot.end);
-
-                                for (let time = slotStart; time <= slotEnd - serviceDuration; time += step) {
-                                    const startTimeStr = minsToTime(time);
-                                    const startMins = time;
-                                    const endMins = time + serviceDuration;
-
-                                    const hasAptOverlap = appointments.some((apt: any) => {
-                                        if (apt.dayIndex !== dayIndex) return false;
-                                        if (apt.status === 'cancelled') return false;
-                                        if (apt.id === appointmentId) return false; // Ignore current appointment in overlap check!
-
-                                        const aptPid = apt.practitionerId || 'owner';
-                                        if (aptPid !== p.id && aptPid !== 'any') return false;
-
-                                        const aptStart = timeToMins(apt.startTime);
-                                        const aptEnd = aptStart + (apt.duration || 30);
-                                        return (startMins < aptEnd && endMins > aptStart);
-                                    });
-                                    if (hasAptOverlap) continue;
-
-                                    const hasBreakOverlap = breaks.some((brk: any) => {
-                                        const brkStart = timeToMins(brk.start);
-                                        const brkEnd = brkStart + brk.duration;
-                                        return (startMins < brkEnd && endMins > brkStart);
-                                    });
-                                    if (hasBreakOverlap) continue;
-
-                                    if (dayIndex === currentDayIdx && startMins < currentMins + 15) continue;
-
-                                    allFrames.push({
-                                        id: `p-${p.id}-${dayIndex}-${startTimeStr}`,
-                                        startTime: startTimeStr,
-                                        duration: serviceDuration,
-                                        dayIndex: dayIndex,
-                                        practitionerId: p.id
-                                    });
-                                }
-                            });
-                        }
-                    });
-                });
-
-                if (allFrames.length > 0) return allFrames;
+        async function fetchAvailability() {
+            try {
+                const salonId = appointment.salon.id;
+                const serviceId = appointment.service_id;
+                const practitionerId = appointment.practitioner_id || 'any';
+                
+                const url = `/api/availability?salonId=${salonId}&serviceId=${serviceId}&practitionerId=${practitionerId}&excludeAppointmentId=${appointmentId}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (isMounted && data.success) {
+                    setComputedAvailability(data.availability);
+                }
+            } catch (err) {
+                console.error("Failed to fetch availability", err);
             }
         }
 
+        fetchAvailability();
 
-        // Fallback Strategy 2: Salon availability
-        const salonAvailability: any[] = salon.availability || [];
-        salonAvailability.forEach((frame: any) => {
-            const frameStart = timeToMins(frame.startTime);
-            const frameEnd = frameStart + frame.duration;
-
-            for (let time = frameStart; time <= frameEnd - serviceDuration; time += step) {
-                const startTimeStr = minsToTime(time);
-                const startMins = time;
-                const endMins = time + serviceDuration;
-
-                const hasAptOverlap = appointments.some((apt: any) => {
-                    if (apt.dayIndex !== frame.dayIndex) return false;
-                    if (apt.status === 'cancelled') return false;
-                    if (apt.id === appointmentId) return false; // Ignore current appointment in overlap check!
-                    const aptStart = timeToMins(apt.startTime);
-                    const aptEnd = aptStart + (apt.duration || 30);
-                    return (startMins < aptEnd && endMins > aptStart);
-                });
-                if (hasAptOverlap) continue;
-
-                if (frame.dayIndex === currentDayIdx && startMins < currentMins + 15) continue;
-
-                allFrames.push({
-                    id: `avail-${frame.id}-${startTimeStr}`,
-                    startTime: startTimeStr,
-                    duration: serviceDuration,
-                    dayIndex: frame.dayIndex,
-                    practitionerId: 'owner'
-                });
-            }
-        });
-
-        return allFrames;
+        return () => { isMounted = false; };
     }, [appointment, appointmentId]);
 
     const handleSelectSlot = (date: string, time: string) => {

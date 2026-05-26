@@ -606,149 +606,35 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         setIsBookingModalOpen(true);
     };
 
-    // Compute availability: tries practitioner schedules first, falls back to salon.availability
-    const computedAvailability = useMemo(() => {
-        if (!salon || !selectedService) return [];
+    const [computedAvailability, setComputedAvailability] = useState<any[]>([]);
 
-        const serviceDuration = selectedService?.duration || 30;
-        const step = serviceDuration; // slots step by the service duration — a 90-min service shows 90-min slots
-        const appointments = salon?.appointments || [];
-        const allFrames: any[] = [];
-
-        const now = new Date();
-        const currentDayIdx = (now.getDay() + 6) % 7;
-        const currentMins = now.getHours() * 60 + now.getMinutes();
-
-        const targetPractitioner = selectedPractitioner || { id: 'any' };
-        const tier = (salon?.tier || 'bas').toLowerCase();
-        const isLuxe = tier === 'luxe';
-
-        let salonAvailability: any[] = salon?.availability || [];
-        if (salonAvailability.length === 0) {
-            // Provide a default 10:00 - 19:00 schedule for all 7 days as a fallback
-            // since the new database schema relies on practitioners but the calendar 
-            // intersects with salon.availability for bounds.
-            salonAvailability = [0, 1, 2, 3, 4, 5, 6].map(dayIndex => ({
-                id: `fallback-${dayIndex}`,
-                dayIndex,
-                startTime: '10:00',
-                duration: 540 // 9 hours (10:00 to 19:00)
-            }));
+    useEffect(() => {
+        if (!salon || !selectedService) {
+            setComputedAvailability([]);
+            return;
         }
-
-        if (isLuxe) {
-            // Luxe availability logic: Shared calendar frames INTERSECTED with qualified practitioner schedules
-            const allowedIds = selectedService.practitionerIds || [];
-            const serviceCat = getServiceCategory(selectedService, salon.category);
-            const allPractitioners = salon?.practitioners || [];
-
-            // 1. Filter out who is qualified to perform this service
-            let qualifiedPractitioners = allPractitioners.filter((p: any) => {
-                if (allowedIds.length > 0 && !allowedIds.includes(p.id)) return false;
-                // Removed strict category matching because practitioners are often created with generic categories like 'Personal'
-                return true;
-            });
-
-            if (targetPractitioner.id !== 'any') {
-                qualifiedPractitioners = qualifiedPractitioners.filter((p: any) => p.id === targetPractitioner.id);
-            }
-
-            if (qualifiedPractitioners.length === 0) return [];
-
-            salonAvailability.forEach((frame: any) => {
-                const frameStart = timeToMins(frame.startTime);
-                const frameEnd = frameStart + frame.duration;
-
-                for (let time = frameStart; time <= frameEnd - serviceDuration; time += step) {
-                    const startTimeStr = minsToTime(time);
-                    const startMins = time;
-                    const endMins = time + serviceDuration;
-
-                    // Filter out past times for today
-                    if (frame.dayIndex === currentDayIdx && startMins < currentMins + 15) continue;
-
-                    // 2. Find all qualified practitioners who are scheduled to work during this time
-                    const availablePractitionerIds: string[] = [];
-
-                    for (const p of qualifiedPractitioners) {
-                        const schedule = p.schedule || {};
-                        const dayData = schedule[frame.dayIndex];
-                        if (!dayData || dayData.active !== true) continue;
-
-                        const slots = dayData.slots || [];
-                        if (slots.length === 0 && dayData.start && dayData.end) {
-                            slots.push({ start: dayData.start, end: dayData.end });
-                        }
-
-                        // Check if time is within practitioner's work slots
-                        const isWithinPractitionerSlot = slots.some((slot: any) => {
-                            const pStart = timeToMins(slot.start);
-                            const pEnd = timeToMins(slot.end);
-                            return (startMins >= pStart && endMins <= pEnd);
-                        });
-                        if (!isWithinPractitionerSlot) continue;
-
-                        // Check if time overlaps with practitioner's breaks
-                        const breaks = dayData.breaks || [];
-                        const hasBreakOverlap = breaks.some((brk: any) => {
-                            const brkStart = timeToMins(brk.start);
-                            const brkEnd = brkStart + brk.duration;
-                            return (startMins < brkEnd && endMins > brkStart);
-                        });
-                        if (hasBreakOverlap) continue;
-
-                        // Appointments check removed here because Calendar filters them based on specific dates, whereas here it incorrectly filters by dayIndex across all weeks.
-
-
-                        availablePractitionerIds.push(p.id);
-                    }
-
-                    if (availablePractitionerIds.length > 0) {
-                        allFrames.push({
-                            id: `luxe-${frame.id}-${startTimeStr}`,
-                            startTime: startTimeStr,
-                            duration: serviceDuration,
-                            dayIndex: frame.dayIndex,
-                            practitionerId: targetPractitioner.id === 'any' ? availablePractitionerIds[0] : targetPractitioner.id,
-                            practitionerIds: availablePractitionerIds,
-                            week: frame.week
-                        });
-                    }
+        
+        let isMounted = true;
+        
+        async function fetchAvailability() {
+            try {
+                const targetP = selectedPractitioner ? selectedPractitioner.id : 'any';
+                const url = `/api/availability?salonId=${salon.id}&serviceId=${selectedService.id}&practitionerId=${targetP}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (isMounted && data.success) {
+                    setComputedAvailability(data.availability);
                 }
-            });
-
-            return allFrames;
-        }
-
-        // Standard/fallback availability logic (BAS & PRO): Salon-wide shared calendar
-        salonAvailability.forEach((frame: any) => {
-            const frameStart = timeToMins(frame.startTime);
-            const frameEnd = frameStart + frame.duration;
-
-            for (let time = frameStart; time <= frameEnd - serviceDuration; time += step) {
-                const startTimeStr = minsToTime(time);
-                const startMins = time;
-                const endMins = time + serviceDuration;
-
-                // Appointments check removed here because Calendar filters them based on specific dates, whereas here it incorrectly filters by dayIndex across all weeks.
-
-
-                // Filter out slots that are in the past for today
-                if (frame.dayIndex === currentDayIdx && startMins < currentMins + 15) continue;
-
-                allFrames.push({
-                    id: `avail-${frame.id}-${startTimeStr}`,
-                    startTime: startTimeStr,
-                    duration: serviceDuration,
-                    dayIndex: frame.dayIndex,
-                    practitionerId: 'owner',
-                    week: frame.week
-                });
+            } catch (err) {
+                console.error("Failed to fetch availability", err);
             }
-        });
-
-        return allFrames;
-    }, [selectedPractitioner, selectedService, salon]);
+        }
+        
+        fetchAvailability();
+        
+        return () => { isMounted = false; };
+    }, [salon, selectedService, selectedPractitioner]);
     const matchingPractitioners = useMemo(() => {
         if (!selectedService || !salon) return [];
         const allowedIds = selectedService.practitionerIds || [];

@@ -119,28 +119,51 @@ export async function POST(req: Request) {
             }
         }
 
-        // 3. Insert appointment
+        // 3. Insert appointment using atomic transaction to prevent double bookings
         let appointment;
         try {
-            appointment = await prisma.appointment.create({
-                data: {
-                    salon_id: sid,
-                    service_name: serviceName,
-                    practitioner_id: pid,
-                    customer_id: profileId,
-                    customer_email: customerInfo.email,
-                    customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
-                    customer_phone: customerInfo.phone,
-                    start_time: startDateTime,
-                    end_time: endDateTime,
-                    booking_date: new Date(date),
-                    total_price: price,
-                    status: status,
-                    payment_method: paymentMethod
+            appointment = await prisma.$transaction(async (tx) => {
+                // 3a. Check for overlap
+                const overlap = await tx.appointment.findFirst({
+                    where: {
+                        salon_id: sid,
+                        practitioner_id: pid !== 'any' && pid !== 'owner' ? pid : undefined,
+                        status: { not: 'cancelled' },
+                        AND: [
+                            { start_time: { lt: endDateTime } },
+                            { end_time: { gt: startDateTime } }
+                        ]
+                    }
+                });
+
+                if (overlap) {
+                    throw new Error('SLOT_TAKEN');
                 }
+
+                // 3b. Create appointment
+                return await tx.appointment.create({
+                    data: {
+                        salon_id: sid,
+                        service_name: serviceName,
+                        practitioner_id: pid,
+                        customer_id: profileId,
+                        customer_email: customerInfo.email,
+                        customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
+                        customer_phone: customerInfo.phone,
+                        start_time: startDateTime,
+                        end_time: endDateTime,
+                        booking_date: new Date(date),
+                        total_price: price,
+                        status: status,
+                        payment_method: paymentMethod
+                    }
+                });
             });
-        } catch (appointmentError) {
+        } catch (appointmentError: any) {
             console.error('Error creating appointment:', appointmentError);
+            if (appointmentError.message === 'SLOT_TAKEN') {
+                return NextResponse.json({ error: 'Tiden har tyvärr precis blivit bokad av någon annan. Vänligen välj en ny tid.' }, { status: 409 });
+            }
             return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
         }
 

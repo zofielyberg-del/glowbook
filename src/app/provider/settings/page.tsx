@@ -230,7 +230,7 @@ function SettingsContent() {
         };
         
         // Critical fix: Never send availability from the settings tab to prevent overwriting with stale data
-        delete updatedData.availability;
+        delete (updatedData as any).availability;
 
         // Sync with server
         try {

@@ -47,50 +47,46 @@ export async function POST(req: Request) {
         const startDateTime = newStartTimeUtc ? new Date(newStartTimeUtc) : new Date(`${newDate}T${newStartTime}`);
         const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
-        // 2. Check for Overlaps (excluding this current appointment itself!)
-        if (appointment.salon_id) {
-            const overlap = await prisma.appointment.findFirst({
-                where: {
-                    salon_id: appointment.salon_id,
-                    practitioner_id: appointment.practitioner_id || undefined,
-                    status: { not: 'cancelled' },
-                    id: { not: appointmentId }, // Crucial: ignore current appointment!
-                    OR: [
-                        {
-                            // New starts during existing
-                            start_time: { lte: startDateTime },
-                            end_time: { gt: startDateTime }
-                        },
-                        {
-                            // New ends during existing
-                            start_time: { lt: endDateTime },
-                            end_time: { gte: endDateTime }
-                        },
-                        {
-                            // New fully wraps existing
-                            start_time: { gte: startDateTime },
-                            end_time: { lte: endDateTime }
+        // 2 & 3. Atomic check and update
+        let updated;
+        try {
+            updated = await prisma.$transaction(async (tx) => {
+                if (appointment.salon_id) {
+                    const overlap = await tx.appointment.findFirst({
+                        where: {
+                            salon_id: appointment.salon_id,
+                            practitioner_id: appointment.practitioner_id !== 'any' && appointment.practitioner_id !== 'owner' ? appointment.practitioner_id : undefined,
+                            status: { not: 'cancelled' },
+                            id: { not: appointmentId }, // Crucial: ignore current appointment!
+                            AND: [
+                                { start_time: { lt: endDateTime } },
+                                { end_time: { gt: startDateTime } }
+                            ]
                         }
-                    ]
-                }
-            });
+                    });
 
-            if (overlap) {
+                    if (overlap) {
+                        throw new Error('SLOT_TAKEN');
+                    }
+                }
+
+                return await tx.appointment.update({
+                    where: { id: appointmentId },
+                    data: {
+                        booking_date: new Date(newDate),
+                        start_time: startDateTime,
+                        end_time: endDateTime
+                    }
+                });
+            });
+        } catch (error: any) {
+            if (error.message === 'SLOT_TAKEN') {
                 return NextResponse.json({ 
                     error: 'Tiden är tyvärr redan bokad. Vänligen välj en annan tid.' 
                 }, { status: 409 });
             }
+            throw error;
         }
-
-        // 3. Update appointment
-        const updated = await prisma.appointment.update({
-            where: { id: appointmentId },
-            data: {
-                booking_date: new Date(newDate),
-                start_time: startDateTime,
-                end_time: endDateTime
-            }
-        });
 
         const salonName = appointment.salon?.name || 'Salongen';
         const providerEmail = appointment.salon?.owner?.email || '';
