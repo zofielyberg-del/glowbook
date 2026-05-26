@@ -338,7 +338,7 @@ export default function ProviderDashboard() {
 
     const UPCOMING_TODAY = allAppointments
         .filter((apt: any) => {
-            return apt.status !== 'cancelled' && apt.dayIndex === currentDayIndex;
+            return apt.dayIndex === currentDayIndex;
         })
         .sort((a: any, b: any) => a.startTime.localeCompare(b.startTime));
 
@@ -699,12 +699,12 @@ export default function ProviderDashboard() {
 
                                 <div className="space-y-3">
                                     {UPCOMING_TODAY.map((item) => (
-                                        <div key={item.id} className="group flex items-center justify-between p-4 bg-background rounded-2xl border border-border/50 hover:border-champagne-300 transition-all">
+                                        <div key={item.id} className={`group flex items-center justify-between p-4 bg-background rounded-2xl border ${item.status === 'cancelled' ? 'border-red-500/30 opacity-60' : 'border-border/50 hover:border-champagne-300'} transition-all`}>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 text-sm font-black text-foreground/60">{item.startTime}</div>
-                                                <div className="w-1 h-8 bg-champagne-500 rounded-full" />
+                                                <div className={`w-1 h-8 ${item.status === 'cancelled' ? 'bg-red-500/50' : 'bg-champagne-500'} rounded-full`} />
                                                 <div>
-                                                    <h4 className="font-bold text-foreground text-sm">{item.clientName}</h4>
+                                                    <h4 className={`font-bold text-sm ${item.status === 'cancelled' ? 'text-red-500 dark:text-red-400 line-through' : 'text-foreground'}`}>{item.clientName}</h4>
                                                     <p className="text-[10px] font-medium text-foreground/60">{item.service}</p>
                                                     <div className="flex items-center gap-3 mt-1">
                                                         <span className="text-[9px] text-foreground/40 flex items-center gap-1">
@@ -717,7 +717,11 @@ export default function ProviderDashboard() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                {item.status === 'completed' ? (
+                                                {item.status === 'cancelled' ? (
+                                                    <span className="px-3 py-1 rounded-full bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-tighter flex items-center gap-1">
+                                                        <Trash2 size={12} /> Avbokad
+                                                    </span>
+                                                ) : item.status === 'completed' ? (
                                                     <span className="px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-[10px] font-black uppercase tracking-tighter flex items-center gap-1">
                                                         <CheckCircle2 size={12} /> Betald
                                                     </span>

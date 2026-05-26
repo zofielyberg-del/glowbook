@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendCustomerCancellationEmail, sendProviderCancellationEmail } from '@/lib/email';
+import { sendCustomerCancellationEmail, sendProviderCancellationEmail, sendCustomerCancellationByProviderEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
     try {
@@ -72,14 +72,25 @@ export async function POST(req: Request) {
         // 4. Send cancellation email to customer
         if (appointment.customer_email) {
             try {
-                await sendCustomerCancellationEmail(
-                    appointment.customer_email,
-                    appointment.customer_name || 'Kund',
-                    salonName,
-                    appointment.service_name || 'Behandling',
-                    bookingDateStr,
-                    startTimeStr
-                );
+                if (bypassPolicy) {
+                    await sendCustomerCancellationByProviderEmail(
+                        appointment.customer_email,
+                        appointment.customer_name || 'Kund',
+                        salonName,
+                        appointment.service_name || 'Behandling',
+                        bookingDateStr,
+                        startTimeStr
+                    );
+                } else {
+                    await sendCustomerCancellationEmail(
+                        appointment.customer_email,
+                        appointment.customer_name || 'Kund',
+                        salonName,
+                        appointment.service_name || 'Behandling',
+                        bookingDateStr,
+                        startTimeStr
+                    );
+                }
             } catch (emailErr) {
                 console.error('Error sending customer cancellation email:', emailErr);
             }
