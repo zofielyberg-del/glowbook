@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendCustomerBookingConfirmation, sendProviderBookingNotification } from '@/lib/email';
+import { sendCustomerRescheduleEmail, sendProviderBookingNotification } from '@/lib/email';
 
 export async function POST(req: Request) {
     try {
@@ -98,15 +98,13 @@ export async function POST(req: Request) {
         // 4. Send updated confirmation to customer
         if (appointment.customer_email) {
             try {
-                await sendCustomerBookingConfirmation(
+                await sendCustomerRescheduleEmail(
                     appointment.customer_email,
                     appointment.customer_name || 'Kund',
                     salonName,
-                    `[OMBOKAD] ${appointment.service_name || 'Behandling'}`,
+                    appointment.service_name || 'Behandling',
                     newDate,
-                    newStartTime,
-                    `${appointment.total_price} SEK`,
-                    appointmentId
+                    newStartTime
                 );
             } catch (emailErr) {
                 console.error('Error sending customer reschedule confirmation:', emailErr);

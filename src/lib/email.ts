@@ -301,7 +301,43 @@ export const sendCustomerCancellationByProviderEmail = async (
 };
 
 /**
- * 2d. Booking Cancellation for Providers
+ * 2d. Booking Rescheduled for Customers
+ */
+export const sendCustomerRescheduleEmail = async (
+    email: string, 
+    customerName: string, 
+    salonName: string, 
+    serviceName: string, 
+    dateStr: string, 
+    timeStr: string
+) => {
+    const htmlContent = `
+        <h1 style="color: #111111;">Bokning ombokad</h1>
+        <p>Hej ${customerName},</p>
+        <p>Din bokning har nu blivit ombokad enligt önskemål.</p>
+        <p><strong>Ny tid:</strong></p>
+        <p>${serviceName}<br/>${dateStr} kl. ${timeStr}</p>
+        <p>Om du har några frågor eller behöver göra ytterligare ändringar är du varmt välkommen att kontakta oss.</p>
+        <p>Vi ser fram emot att träffa dig.</p>
+        <p>Vänliga hälsningar,<br/><strong>${salonName}</strong></p>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: `Glowbook Bokning <${FROM_EMAIL}>`,
+            to: email,
+            subject: `Ombokningsbekräftelse: ${serviceName} hos ${salonName}`,
+            html: getHtmlWrapper(htmlContent),
+        });
+        return { success: !error, error };
+    } catch (error) {
+        console.error('Error sending customer reschedule email:', error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * 3. Booking Cancellation for Providers
  */
 export const sendProviderCancellationEmail = async (
     providerEmail: string, 

@@ -495,7 +495,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                             initial={{ opacity: 0, y: 50 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 50 }}
-                            className="bg-card w-full max-w-2xl rounded-3xl border border-border shadow-2xl relative z-10 flex flex-col max-h-[85vh]"
+                            className="bg-card w-[95vw] sm:w-[90vw] md:w-[85vw] max-w-7xl rounded-3xl border border-border shadow-2xl relative z-10 flex flex-col h-[90vh]"
                         >
                             {/* Modal Header */}
                             <div className="p-6 border-b border-border/80 flex items-center justify-between">
