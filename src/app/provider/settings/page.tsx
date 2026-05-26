@@ -1592,13 +1592,13 @@ function SettingsContent() {
                                                 <div className="flex gap-2 p-1.5 bg-gradient-to-r from-champagne-500/5 to-transparent rounded-[24px] border border-champagne-500/10 transition-all hover:border-champagne-500/30">
                                                     <div className="flex-1 flex items-center px-5 py-4 bg-[#111] rounded-[18px] text-white text-sm font-heading font-black tracking-tight border border-white/5 overflow-hidden">
                                                         <span className="opacity-30 mr-1.5">glowbook.se/</span>
-                                                        {salonData.name ? salonData.name.toLowerCase().replace(/[^a-z0-9]/g, '') : '...'}
+                                                        {salonData.slug || (salonData.name ? salonData.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : '...')}
                                                     </div>
                                                     <button
                                                         onClick={() => {
-                                                            const slug = salonData.name ? salonData.name.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-                                                            if (!slug) return;
-                                                            const url = `${window.location.origin.replace(/^https?:\/\//, '')}/${slug}`;
+                                                            const actualSlug = salonData.slug || (salonData.name ? salonData.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : '');
+                                                            if (!actualSlug) return;
+                                                            const url = `${window.location.origin}/${actualSlug}`;
                                                             navigator.clipboard.writeText(url);
                                                             setSavedSuccess(true);
                                                             setTimeout(() => setSavedSuccess(false), 2000);
@@ -1626,12 +1626,11 @@ function SettingsContent() {
                                         <div className="w-48 h-48 bg-white p-4 rounded-3xl shadow-xl flex-shrink-0 flex items-center justify-center border border-black/5 overflow-hidden group">
                                             {/* Legit QR Code Generation */}
                                             {(() => {
-                                                const slug = salonData.name ? salonData.name.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-                                                const standardSlug = salonData.name ? salonData.name.toLowerCase().replace(/\s+/g, '-') : '';
+                                                const actualSlug = salonData.slug || (salonData.name ? salonData.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : '');
                                                 const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://glowbook.se';
                                                 const finalUrl = salonData.tier !== 'bas'
-                                                    ? `${baseUrl}/${slug}`
-                                                    : `${baseUrl}/salon/${standardSlug}`;
+                                                    ? `${baseUrl}/${actualSlug}`
+                                                    : `${baseUrl}/salon/${actualSlug}`;
 
                                                 return (
                                                     <img
@@ -1648,7 +1647,30 @@ function SettingsContent() {
                                                 <p className="text-sm text-foreground/50 leading-relaxed">{t('qr_desc')}</p>
                                             </div>
                                             <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                                                <button className="px-8 py-4 bg-foreground text-background rounded-2xl font-bold text-sm hover:scale-[1.02] transition-transform shadow-xl shadow-black/10">
+                                                <button 
+                                                    onClick={() => {
+                                                        const actualSlug = salonData.slug || (salonData.name ? salonData.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : '');
+                                                        const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://glowbook.se';
+                                                        const finalUrl = salonData.tier !== 'bas'
+                                                            ? `${baseUrl}/${actualSlug}`
+                                                            : `${baseUrl}/salon/${actualSlug}`;
+                                                        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=1024x1024&data=${encodeURIComponent(finalUrl)}&margin=20&bgcolor=ffffff&color=000000`;
+                                                        
+                                                        fetch(qrUrl)
+                                                            .then(res => res.blob())
+                                                            .then(blob => {
+                                                                const url = window.URL.createObjectURL(blob);
+                                                                const a = document.createElement('a');
+                                                                a.style.display = 'none';
+                                                                a.href = url;
+                                                                a.download = `glowbook-qr-${actualSlug}.png`;
+                                                                document.body.appendChild(a);
+                                                                a.click();
+                                                                window.URL.revokeObjectURL(url);
+                                                                document.body.removeChild(a);
+                                                            });
+                                                    }}
+                                                    className="px-8 py-4 bg-foreground text-background rounded-2xl font-bold text-sm hover:scale-[1.02] transition-transform shadow-xl shadow-black/10">
                                                     {t('download_qr')}
                                                 </button>
 
