@@ -645,10 +645,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             // 1. Filter out who is qualified to perform this service
             let qualifiedPractitioners = allPractitioners.filter((p: any) => {
                 if (allowedIds.length > 0 && !allowedIds.includes(p.id)) return false;
-                if (allowedIds.length === 0) {
-                    const pCats = p.categories || [];
-                    if (serviceCat && pCats.length > 0 && !pCats.includes(serviceCat)) return false;
-                }
+                // Removed strict category matching because practitioners are often created with generic categories like 'Personal'
                 return true;
             });
 

@@ -7,7 +7,7 @@ const client = new Client({
 
 async function main() {
   await client.connect();
-  const res = await client.query("SELECT duration_minutes, name FROM services WHERE salon_id = '0260785d-2df2-4f3b-ad85-579c58b50d3e'");
+  const res = await client.query("SELECT category FROM services WHERE name = 'Klassisk Massage'");
   console.log(JSON.stringify(res.rows, null, 2));
   await client.end();
 }
