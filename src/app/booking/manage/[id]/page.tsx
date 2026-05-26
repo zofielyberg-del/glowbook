@@ -139,10 +139,18 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                 const data = await res.json();
                 
                 if (isMounted) {
-                    if (data.success) {
-                        setComputedAvailability(data.availability);
+                    if (res.ok) {
+                        if (data.success) {
+                            if (data.availability && data.availability.length === 0 && data.debug) {
+                                setComputedAvailability([{ debug: data.debug } as any]);
+                            } else {
+                                setComputedAvailability(data.availability);
+                            }
+                        } else {
+                            setComputedAvailability([{ error: JSON.stringify(data), url: url } as any]);
+                        }
                     } else {
-                        setComputedAvailability([{ error: JSON.stringify(data), url: url } as any]);
+                        setComputedAvailability([{ error: `HTTP ${res.status}`, url: url } as any]);
                     }
                 }
             } catch (err) {
@@ -434,6 +442,13 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                                             SYSTEM FEL: API returnerade ett fel.<br/>
                                             <span className="text-xs font-normal">{computedAvailability[0].error}</span><br/>
                                             <span className="text-xs font-normal">URL: {computedAvailability[0].url}</span>
+                                        </div>
+                                    ) : computedAvailability.length > 0 && computedAvailability[0].debug ? (
+                                        <div>
+                                            SYSTEM DEBUG: Inga tider returnerades, men API skickade denna spårningsdata:<br/>
+                                            <span className="text-[10px] font-normal opacity-80 break-words mt-2 block">
+                                                TRACE: {computedAvailability[0].debug}
+                                            </span>
                                         </div>
                                     ) : (
                                         <div>

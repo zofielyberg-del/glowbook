@@ -70,6 +70,13 @@ export async function GET(req: Request) {
             }));
         }
 
+        const debugLog: string[] = [];
+        debugLog.push(`Salon Tier: ${salon.membership_tier}`);
+        debugLog.push(`Practitioners: ${salon.practitioners?.length}`);
+        debugLog.push(`Target Practitioner: ${targetPractitionerId}`);
+        debugLog.push(`Is Luxe: ${isLuxe}`);
+        debugLog.push(`Salon Availability count: ${salonAvailability.length}`);
+
         for (let w = 0; w < weeksToGenerate; w++) {
             const weekStart = addDays(currentWeekStart, w * 7);
             const weekStr = format(weekStart, 'yyyy-MM-dd');
@@ -82,10 +89,13 @@ export async function GET(req: Request) {
                 if (dateStr < todayStr) continue;
 
                 const dayAvailability = salonAvailability.filter(a => a.dayIndex === dayIndex);
+                if (dayAvailability.length > 0 && w === 0) {
+                    debugLog.push(`Day ${dayIndex} (${dateStr}) has ${dayAvailability.length} frames`);
+                }
                 
                 dayAvailability.forEach(frame => {
                     const frameStart = timeToMins(frame.startTime);
-                    const frameEnd = frameStart + frame.duration;
+                    const frameEnd = frameStart + (frame.duration || 60);
 
                     for (let time = frameStart; time <= frameEnd - serviceDuration; time += step) {
                         const startTimeStr = minsToTime(time);
@@ -104,7 +114,7 @@ export async function GET(req: Request) {
                             });
 
                             if (qualifiedPractitioners.length === 0) {
-                                qualifiedPractitioners = salon.practitioners; // Fallback to 'any' if the specified practitioner doesn't exist anymore
+                                qualifiedPractitioners = salon.practitioners; 
                             }
 
                             const availablePractitioners = qualifiedPractitioners.filter(p => {
@@ -133,7 +143,7 @@ export async function GET(req: Request) {
                                 if (hasBreakOverlap) return false;
 
                                 const hasAptOverlap = salon.appointments.some(apt => {
-                                    if (apt.id === excludeAppointmentId) return false; // Ignore current booking being rescheduled
+                                    if (apt.id === excludeAppointmentId) return false; 
                                     if (apt.practitioner_id !== p.id && apt.practitioner_id !== 'any') return false;
                                     
                                     const aptDateStr = format(apt.start_time, 'yyyy-MM-dd');
@@ -179,7 +189,7 @@ export async function GET(req: Request) {
                                 dayIndex: dayIndex,
                                 practitionerId: availablePractitionerId,
                                 week: weekStr,
-                                date: dateStr // Explicitly return the exact date
+                                date: dateStr 
                             });
                         }
                     }
@@ -187,7 +197,11 @@ export async function GET(req: Request) {
             }
         }
 
-        return NextResponse.json({ success: true, availability: allFrames });
+        if (allFrames.length === 0) {
+            return NextResponse.json({ success: true, availability: [], debug: debugLog.join(" | ") });
+        }
+
+        return NextResponse.json({ success: true, availability: allFrames, debug: "Found " + allFrames.length });
 
     } catch (error) {
         console.error('API Error /api/availability:', error);
