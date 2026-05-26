@@ -54,14 +54,25 @@ export default function CustomersPage() {
 
             // 2. Extrakt and map from actual appointments
             appts.forEach((apt: any) => {
-                const emailKey = (apt.clientEmail || '').toLowerCase().trim();
+                const rawEmail = apt.customer_email || apt.clientEmail || '';
+                const emailKey = rawEmail.toLowerCase().trim();
                 if (!emailKey) return;
                 
                 const isCancelled = apt.status === 'cancelled';
 
-                const nameParts = (apt.clientName || '').split(' ');
+                const rawName = apt.customer_name || apt.clientName || '';
+                const nameParts = rawName.split(' ');
                 const firstName = nameParts[0] || 'Gäst';
                 const lastName = nameParts.slice(1).join(' ') || '';
+                
+                const rawPhone = apt.customer_phone || apt.clientPhone || '-';
+                
+                let rawDate = '-';
+                if (apt.date) {
+                    rawDate = apt.date;
+                } else if (apt.start_time) {
+                    rawDate = new Date(apt.start_time).toISOString().split('T')[0];
+                }
 
                 if (customerMap[emailKey]) {
                     if (isCancelled) {
@@ -69,21 +80,21 @@ export default function CustomersPage() {
                     } else {
                         customerMap[emailKey].totalBookings += 1;
                         // Keep the latest visit date
-                        if (apt.date && (!customerMap[emailKey].lastVisit || apt.date > customerMap[emailKey].lastVisit)) {
-                            customerMap[emailKey].lastVisit = apt.date;
+                        if (rawDate !== '-' && (!customerMap[emailKey].lastVisit || rawDate > customerMap[emailKey].lastVisit)) {
+                            customerMap[emailKey].lastVisit = rawDate;
                         }
                     }
-                    if (apt.clientPhone && apt.clientPhone !== '-') {
-                        customerMap[emailKey].phone = apt.clientPhone;
+                    if (rawPhone && rawPhone !== '-') {
+                        customerMap[emailKey].phone = rawPhone;
                     }
                 } else {
                     customerMap[emailKey] = {
                         id: apt.id || Math.random().toString(),
                         firstName,
                         lastName,
-                        email: apt.clientEmail,
-                        phone: apt.clientPhone || '-',
-                        lastVisit: isCancelled ? '-' : (apt.date || '-'),
+                        email: rawEmail,
+                        phone: rawPhone,
+                        lastVisit: isCancelled ? '-' : rawDate,
                         totalBookings: isCancelled ? 0 : 1,
                         totalCancellations: isCancelled ? 1 : 0,
                         status: 'Active'
