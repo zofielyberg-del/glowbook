@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import crypto from 'crypto';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export async function POST(request: Request) {
     try {
@@ -41,22 +41,25 @@ export async function POST(request: Request) {
         const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se'}/auth/reset-password?token=${resetToken}`;
 
         // Send email using Resend
+        if (resend) {
         await resend.emails.send({
-            from: 'GlowBook <no-reply@glowbook.se>', // Adjust if your verified domain differs
-            to: user.email,
-            subject: 'Återställ ditt lösenord på GlowBook',
-            html: `
-                <div style="font-family: Arial, sans-serif; max-w-md mx-auto p-4 bg-zinc-950 text-white">
-                    <h2 style="color: #ffffff; text-align: center; text-transform: uppercase; letter-spacing: 2px;">Glow<b style="font-weight:bold;">Book</b></h2>
-                    <p style="color: #cccccc;">Hej,</p>
-                    <p style="color: #cccccc;">Du har begärt att få återställa ditt lösenord. Klicka på knappen nedan för att välja ett nytt lösenord:</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="${resetUrl}" style="background-color: #ffffff; color: #000000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Återställ lösenord</a>
-                    </div>
-                    <p style="color: #cccccc; font-size: 12px;">Länken är giltig i 1 timme. Om du inte har begärt detta kan du ignorera detta mail.</p>
-                </div>
-            `
+          from: 'GlowBook <no-reply@glowbook.se>', // Adjust if your verified domain differs
+          to: user.email,
+          subject: 'Återställ ditt lösenord på GlowBook',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-w-md mx-auto p-4 bg-zinc-950 text-white">
+              <h2 style="color: #ffffff; text-align: center; text-transform: uppercase; letter-spacing: 2px;">Glow<b style="font-weight:bold;">Book</b></h2>
+              <p style="color: #cccccc;">Hej,</p>
+              <p style="color: #cccccc;">Du har begärt att få återställa ditt lösenord. Klicka på knappen nedan för att välja ett nytt lösenord:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}" style="background-color: #ffffff; color: #000000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Återställ lösenord</a>
+              </div>
+              <p style="color: #cccccc; font-size: 12px;">Länken är giltig i 1 timme. Om du inte har begärt detta kan du ignorera detta mail.</p>
+            </div>
+          `
         });
+      }
+
 
         return NextResponse.json({ success: true, message: 'Om e-postadressen finns så har ett mail skickats.' });
         
