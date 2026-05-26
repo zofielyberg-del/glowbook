@@ -129,22 +129,25 @@ export default function ServicesPage() {
     });
     const [salonTier, setSalonTier] = useState('bas');
 
-    const NICHE_TO_CATEGORIES: Record<string, string[]> = {
-        "Naglar": ['Nagelterapeut', 'Övrigt'],
-        "Fransar & Bryn": ['Fransstylist', 'Brow stylist', 'Övrigt'],
-        "Hudvård": ['Hudterapeut', 'Lasertekniker', 'Övrigt'],
-        "Hårvård": ['Frisör', 'Barberare', 'Övrigt'],
-        "Barberare": ['Barberare', 'Frisör', 'Övrigt'],
-        "Massage": ['Massör', 'Övrigt'],
-        "Makeup": ['Makeup-artist', 'Övrigt'],
-        "Tatuerare": ['Tatuerare', 'Övrigt'],
-        "Fotvård": ['Fotvårdsterapeut', 'Övrigt'],
-        "Estetisk Injektion": ['Sjuksköterska', 'Läkare', 'Lasertekniker', 'Övrigt']
-    };
+    const ALL_SERVICE_CATEGORIES = [
+        'Nagelterapeut',
+        'Fransstylist',
+        'Brow stylist',
+        'Hudterapeut',
+        'Lasertekniker',
+        'Frisör',
+        'Barberare',
+        'Massör',
+        'Makeup-artist',
+        'Tatuerare',
+        'Fotvårdsterapeut',
+        'Sjuksköterska',
+        'Läkare',
+        'Övrigt'
+    ];
 
     const getAvailableCategories = () => {
-        if (salonTier === 'bas') return availableCategories.length > 0 ? availableCategories : [category];
-        return NICHE_TO_CATEGORIES[category] || [category, 'Övrigt'];
+        return ALL_SERVICE_CATEGORIES;
     };
 
     const [isSaving, setIsSaving] = useState(false);
