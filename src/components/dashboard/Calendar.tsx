@@ -661,18 +661,32 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                             return (
                                                                 <div
                                                                     key={si}
-                                                                    className="absolute inset-x-0 bg-rose-500/20 border-y border-rose-500/30 overflow-hidden"
+                                                                    className="absolute inset-x-0 bg-pink-100/90 dark:bg-pink-950/40 border-y border-pink-300 dark:border-pink-800/60 overflow-hidden"
                                                                     style={{ top: `${segTopPx}px`, height: `${segHeightPx}px` }}
                                                                     title={`Bokad: ${seg.appointment?.clientName} — ${seg.appointment?.service}`}
                                                                 >
-                                                                    <div className="absolute inset-0" style={{
-                                                                        backgroundImage: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(239,68,68,0.08) 4px, rgba(239,68,68,0.08) 8px)'
-                                                                    }} />
-                                                                    <div className="px-1.5 py-0.5 flex items-center gap-1 h-full relative z-[1]">
-                                                                        <CalendarCheck size={10} className="text-rose-500 shrink-0" />
-                                                                        <span className="text-[8px] font-black text-rose-500 truncate uppercase tracking-wider">
-                                                                            {seg.start} — {seg.appointment?.clientName || 'Bokad'}
-                                                                        </span>
+                                                                    <div className="px-2 py-1.5 flex flex-col h-full relative z-[1]">
+                                                                        <div className="flex items-center justify-between mb-0.5">
+                                                                            <span className="font-black text-[9px] uppercase tracking-wider text-pink-900 dark:text-pink-200">
+                                                                                {seg.appointment?.service || 'Bokad'}
+                                                                            </span>
+                                                                            <span className="text-[8px] font-bold text-pink-600/70 dark:text-pink-400/70">
+                                                                                {seg.start}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="font-bold truncate text-[10px] text-pink-850 dark:text-pink-100">
+                                                                            {seg.appointment?.clientName || 'Kund (namn saknas)'}
+                                                                        </div>
+                                                                        {seg.appointment?.clientEmail && (
+                                                                            <div className="text-[8px] text-pink-800/80 dark:text-pink-200/80 truncate font-medium mt-0.5">
+                                                                                {seg.appointment.clientEmail}
+                                                                            </div>
+                                                                        )}
+                                                                        {seg.appointment?.clientPhone && seg.appointment.clientPhone !== '-' && (
+                                                                            <div className="text-[8px] text-pink-800/80 dark:text-pink-200/80 truncate font-medium mt-0.5">
+                                                                                📞 {seg.appointment.clientPhone}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             );
