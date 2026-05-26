@@ -134,8 +134,8 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                 const serviceId = appointment.service_id || service?.id;
                 const practitionerId = appointment.practitioner_id || 'any';
                 
-                const url = `/api/availability?salonId=${salonId}&serviceId=${serviceId}&practitionerId=${practitionerId}&excludeAppointmentId=${appointmentId}`;
-                const res = await fetch(url);
+                const url = `/api/availability?salonId=${salonId}&serviceId=${serviceId}&practitionerId=${practitionerId}&excludeAppointmentId=${appointmentId}&_t=${Date.now()}`;
+                const res = await fetch(url, { cache: 'no-store' });
                 const data = await res.json();
                 
                 if (isMounted) {
