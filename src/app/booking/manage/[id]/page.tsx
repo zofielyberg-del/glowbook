@@ -144,7 +144,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                             if (data.availability && data.availability.length === 0 && data.debug) {
                                 setComputedAvailability([{ debug: data.debug } as any]);
                             } else {
-                                setComputedAvailability(data.availability);
+                                setComputedAvailability(data.availability || []);
                             }
                         } else {
                             setComputedAvailability([{ error: JSON.stringify(data), url: url } as any]);
@@ -153,11 +153,9 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                         setComputedAvailability([{ error: `HTTP ${res.status}`, url: url } as any]);
                     }
                 }
-            } catch (err) {
-                console.error("Failed to fetch availability", err);
-                if (isMounted) {
-                    setComputedAvailability([{ error: err?.toString() } as any]);
-                }
+            } catch (err: any) {
+                console.error("Fel vid hämtning av tider:", err);
+                if (isMounted) setComputedAvailability([{ error: err.message || "Catch block error", url } as any]);
             }
         }
 
