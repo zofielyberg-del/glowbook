@@ -206,11 +206,6 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
             }
         }
 
-        // Fix: If a specific practitioner is selected in a multi-practitioner salon, do NOT fall back to salon-wide availability
-        const hasMultiplePractitioners = salon.practitioners && salon.practitioners.length > 1;
-        if (hasMultiplePractitioners && targetP.id && targetP.id !== 'any' && targetP.id !== 'owner') {
-            return [];
-        }
 
         // Fallback Strategy 2: Salon availability
         const salonAvailability: any[] = salon.availability || [];
