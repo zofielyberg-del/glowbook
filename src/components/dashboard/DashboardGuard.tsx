@@ -13,17 +13,9 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!isLoading && isSalonOwner && user) {
-            // In a real app, we fetch the latest status from our API/DB
-            // For now, we simulate the lock if subscription_status is 'past_due'
-            // or if it's missing (and not in trial)
-
+            // Check lock status
             const checkStatus = async () => {
                 try {
-                    // This should be a real fetch call to our backend
-                    // const res = await fetch(`/api/salons/${user.id}/status`);
-                    // const data = await res.json();
-
-                    // For demo/dev, we check sessionStorage but prepare for DB status
                     const status = sessionStorage.getItem('glowbook_salon_status') || user.subscriptionStatus || 'trialing';
 
                     if (status === 'past_due' || status === 'canceled') {
@@ -38,7 +30,43 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
                 }
             };
 
+            // Sync global salon data to ensure Admin Portal changes take effect immediately
+            const syncSalonData = async () => {
+                try {
+                    const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+                    if (saved) {
+                        const localData = JSON.parse(saved);
+                        if (localData.id && localData.id.length > 20) {
+                            const response = await fetch(`/api/salons/get?id=${localData.id}`);
+                            const data = await response.json();
+                            if (data.success && data.salon) {
+                                // Merge category arrays properly if needed
+                                let salon = data.salon;
+                                if (Array.isArray(salon.category)) {
+                                    const [main, ...additional] = salon.category;
+                                    salon = {
+                                        ...salon,
+                                        category: main || '',
+                                        categories: additional || []
+                                    };
+                                }
+                                
+                                // Preserve local non-persisted stuff if necessary, but prioritize server DB!
+                                sessionStorage.setItem('glowbook_salon', JSON.stringify(salon));
+                                localStorage.setItem('glowbook_salon', JSON.stringify(salon));
+                                
+                                // Dispatch event so the current page updates its state!
+                                window.dispatchEvent(new Event('glowbook_update'));
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to sync salon data from database", e);
+                }
+            };
+
             checkStatus();
+            syncSalonData();
         } else if (!isLoading) {
             setChecking(false);
         }
