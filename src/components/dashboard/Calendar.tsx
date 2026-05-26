@@ -204,7 +204,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             // Check practitioner overlap for multi-practitioner salons
             if (frame.practitionerId && frame.practitionerId !== 'any') {
                 const aptPid = apt.practitioner_id || apt.practitionerId || 'owner';
-                if (aptPid !== frame.practitionerId && aptPid !== 'any') {
+                if (aptPid !== frame.practitionerId && aptPid !== 'any' && aptPid !== 'owner') {
                     return false;
                 }
             }
@@ -227,6 +227,10 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                 } else if (apt.booking_date) {
                     const bDate = new Date(apt.booking_date);
                     aptDateStr = format(bDate, 'yyyy-MM-dd');
+                    aptStartMins = timeToMins(apt.startTime || '00:00');
+                    aptEndMins = aptStartMins + (apt.duration || 60);
+                } else if (apt.date) {
+                    aptDateStr = apt.date;
                     aptStartMins = timeToMins(apt.startTime || '00:00');
                     aptEndMins = aptStartMins + (apt.duration || 60);
                 } else {
