@@ -1,25 +1,16 @@
 'use client';
 
-import { useState, useEffect, useMemo, use } from "react";
+import { useState, useEffect, use } from "react";
 import Header from "@/components/layout/Header";
-import { Clock, MapPin, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, ArrowLeft, RefreshCw, X, ChevronRight } from "lucide-react";
+import { Clock, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, ArrowLeft, RefreshCw, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Calendar from "@/components/dashboard/Calendar";
 import Link from "next/link";
-
-function timeToMins(t: string) {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-}
-
-function minsToTime(m: number) {
-    const hh = Math.floor(m / 60);
-    const mm = m % 60;
-    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-}
+import { useSearchParams } from "next/navigation";
 
 export default function ManageBookingPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: appointmentId } = use(params);
+    const searchParams = useSearchParams();
+    const successMessage = searchParams.get('success') === 'rescheduled' ? 'Din tid har ombokats! Ett nytt bekräftelsemail har skickats.' : null;
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -28,10 +19,6 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
     // Actions states
     const [cancelling, setCancelling] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-    const [rescheduling, setRescheduling] = useState(false);
-    const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-    const [selectedDateSlot, setSelectedDateSlot] = useState<{ day: string; time: string; fullDate: string; dayIndex: number } | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     // Fetch appointment data
     const fetchAppointmentData = async () => {
@@ -67,7 +54,6 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
             });
             const data = await res.json();
             if (data.success) {
-                setSuccessMessage("Din bokning har avbokats. Ett bekräftelsemail har skickats.");
                 setShowCancelConfirm(false);
                 fetchAppointmentData();
             } else {
@@ -79,98 +65,6 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
         } finally {
             setCancelling(false);
         }
-    };
-
-    // Handle Rescheduling Execution
-    const handleRescheduleBooking = async () => {
-        if (!selectedDateSlot) return;
-        try {
-            setRescheduling(true);
-            const localStart = new Date(`${selectedDateSlot.fullDate}T${selectedDateSlot.time}:00`);
-            const newStartTimeUtc = localStart.toISOString();
-
-            const res = await fetch('/api/bookings/reschedule', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    appointmentId,
-                    newDate: selectedDateSlot.fullDate,
-                    newStartTime: selectedDateSlot.time,
-                    newStartTimeUtc
-                })
-            });
-            const data = await res.json();
-            if (data.success) {
-                setSuccessMessage("Din tid har ombokats! Ett nytt bekräftelsemail har skickats.");
-                setShowRescheduleModal(false);
-                setSelectedDateSlot(null);
-                fetchAppointmentData();
-            } else {
-                alert(data.error || "Misslyckades att omboka");
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Ett fel uppstod vid ombokningen.");
-        } finally {
-            setRescheduling(false);
-        }
-    };
-
-    const [computedAvailability, setComputedAvailability] = useState<any[]>([]);
-
-    useEffect(() => {
-        if (!appointment || !appointment.salon) {
-            setComputedAvailability([]);
-            return;
-        }
-
-        let isMounted = true;
-
-        async function fetchAvailability() {
-            try {
-                const salonId = appointment.salon.id;
-                // If service_id is missing, find it by service_name or fallback to first service
-                const service = (appointment.salon.services || []).find((s: any) => s.name === appointment.service_name) || (appointment.salon.services || [])[0];
-                const serviceId = appointment.service_id || service?.id;
-                const practitionerId = appointment.practitioner_id || 'any';
-                
-                const url = `/api/availability?salonId=${salonId}&serviceId=${serviceId}&practitionerId=${practitionerId}&excludeAppointmentId=${appointmentId}&_t=${Date.now()}`;
-                const res = await fetch(url, { cache: 'no-store' });
-                const data = await res.json();
-                
-                if (isMounted) {
-                    if (res.ok) {
-                        if (data.success) {
-                            if (data.availability && data.availability.length === 0 && data.debug) {
-                                setComputedAvailability([{ debug: data.debug } as any]);
-                            } else {
-                                setComputedAvailability(data.availability || []);
-                            }
-                        } else {
-                            setComputedAvailability([{ error: JSON.stringify(data), url: url } as any]);
-                        }
-                    } else {
-                        setComputedAvailability([{ error: `HTTP ${res.status}`, url: url } as any]);
-                    }
-                }
-            } catch (err: any) {
-                console.error("Fel vid hämtning av tider:", err);
-                if (isMounted) setComputedAvailability([{ error: err.message || "Catch block error" } as any]);
-            }
-        }
-
-        fetchAvailability();
-
-        return () => { isMounted = false; };
-    }, [appointment, appointmentId]);
-
-    const handleSelectSlot = (date: string, time: string) => {
-        const days = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
-        const dateObj = new Date(date);
-        const dayName = days[dateObj.getDay()];
-        const dayIndex = (dateObj.getDay() + 6) % 7;
-
-        setSelectedDateSlot({ day: dayName, time, fullDate: date, dayIndex });
     };
 
     if (loading) {
@@ -327,13 +221,13 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
 
                     {!isCancelled && !isWithinCancellationWindow && (
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                            <button
-                                onClick={() => setShowRescheduleModal(true)}
-                                className="flex-1 py-4 bg-champagne-500 hover:bg-champagne-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-champagne-500/15 transition-all text-sm uppercase tracking-wider"
+                            <Link
+                                href={`/booking/reschedule/${appointmentId}`}
+                                className="flex-1 py-4 bg-champagne-500 hover:bg-champagne-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-champagne-500/15 transition-all text-sm uppercase tracking-wider text-center"
                             >
                                 <RefreshCw size={16} />
                                 Omboka behandling
-                            </button>
+                            </Link>
                             <button
                                 onClick={() => setShowCancelConfirm(true)}
                                 className="py-4 px-8 border border-rose-500/30 hover:border-rose-500 bg-rose-500/5 hover:bg-rose-500/10 text-rose-500 font-bold rounded-2xl transition-all text-sm uppercase tracking-wider"
@@ -395,105 +289,6 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                                 >
                                     Avbryt
                                 </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* Omboka Interactive Modal */}
-            <AnimatePresence>
-                {showRescheduleModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowRescheduleModal(false)}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        />
-                        <motion.div 
-                            initial={{ opacity: 0, y: 50 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 50 }}
-                            className="bg-card w-[95vw] sm:w-[90vw] md:w-[85vw] max-w-7xl rounded-3xl border border-border shadow-2xl relative z-10 flex flex-col h-[90vh]"
-                        >
-                            {/* Modal Header */}
-                            <div className="p-6 border-b border-border/80 flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-xl font-bold text-foreground">Välj en ny tid</h3>
-                                    <p className="text-xs text-foreground/40 mt-1">Hitta en ledig tid för {appointment.service_name}</p>
-                                </div>
-                                <button 
-                                    onClick={() => setShowRescheduleModal(false)}
-                                    className="p-2 hover:bg-card-deep rounded-xl text-foreground/40 hover:text-foreground transition-all"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            {/* Modal Body / Calendar Scroll */}
-                            <div className="p-6 overflow-y-auto space-y-6 flex-1">
-                                <div className="p-4 bg-red-500 text-white font-bold text-center z-50">
-                                    {computedAvailability.length > 0 && computedAvailability[0].error ? (
-                                        <div>
-                                            SYSTEM FEL: API returnerade ett fel.<br/>
-                                            <span className="text-xs font-normal">{computedAvailability[0].error}</span><br/>
-                                            <span className="text-xs font-normal">URL: {computedAvailability[0].url}</span>
-                                        </div>
-                                    ) : computedAvailability.length > 0 && computedAvailability[0].debug ? (
-                                        <div>
-                                            SYSTEM DEBUG: Inga tider returnerades, men API skickade denna spårningsdata:<br/>
-                                            <span className="text-[10px] font-normal opacity-80 break-words mt-2 block">
-                                                TRACE: {computedAvailability[0].debug}
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            SYSTEM DEBUG: Hittade {computedAvailability.length} lediga tider.
-                                            Om detta nummer är 0, betyder det att inga tider fanns i databasen för denna kalender,
-                                            eller att alla tider filtrerades bort på grund av brist på personal/överlappningar.
-                                        </div>
-                                    )}
-                                </div>
-                                <Calendar 
-                                    availability={computedAvailability}
-                                    onSelectSlot={handleSelectSlot}
-                                    hideAppointments={true}
-                                />
-                            </div>
-
-                            {/* Modal Footer */}
-                            <div className="p-6 border-t border-border/80 flex flex-col sm:flex-row gap-4 items-center justify-between">
-                                {selectedDateSlot ? (
-                                    <div className="text-center sm:text-left">
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-champagne-600 block">Vald ny tid</span>
-                                        <span className="text-sm font-bold text-foreground capitalize">
-                                            {selectedDateSlot.day} {selectedDateSlot.fullDate} kl {selectedDateSlot.time}
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <span className="text-xs text-foreground/40">Vänligen välj en tid i kalendern ovan.</span>
-                                )}
-
-                                <div className="flex gap-3 w-full sm:w-auto">
-                                    <button
-                                        onClick={handleRescheduleBooking}
-                                        disabled={!selectedDateSlot || rescheduling}
-                                        className="flex-1 sm:flex-none py-3 px-8 bg-champagne-500 hover:bg-champagne-600 disabled:opacity-40 text-white font-bold rounded-xl transition-all uppercase tracking-wider text-xs"
-                                    >
-                                        {rescheduling ? 'Bokar om...' : 'Bekräfta ombokning'}
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setShowRescheduleModal(false);
-                                            setSelectedDateSlot(null);
-                                        }}
-                                        className="py-3 px-6 bg-card-deep hover:bg-card-deep/80 text-foreground font-bold rounded-xl border border-border transition-all uppercase tracking-wider text-xs"
-                                    >
-                                        Stäng
-                                    </button>
-                                </div>
                             </div>
                         </motion.div>
                     </div>
