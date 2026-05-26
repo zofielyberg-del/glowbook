@@ -95,14 +95,23 @@ export async function GET(req: Request) {
                 
                 dayAvailability.forEach(frame => {
                     const frameStart = timeToMins(frame.startTime);
-                    const frameEnd = frameStart + (frame.duration || 60);
 
-                    for (let time = frameStart; time <= frameEnd - serviceDuration; time += step) {
+                    let timesToCheck: number[] = [];
+                    if (frame.isSingleSlot) {
+                        timesToCheck.push(frameStart);
+                    } else {
+                        const frameEnd = frameStart + (frame.duration || 60);
+                        for (let time = frameStart; time <= frameEnd - serviceDuration; time += step) {
+                            timesToCheck.push(time);
+                        }
+                    }
+
+                    timesToCheck.forEach(time => {
                         const startTimeStr = minsToTime(time);
                         const startMins = time;
                         const endMins = time + serviceDuration;
 
-                        if (dateStr === todayStr && startMins < currentMins + 15) continue;
+                        if (dateStr === todayStr && startMins < currentMins + 15) return;
 
                         let isAvailable = true;
                         let availablePractitionerId = 'owner';
@@ -192,7 +201,7 @@ export async function GET(req: Request) {
                                 date: dateStr 
                             });
                         }
-                    }
+                    });
                 });
             }
         }

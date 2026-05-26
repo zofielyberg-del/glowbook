@@ -17,6 +17,7 @@ export default function CalendarPage() {
     const [isPostingTimes, setIsPostingTimes] = useState(false);
     const [selectedFrames, setSelectedFrames] = useState<string[]>([]);
     const [frameTimes, setFrameTimes] = useState({ from: '09:00', to: '17:00' });
+    const [slotType, setSlotType] = useState<'standard' | 'single'>('standard');
     const [lastUpdate, setLastUpdate] = useState(Date.now());
     const [selectedWeek, setSelectedWeek] = useState<string>(() => {
         return format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -121,14 +122,20 @@ export default function CalendarPage() {
             const dayData = WEEKDAYS.find(d => d.id === dayId);
             if (!dayData) continue;
 
-            // Calculate duration in minutes
-            const [fromH, fromM] = frameTimes.from.split(':').map(Number);
-            const [toH, toM] = frameTimes.to.split(':').map(Number);
-            const duration = (toH * 60 + toM) - (fromH * 60 + fromM);
+            let duration = 0;
+            let isSingleSlot = false;
 
-            if (duration <= 0) {
-                alert(t('msg_invalid_time_range') || "Sluttid måste vara efter starttid");
-                return;
+            if (slotType === 'standard') {
+                const [fromH, fromM] = frameTimes.from.split(':').map(Number);
+                const [toH, toM] = frameTimes.to.split(':').map(Number);
+                duration = (toH * 60 + toM) - (fromH * 60 + fromM);
+
+                if (duration <= 0) {
+                    alert(t('msg_invalid_time_range') || "Sluttid måste vara efter starttid");
+                    return;
+                }
+            } else {
+                isSingleSlot = true;
             }
 
             const newFrame = {
@@ -136,7 +143,8 @@ export default function CalendarPage() {
                 startTime: frameTimes.from,
                 duration: duration,
                 dayIndex: dayData.dayIndex,
-                week: selectedWeek === 'recurring' ? undefined : selectedWeek
+                week: selectedWeek === 'recurring' ? undefined : selectedWeek,
+                ...(isSingleSlot && { isSingleSlot: true })
             };
             
             updatedFrames.push(newFrame);
@@ -245,6 +253,47 @@ export default function CalendarPage() {
                             <h2 className="text-3xl font-bold mb-2 text-foreground">{t('cal_post_times')}</h2>
                             <p className="text-foreground/50 mb-8">Välj vilka dagar och tider du vill vara tillgänglig för bokning.</p>
 
+                            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                                <button
+                                    onClick={() => setSlotType('standard')}
+                                    className={clsx(
+                                        "flex-1 p-4 rounded-2xl border-2 transition-all text-left",
+                                        slotType === 'standard' ? "border-champagne-500 bg-champagne-500/5 shadow-md" : "border-border hover:border-foreground/20"
+                                    )}
+                                >
+                                    <div className="font-bold text-foreground mb-1">Standardpass</div>
+                                    <div className="text-xs text-foreground/50">Öppna en lucka, t.ex. 09-17. Flera kunder kan boka.</div>
+                                </button>
+                                <button
+                                    onClick={() => setSlotType('single')}
+                                    className={clsx(
+                                        "flex-1 p-4 rounded-2xl border-2 transition-all text-left",
+                                        slotType === 'single' ? "border-champagne-500 bg-champagne-500/5 shadow-md" : "border-border hover:border-foreground/20"
+                                    )}
+                                >
+                                    <div className="font-bold text-foreground mb-1 flex items-center gap-2">Enstaka Tid <span className="text-champagne-500">✨</span></div>
+                                    <div className="text-xs text-foreground/50">Lås tiden efter 1 bokning, oavsett behandlingens längd.</div>
+                                </button>
+                            </div>
+
+                            <AnimatePresence>
+                                {slotType === 'single' && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="overflow-hidden"
+                                    >
+                                        <div className="mb-8 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-start gap-3">
+                                            <span className="text-blue-400 mt-0.5">💡</span>
+                                            <p className="text-sm text-blue-400 font-medium">
+                                                <strong>Exakt Biljett:</strong> Om du anger "11:00" skapas bara en tid. Så fort någon bokar 11:00 stängs tiden direkt, oavsett hur lång behandlingen är.
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
                                 {WEEKDAYS.map(day => (
                                     <button
@@ -291,7 +340,9 @@ export default function CalendarPage() {
 
                             <div className="grid grid-cols-2 gap-6 mb-10">
                                 <div>
-                                    <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest mb-2 block">Från</label>
+                                    <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest mb-2 block">
+                                        {slotType === 'single' ? 'Klockslag' : 'Från'}
+                                    </label>
                                     <input
                                         type="time"
                                         lang="sv-SE"
@@ -300,16 +351,23 @@ export default function CalendarPage() {
                                         className="w-full p-4 bg-background border border-border rounded-2xl font-bold text-foreground focus:ring-2 focus:ring-champagne-300 outline-none"
                                     />
                                 </div>
-                                <div>
-                                    <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest mb-2 block">Till</label>
-                                    <input
-                                        type="time"
-                                        lang="sv-SE"
-                                        value={frameTimes.to}
-                                        onChange={(e) => setFrameTimes(prev => ({ ...prev, to: e.target.value }))}
-                                        className="w-full p-4 bg-background border border-border rounded-2xl font-bold text-foreground focus:ring-2 focus:ring-champagne-300 outline-none"
-                                    />
-                                </div>
+                                
+                                {slotType === 'standard' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                    >
+                                        <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest mb-2 block">Till</label>
+                                        <input
+                                            type="time"
+                                            lang="sv-SE"
+                                            value={frameTimes.to}
+                                            onChange={(e) => setFrameTimes(prev => ({ ...prev, to: e.target.value }))}
+                                            className="w-full p-4 bg-background border border-border rounded-2xl font-bold text-foreground focus:ring-2 focus:ring-champagne-300 outline-none"
+                                        />
+                                    </motion.div>
+                                )}
                             </div>
 
                             <div className="flex gap-4">
