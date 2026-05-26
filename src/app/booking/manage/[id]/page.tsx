@@ -37,7 +37,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
     const fetchAppointmentData = async () => {
         try {
             setLoading(true);
-            const res = await fetch(`/api/bookings/get?id=${appointmentId}`);
+            const res = await fetch(`/api/bookings/get?id=${appointmentId}`, { cache: 'no-store' });
             const data = await res.json();
             if (data.success && data.appointment) {
                 setAppointment(data.appointment);
