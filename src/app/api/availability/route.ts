@@ -63,11 +63,35 @@ export async function GET(req: Request) {
         
         let salonAvailability: any[] = Array.isArray(salon.availability) ? salon.availability : [];
         if (!salonAvailability || salonAvailability.length === 0) {
-            salonAvailability = [0, 1, 2, 3, 4, 5, 6].map(dayIndex => ({
-                dayIndex,
-                startTime: '10:00',
-                duration: 540
-            }));
+            // Fallback: If no salon availability is found (e.g., they downgraded from Luxe where schedule was on practitioner),
+            // try to build salonAvailability from the first active practitioner's schedule
+            const firstP = salon.practitioners?.find(p => p.schedule && Object.values(p.schedule as any).some((day: any) => day && day.active));
+            if (firstP && firstP.schedule) {
+                const sched = firstP.schedule as any;
+                [0, 1, 2, 3, 4, 5, 6].forEach(dayIndex => {
+                    const dayData = sched[dayIndex];
+                    if (dayData && dayData.active && dayData.start && dayData.end) {
+                        const sMins = timeToMins(dayData.start);
+                        const eMins = timeToMins(dayData.end);
+                        if (eMins > sMins) {
+                            salonAvailability.push({
+                                dayIndex,
+                                startTime: dayData.start,
+                                duration: eMins - sMins
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Final fallback if STILL empty
+            if (salonAvailability.length === 0) {
+                salonAvailability = [0, 1, 2, 3, 4, 5, 6].map(dayIndex => ({
+                    dayIndex,
+                    startTime: '10:00',
+                    duration: 540
+                }));
+            }
         }
 
         const debugLog: string[] = [];
@@ -116,14 +140,19 @@ export async function GET(req: Request) {
                         let isAvailable = true;
                         let availablePractitionerId = 'owner';
 
-                        if (isLuxe && salon.practitioners && salon.practitioners.length > 0) {
-                            let qualifiedPractitioners = salon.practitioners.filter(p => {
+                        // Check if any practitioner has an active schedule overall
+                        const anyPractitionerHasSchedule = isLuxe && salon.practitioners && salon.practitioners.some(p => {
+                            return p.schedule && Object.values(p.schedule as any).some((day: any) => day && day.active);
+                        });
+
+                        if (anyPractitionerHasSchedule) {
+                            let qualifiedPractitioners = salon.practitioners!.filter(p => {
                                 if (targetPractitionerId && targetPractitionerId !== 'any' && p.id !== targetPractitionerId) return false;
                                 return true;
                             });
 
                             if (qualifiedPractitioners.length === 0) {
-                                qualifiedPractitioners = salon.practitioners; 
+                                qualifiedPractitioners = salon.practitioners!; 
                             }
 
                             const availablePractitioners = qualifiedPractitioners.filter(p => {
@@ -175,7 +204,7 @@ export async function GET(req: Request) {
                                 availablePractitionerId = targetPractitionerId === 'any' ? availablePractitioners[0].id : availablePractitioners[0].id;
                             }
                         } else {
-                            // Standard Salon Logic
+                            // Standard Salon Logic (Fallback for BAS/PRO, OR Luxe if no practitioners have schedules)
                             const hasAptOverlap = salon.appointments.some(apt => {
                                 if (apt.id === excludeAppointmentId) return false;
                                 const aptDateStr = format(apt.start_time, 'yyyy-MM-dd');

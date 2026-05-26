@@ -217,8 +217,8 @@ function SettingsContent() {
         setErrorMessage('');
         const salonId = dataToSave.id || (dataToSave.name ? dataToSave.name.toLowerCase().replace(/\s+/g, '-') : `salon-${Date.now()}`);
 
-        // Auto-generate slug from name if PRO/LUXE
-        const computedSlug = (dataToSave.tier !== 'bas' && dataToSave.name)
+        // Auto-generate slug from name for all tiers to ensure URL matches salon name
+        const computedSlug = dataToSave.name
             ? dataToSave.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
             : (dataToSave as any).slug;
 
