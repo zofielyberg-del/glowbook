@@ -228,6 +228,9 @@ function SettingsContent() {
             currency: currency,
             slug: computedSlug
         };
+        
+        // Critical fix: Never send availability from the settings tab to prevent overwriting with stale data
+        delete updatedData.availability;
 
         // Sync with server
         try {

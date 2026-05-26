@@ -172,6 +172,9 @@ export default function ServicesPage() {
                 services: updatedServices,
                 practitioners: practitioners
             };
+            
+            // Critical fix: Never send availability from the services tab to prevent overwriting with stale data
+            delete payload.availability;
 
             // Update localStorage and sessionStorage instantly for fast UI
             localStorage.setItem('glowbook_salon', JSON.stringify(payload));
