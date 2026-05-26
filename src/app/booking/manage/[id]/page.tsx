@@ -129,7 +129,9 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
         async function fetchAvailability() {
             try {
                 const salonId = appointment.salon.id;
-                const serviceId = appointment.service_id;
+                // If service_id is missing, find it by service_name
+                const service = (appointment.salon.services || []).find((s: any) => s.name === appointment.service_name);
+                const serviceId = appointment.service_id || service?.id;
                 const practitionerId = appointment.practitioner_id || 'any';
                 
                 const url = `/api/availability?salonId=${salonId}&serviceId=${serviceId}&practitionerId=${practitionerId}&excludeAppointmentId=${appointmentId}`;
