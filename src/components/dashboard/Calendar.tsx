@@ -330,7 +330,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         e.stopPropagation();
         // If clicking in customer booking mode, select the slot
         if (onSelectSlot && hideAppointments) {
-            const day = weekDays[frame.dayIndex];
+            const day = columnDate || weekDays[frame.dayIndex];
             if (day) {
                 const todayStr = format(new Date(), 'yyyy-MM-dd');
                 const dayStr = format(day, 'yyyy-MM-dd');
