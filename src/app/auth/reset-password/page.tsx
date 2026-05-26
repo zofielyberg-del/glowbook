@@ -1,34 +1,69 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, CheckCircle2, Loader2, Mail } from 'lucide-react';
+import { Lock, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 
-export default function ForgotPasswordPage() {
-    const [email, setEmail] = useState('');
+export default function ResetPasswordPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const token = searchParams.get('token');
+
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState('');
 
+    useEffect(() => {
+        if (!token) {
+            setError('Ogiltig eller saknad återställningslänk.');
+        }
+    }, [token]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!token) {
+            setError('Ogiltig återställningslänk.');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError('Lösenorden matchar inte.');
+            return;
+        }
+
+        if (password.length < 8) {
+            setError('Lösenordet måste vara minst 8 tecken långt.');
+            return;
+        }
+
         setIsLoading(true);
         setError('');
 
         try {
-            const res = await fetch('/api/auth/forgot-password', {
+            const res = await fetch('/api/auth/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ token, password })
             });
 
             if (!res.ok) {
                 const data = await res.json();
-                throw new Error(data.error || 'Något gick fel, försök igen.');
+                throw new Error(data.error || 'Kunde inte återställa lösenordet. Länken kan ha gått ut.');
             }
 
             setIsSuccess(true);
+            
+            // Redirect to login after 3 seconds
+            setTimeout(() => {
+                router.push('/auth/login');
+            }, 3000);
+            
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -36,9 +71,13 @@ export default function ForgotPasswordPage() {
         }
     };
 
+    if (!token && !error) {
+        return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="w-8 h-8 text-white animate-spin" /></div>;
+    }
+
     return (
         <div className="min-h-screen bg-black text-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-            {/* Background elements (matching login) */}
+            {/* Background elements */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-zinc-800/30 rounded-full blur-[120px]" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-zinc-900/40 rounded-full blur-[100px]" />
@@ -58,11 +97,8 @@ export default function ForgotPasswordPage() {
                         <div className="h-[1px] w-0 bg-white mx-auto mt-2 transition-all duration-300 group-hover:w-full"></div>
                     </Link>
                     <h2 className="mt-2 text-3xl font-light tracking-tight text-white">
-                        Återställ lösenord
+                        Välj nytt lösenord
                     </h2>
-                    <p className="mt-2 text-sm text-zinc-400">
-                        Fyll i din e-postadress så skickar vi en länk för att återställa ditt lösenord.
-                    </p>
                 </motion.div>
             </div>
 
@@ -82,17 +118,10 @@ export default function ForgotPasswordPage() {
                             >
                                 <CheckCircle2 className="w-8 h-8 text-white" />
                             </motion.div>
-                            <h3 className="text-xl font-medium text-white mb-2">Kolla din inkorg!</h3>
+                            <h3 className="text-xl font-medium text-white mb-2">Lösenordet är ändrat!</h3>
                             <p className="text-zinc-400 text-sm mb-8">
-                                Vi har skickat ett mail till <span className="text-white font-medium">{email}</span> med instruktioner för att återställa ditt lösenord.
+                                Ditt lösenord har uppdaterats. Du omdirigeras till inloggningen...
                             </p>
-                            <Link 
-                                href="/auth/login"
-                                className="inline-flex items-center text-sm font-medium text-white hover:text-zinc-300 transition-colors"
-                            >
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Tillbaka till inloggning
-                            </Link>
                         </div>
                     ) : (
                         <form className="space-y-6" onSubmit={handleSubmit}>
@@ -107,47 +136,67 @@ export default function ForgotPasswordPage() {
                             )}
 
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-zinc-300">
-                                    E-postadress
+                                <label htmlFor="password" className="block text-sm font-medium text-zinc-300">
+                                    Nytt lösenord
                                 </label>
                                 <div className="mt-2 relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Mail className="h-5 w-5 text-zinc-500" />
+                                        <Lock className="h-5 w-5 text-zinc-500" />
                                     </div>
                                     <input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        autoComplete="email"
+                                        id="password"
+                                        type={showPassword ? 'text' : 'password'}
                                         required
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="appearance-none block w-full pl-10 px-3 py-3 border border-zinc-800 rounded-xl shadow-sm placeholder-zinc-500 bg-zinc-950/50 text-white focus:outline-none focus:ring-1 focus:ring-white focus:border-white transition-all sm:text-sm"
-                                        placeholder="din.epost@exempel.se"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="appearance-none block w-full pl-10 pr-10 px-3 py-3 border border-zinc-800 rounded-xl shadow-sm placeholder-zinc-500 bg-zinc-950/50 text-white focus:outline-none focus:ring-1 focus:ring-white focus:border-white transition-all sm:text-sm"
+                                        placeholder="Minst 8 tecken"
+                                    />
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="text-zinc-400 hover:text-white focus:outline-none transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-300">
+                                    Bekräfta nytt lösenord
+                                </label>
+                                <div className="mt-2 relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-zinc-500" />
+                                    </div>
+                                    <input
+                                        id="confirmPassword"
+                                        type={showPassword ? 'text' : 'password'}
+                                        required
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="appearance-none block w-full pl-10 pr-10 px-3 py-3 border border-zinc-800 rounded-xl shadow-sm placeholder-zinc-500 bg-zinc-950/50 text-white focus:outline-none focus:ring-1 focus:ring-white focus:border-white transition-all sm:text-sm"
+                                        placeholder="Upprepa lösenordet"
                                     />
                                 </div>
                             </div>
 
                             <button
                                 type="submit"
-                                disabled={isLoading || !email}
+                                disabled={isLoading || !token}
                                 className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-black bg-white hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white focus:ring-offset-black transition-all disabled:opacity-70 disabled:cursor-not-allowed group relative overflow-hidden"
                             >
                                 {isLoading ? (
                                     <Loader2 className="w-5 h-5 animate-spin" />
                                 ) : (
                                     <span className="relative z-10 flex items-center">
-                                        Skicka återställningslänk
+                                        Spara nytt lösenord
                                     </span>
                                 )}
                             </button>
-
-                            <div className="text-center mt-6">
-                                <Link href="/auth/login" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors flex items-center justify-center">
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
-                                    Tillbaka till inloggning
-                                </Link>
-                            </div>
                         </form>
                     )}
                 </motion.div>

@@ -17,6 +17,8 @@ model Profile {
   total_points_earned Int?               @default(0)
   created_at          DateTime?          @default(now())
   password_hash       String?
+  reset_token         String?
+  reset_token_expires DateTime?
   appointments        Appointment[]
   loyalty_balances    LoyaltyBalance[]
   point_transactions  PointTransaction[]
