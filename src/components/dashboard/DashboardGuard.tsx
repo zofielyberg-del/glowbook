@@ -52,8 +52,9 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
                                 }
                                 
                                 // Preserve local non-persisted stuff if necessary, but prioritize server DB!
-                                sessionStorage.setItem('glowbook_salon', JSON.stringify(salon));
-                                localStorage.setItem('glowbook_salon', JSON.stringify(salon));
+                                const updatedSalon = { ...localData, ...salon };
+                                sessionStorage.setItem('glowbook_salon', JSON.stringify(updatedSalon));
+                                localStorage.setItem('glowbook_salon', JSON.stringify(updatedSalon));
                                 
                                 // Dispatch event so the current page updates its state!
                                 window.dispatchEvent(new Event('glowbook_update'));

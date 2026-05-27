@@ -87,52 +87,68 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     // Load data on mount and listen for changes
     useEffect(() => {
         const loadData = () => {
-            const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
-            if (saved) {
-                const data = JSON.parse(saved);
-                if (data.availability) setInternalAvailability(data.availability);
-                if (data.appointments) {
-                    const mapped = data.appointments.map((apt: any) => {
-                        const sDate = apt.start_time ? new Date(apt.start_time) : null;
-                        if (!sDate) {
+            try {
+                const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    if (data.availability) setInternalAvailability(data.availability);
+                    if (data.appointments) {
+                        const mapped = data.appointments.map((apt: any) => {
+                            const sDate = apt.start_time ? new Date(apt.start_time) : null;
+                            if (!sDate || isNaN(sDate.getTime())) {
+                                return {
+                                    ...apt,
+                                    id: apt.id,
+                                    clientName: apt.customer_name || apt.customer_email || apt.clientName || 'Kund',
+                                    clientEmail: apt.customer_email || apt.clientEmail || '',
+                                    clientPhone: apt.customer_phone || apt.clientPhone || '',
+                                    service: apt.service_name || apt.service || 'Tjänst',
+                                    startTime: apt.startTime || '00:00',
+                                    duration: apt.duration || apt.duration_minutes || 30,
+                                    dayIndex: typeof apt.dayIndex === 'number' ? apt.dayIndex : 0,
+                                    date: apt.date || '',
+                                    status: apt.status || 'confirmed',
+                                    color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
+                                };
+                            }
+                            
+                            const pad = (n: number) => String(n).padStart(2, '0');
+                            const startTime = `${pad(sDate.getHours())}:${pad(sDate.getMinutes())}`;
+                            
+                            let duration = 30;
+                            if (apt.end_time) {
+                                const eDate = new Date(apt.end_time);
+                                if (!isNaN(eDate.getTime())) {
+                                    duration = Math.round((eDate.getTime() - sDate.getTime()) / 60000);
+                                }
+                            } else if (apt.duration_minutes) {
+                                duration = apt.duration_minutes;
+                            }
+                            
+                            const day = sDate.getDay();
+                            const dayIndex = day === 0 ? 6 : day - 1;
+                            
                             return {
-                                ...apt,
+                                id: apt.id,
+                                clientName: apt.customer_name || apt.customer_email || apt.clientName || 'Kund',
+                                clientEmail: apt.customer_email || apt.clientEmail || '',
+                                clientPhone: apt.customer_phone || apt.clientPhone || '',
+                                service: apt.service_name || apt.service || 'Tjänst',
+                                startTime: startTime,
+                                duration: duration,
+                                dayIndex: dayIndex,
+                                date: format(sDate, 'yyyy-MM-dd'),
+                                status: apt.status || 'confirmed',
+                                start_time: apt.start_time,
+                                end_time: apt.end_time,
                                 color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
                             };
-                        }
-                        
-                        const pad = (n: number) => String(n).padStart(2, '0');
-                        const startTime = `${pad(sDate.getHours())}:${pad(sDate.getMinutes())}`;
-                        
-                        let duration = 30;
-                        if (apt.end_time) {
-                            const eDate = new Date(apt.end_time);
-                            duration = Math.round((eDate.getTime() - sDate.getTime()) / 60000);
-                        } else if (apt.duration_minutes) {
-                            duration = apt.duration_minutes;
-                        }
-                        
-                        const day = sDate.getDay();
-                        const dayIndex = day === 0 ? 6 : day - 1;
-                        
-                        return {
-                            id: apt.id,
-                            clientName: apt.customer_name || apt.customer_email || apt.clientName || 'Kund',
-                            clientEmail: apt.customer_email || apt.clientEmail || '',
-                            clientPhone: apt.customer_phone || apt.clientPhone || '',
-                            service: apt.service_name || apt.service || 'Tjänst',
-                            startTime: startTime,
-                            duration: duration,
-                            dayIndex: dayIndex,
-                            date: format(sDate, 'yyyy-MM-dd'),
-                            status: apt.status || 'confirmed',
-                            start_time: apt.start_time,
-                            end_time: apt.end_time,
-                            color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
-                        };
-                    });
-                    setInternalAppointments(mapped);
+                        });
+                        setInternalAppointments(mapped.filter(Boolean));
+                    }
                 }
+            } catch (error) {
+                console.error("Error loading calendar data in Calendar.tsx:", error);
             }
         };
 
@@ -216,17 +232,31 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
                 if (apt.start_time) {
                     const sDate = new Date(apt.start_time);
-                    aptDateStr = format(sDate, 'yyyy-MM-dd');
-                    aptStartMins = sDate.getHours() * 60 + sDate.getMinutes();
-                    if (apt.end_time) {
-                        const eDate = new Date(apt.end_time);
-                        aptEndMins = eDate.getHours() * 60 + eDate.getMinutes();
+                    if (sDate && !isNaN(sDate.getTime())) {
+                        aptDateStr = format(sDate, 'yyyy-MM-dd');
+                        aptStartMins = sDate.getHours() * 60 + sDate.getMinutes();
+                        if (apt.end_time) {
+                            const eDate = new Date(apt.end_time);
+                            if (eDate && !isNaN(eDate.getTime())) {
+                                aptEndMins = eDate.getHours() * 60 + eDate.getMinutes();
+                            } else {
+                                aptEndMins = aptStartMins + (apt.duration || apt.duration_minutes || 60);
+                            }
+                        } else {
+                            aptEndMins = aptStartMins + (apt.duration || apt.duration_minutes || 60);
+                        }
                     } else {
-                        aptEndMins = aptStartMins + (apt.duration || apt.duration_minutes || 60);
+                        aptDateStr = apt.date || '';
+                        aptStartMins = timeToMins(apt.startTime || '00:00');
+                        aptEndMins = aptStartMins + (apt.duration || 60);
                     }
                 } else if (apt.booking_date) {
                     const bDate = new Date(apt.booking_date);
-                    aptDateStr = format(bDate, 'yyyy-MM-dd');
+                    if (bDate && !isNaN(bDate.getTime())) {
+                        aptDateStr = format(bDate, 'yyyy-MM-dd');
+                    } else {
+                        aptDateStr = apt.date || '';
+                    }
                     aptStartMins = timeToMins(apt.startTime || '00:00');
                     aptEndMins = aptStartMins + (apt.duration || 60);
                 } else if (apt.date) {
@@ -280,8 +310,10 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         // Sort appointments by start time
         const sorted = [...overlapping].sort((aRaw: any, bRaw: any) => {
             const a = aRaw; const b = bRaw;
-            const aStart = a.start_time ? (new Date(a.start_time).getHours() * 60 + new Date(a.start_time).getMinutes()) : timeToMins(a.startTime || '00:00');
-            const bStart = b.start_time ? (new Date(b.start_time).getHours() * 60 + new Date(b.start_time).getMinutes()) : timeToMins(b.startTime || '00:00');
+            const aSDate = a.start_time ? new Date(a.start_time) : null;
+            const bSDate = b.start_time ? new Date(b.start_time) : null;
+            const aStart = aSDate && !isNaN(aSDate.getTime()) ? (aSDate.getHours() * 60 + aSDate.getMinutes()) : timeToMins(a.startTime || '00:00');
+            const bStart = bSDate && !isNaN(bSDate.getTime()) ? (bSDate.getHours() * 60 + bSDate.getMinutes()) : timeToMins(b.startTime || '00:00');
             return aStart - bStart;
         });
 
@@ -290,8 +322,10 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
         for (const aptRaw of sorted) {
             const apt: any = aptRaw;
-            const aptStart = apt.start_time ? (new Date(apt.start_time).getHours() * 60 + new Date(apt.start_time).getMinutes()) : timeToMins(apt.startTime || '00:00');
-            const aptEnd = apt.end_time ? (new Date(apt.end_time).getHours() * 60 + new Date(apt.end_time).getMinutes()) : (aptStart + (apt.duration || 60));
+            const sDate = apt.start_time ? new Date(apt.start_time) : null;
+            const eDate = apt.end_time ? new Date(apt.end_time) : null;
+            const aptStart = sDate && !isNaN(sDate.getTime()) ? (sDate.getHours() * 60 + sDate.getMinutes()) : timeToMins(apt.startTime || '00:00');
+            const aptEnd = eDate && !isNaN(eDate.getTime()) ? (eDate.getHours() * 60 + eDate.getMinutes()) : (aptStart + (apt.duration || 60));
 
             // Free gap before this appointment
             if (aptStart > cursor) {
@@ -759,12 +793,18 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                         
                                         const columnDateStr = format(day, 'yyyy-MM-dd');
                                         let aptDateStr = '';
-                                        if (apt.start_time) {
-                                            aptDateStr = format(new Date(apt.start_time), 'yyyy-MM-dd');
-                                        } else if (apt.date) {
+                                        if (apt.date) {
                                             aptDateStr = apt.date;
+                                        } else if (apt.start_time) {
+                                            const sDate = new Date(apt.start_time);
+                                            if (sDate && !isNaN(sDate.getTime())) {
+                                                aptDateStr = format(sDate, 'yyyy-MM-dd');
+                                            }
                                         } else if (apt.booking_date) {
-                                            aptDateStr = format(new Date(apt.booking_date), 'yyyy-MM-dd');
+                                            const bDate = new Date(apt.booking_date);
+                                            if (bDate && !isNaN(bDate.getTime())) {
+                                                aptDateStr = format(bDate, 'yyyy-MM-dd');
+                                            }
                                         }
                                         
                                         if (aptDateStr && aptDateStr !== columnDateStr) return false;
