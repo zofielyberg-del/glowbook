@@ -235,7 +235,7 @@ export default function CalendarPage() {
 
                 {/* Main Area: Calendar */}
                 <div className="lg:col-span-3 h-full min-h-[800px]">
-                    <Calendar key={lastUpdate} onCancelAppointment={handleCancelAppointment} />
+                    <Calendar onCancelAppointment={handleCancelAppointment} />
                 </div>
             </main>
 
