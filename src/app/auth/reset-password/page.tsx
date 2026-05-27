@@ -5,7 +5,8 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import Header from "@/components/layout/Header";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -61,41 +62,79 @@ function ResetPasswordForm() {
   };
 
   if (!token && !error) {
-    return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="w-8 h-8 text-white animate-spin" /></div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 text-foreground/40 animate-spin" /></div>;
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="text-center py-4">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6"
+        >
+          <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+        </motion.div>
+        <h3 className="text-xl font-bold text-foreground mb-2">Lösenordet har ändrats!</h3>
+        <p className="text-foreground/60 text-sm mb-4 leading-relaxed">
+          Ditt lösenord har uppdaterats framgångsrikt. Du omdirigeras nu till inloggningssidan...
+        </p>
+      </div>
+    );
   }
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <form className="space-y-5" onSubmit={handleSubmit}>
       {error && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-3 bg-red-950/50 border border-red-900/50 rounded-xl text-red-200 text-sm text-center">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-medium text-center">
           {error}
         </motion.div>
       )}
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-zinc-300">Nytt lösenord</label>
+      <div className="space-y-1.5">
+        <label htmlFor="password" className="block text-sm font-medium text-foreground">Nytt lösenord</label>
         <div className="mt-2 relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Lock className="h-5 w-5 text-zinc-500" />
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Lock className="h-5 w-5 text-foreground/30" />
           </div>
-          <input id="password" type={showPassword ? 'text' : 'password'} required value={password} onChange={(e) => setPassword(e.target.value)} className="appearance-none block w-full pl-10 px-3 py-3 border border-zinc-800 rounded-xl shadow-sm placeholder-zinc-500 bg-zinc-950/50 text-white focus:outline-none focus:ring-1 focus:ring-white focus:border-white transition-all sm:text-sm" placeholder="Minst 8 tecken" />
+          <input 
+            id="password" 
+            type={showPassword ? 'text' : 'password'} 
+            required 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            className="w-full pl-11 px-4 py-4 rounded-xl border border-border bg-background text-foreground focus:border-champagne-500 focus:ring-2 focus:ring-champagne-500/20 outline-none transition-all leading-normal placeholder:text-foreground/30 text-sm font-medium" 
+            placeholder="Minst 8 tecken" 
+          />
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-zinc-400 hover:text-white focus:outline-none transition-colors">
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-foreground/30 hover:text-champagne-500 focus:outline-none transition-colors p-2">
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
         </div>
       </div>
-      <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-300">Bekräfta nytt lösenord</label>
+      <div className="space-y-1.5">
+        <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">Bekräfta nytt lösenord</label>
         <div className="mt-2 relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Lock className="h-5 w-5 text-zinc-500" />
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Lock className="h-5 w-5 text-foreground/30" />
           </div>
-          <input id="confirmPassword" type={showPassword ? 'text' : 'password'} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="appearance-none block w-full pl-10 px-3 py-3 border border-zinc-800 rounded-xl shadow-sm placeholder-zinc-500 bg-zinc-950/50 text-white focus:outline-none focus:ring-1 focus:ring-white focus:border-white transition-all sm:text-sm" placeholder="Upprepa lösenordet" />
+          <input 
+            id="confirmPassword" 
+            type={showPassword ? 'text' : 'password'} 
+            required 
+            value={confirmPassword} 
+            onChange={(e) => setConfirmPassword(e.target.value)} 
+            className="w-full pl-11 px-4 py-4 rounded-xl border border-border bg-background text-foreground focus:border-champagne-500 focus:ring-2 focus:ring-champagne-500/20 outline-none transition-all leading-normal placeholder:text-foreground/30 text-sm font-medium" 
+            placeholder="Upprepa lösenordet" 
+          />
         </div>
       </div>
-      <button type="submit" disabled={isLoading || !token} className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-black bg-white hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white focus:ring-offset-black transition-all disabled:opacity-70 disabled:cursor-not-allowed group relative overflow-hidden">
-        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span className="relative z-10 flex items-center">Spara nytt lösenord</span>}
+      <button 
+        type="submit" 
+        disabled={isLoading || !token} 
+        className="w-full bg-[#111] dark:bg-white text-white dark:text-[#111] py-3.5 rounded-xl font-bold hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-colors shadow-lg flex justify-center items-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-white dark:text-[#111]" /> : <span>Spara nytt lösenord</span>}
       </button>
     </form>
   );
@@ -103,27 +142,27 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-zinc-800/30 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-zinc-900/40 rounded-full blur-[100px]" />
-      </div>
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center">
-          <Link href="/" className="inline-block mb-6 group">
-            <h2 className="text-3xl font-light tracking-widest uppercase transition-all duration-300 group-hover:scale-105">
-              Glow<span className="font-bold">Book</span>
-            </h2>
-            <div className="h-[1px] w-0 bg-white mx-auto mt-2 transition-all duration-300 group-hover:w-full" />
-          </Link>
-          <h2 className="mt-2 text-3xl font-light tracking-tight text-white">Välj nytt lösenord</h2>
+    <div className="min-h-screen bg-background flex flex-col transition-colors duration-300">
+      <Header />
+      
+      <main className="flex-1 flex items-center justify-center p-6 pt-24 relative overflow-hidden">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden z-10"
+        >
+          <div className="bg-[#111] p-6 text-center">
+            <h2 className="text-2xl font-heading font-bold text-white mb-1">Välj nytt lösenord</h2>
+            <p className="text-white/60 text-xs">Ange ditt nya lösenord nedan</p>
+          </div>
+          
+          <div className="p-8">
+            <Suspense fallback={<div className="text-center py-6 text-foreground/50">Laddar...</div>}>
+              <ResetPasswordForm />
+            </Suspense>
+          </div>
         </motion.div>
-      </div>
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <Suspense fallback={<div className="text-center py-6 text-white">Laddar...</div>}>
-          <ResetPasswordForm />
-        </Suspense>
-      </div>
+      </main>
     </div>
   );
 }

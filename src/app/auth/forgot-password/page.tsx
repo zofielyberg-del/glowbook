@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, Loader2, Mail } from 'lucide-react';
+import Header from "@/components/layout/Header";
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
@@ -37,121 +38,99 @@ export default function ForgotPasswordPage() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-            {/* Background elements (matching login) */}
-            <div className="absolute inset-0 z-0">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-zinc-800/30 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-zinc-900/40 rounded-full blur-[100px]" />
-            </div>
+        <div className="min-h-screen bg-background flex flex-col transition-colors duration-300">
+            <Header />
 
-            <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+            <main className="flex-1 flex items-center justify-center p-6 pt-24 relative overflow-hidden">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="text-center"
+                    className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden z-10"
                 >
-                    <Link href="/" className="inline-block mb-6 group">
-                        <h2 className="text-3xl font-light tracking-widest uppercase transition-all duration-300 group-hover:scale-105">
-                            Glow<span className="font-bold">Book</span>
-                        </h2>
-                        <div className="h-[1px] w-0 bg-white mx-auto mt-2 transition-all duration-300 group-hover:w-full"></div>
-                    </Link>
-                    <h2 className="mt-2 text-3xl font-light tracking-tight text-white">
-                        Återställ lösenord
-                    </h2>
-                    <p className="mt-2 text-sm text-zinc-400">
-                        Fyll i din e-postadress så skickar vi en länk för att återställa ditt lösenord.
-                    </p>
-                </motion.div>
-            </div>
+                    <div className="bg-[#111] p-6 text-center">
+                        <h2 className="text-2xl font-heading font-bold text-white mb-1">Återställ lösenord</h2>
+                        <p className="text-white/60 text-xs">Fyll i din e-post så hjälper vi dig vidare</p>
+                    </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
-                    className="bg-zinc-900/50 backdrop-blur-xl py-8 px-4 shadow-2xl border border-zinc-800/50 sm:rounded-2xl sm:px-10"
-                >
-                    {isSuccess ? (
-                        <div className="text-center py-6">
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6"
-                            >
-                                <CheckCircle2 className="w-8 h-8 text-white" />
-                            </motion.div>
-                            <h3 className="text-xl font-medium text-white mb-2">Kolla din inkorg!</h3>
-                            <p className="text-zinc-400 text-sm mb-8">
-                                Vi har skickat ett mail till <span className="text-white font-medium">{email}</span> med instruktioner för att återställa ditt lösenord.
-                            </p>
-                            <Link 
-                                href="/auth/login"
-                                className="inline-flex items-center text-sm font-medium text-white hover:text-zinc-300 transition-colors"
-                            >
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Tillbaka till inloggning
-                            </Link>
-                        </div>
-                    ) : (
-                        <form className="space-y-6" onSubmit={handleSubmit}>
-                            {error && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: -10 }} 
-                                    animate={{ opacity: 1, y: 0 }} 
-                                    className="p-3 bg-red-950/50 border border-red-900/50 rounded-xl text-red-200 text-sm text-center"
+                    <div className="p-8">
+                        {isSuccess ? (
+                            <div className="text-center py-4">
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6"
                                 >
-                                    {error}
+                                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
                                 </motion.div>
-                            )}
-
-                            <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-zinc-300">
-                                    E-postadress
-                                </label>
-                                <div className="mt-2 relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Mail className="h-5 w-5 text-zinc-500" />
-                                    </div>
-                                    <input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        autoComplete="email"
-                                        required
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="appearance-none block w-full pl-10 px-3 py-3 border border-zinc-800 rounded-xl shadow-sm placeholder-zinc-500 bg-zinc-950/50 text-white focus:outline-none focus:ring-1 focus:ring-white focus:border-white transition-all sm:text-sm"
-                                        placeholder="din.epost@exempel.se"
-                                    />
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={isLoading || !email}
-                                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-black bg-white hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white focus:ring-offset-black transition-all disabled:opacity-70 disabled:cursor-not-allowed group relative overflow-hidden"
-                            >
-                                {isLoading ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : (
-                                    <span className="relative z-10 flex items-center">
-                                        Skicka återställningslänk
-                                    </span>
-                                )}
-                            </button>
-
-                            <div className="text-center mt-6">
-                                <Link href="/auth/login" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors flex items-center justify-center">
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
+                                <h3 className="text-xl font-bold text-foreground mb-2">Kolla din inkorg!</h3>
+                                <p className="text-foreground/60 text-sm mb-8 leading-relaxed">
+                                    Vi har skickat instruktioner till <span className="text-foreground font-semibold">{email}</span> för hur du återställer ditt lösenord.
+                                </p>
+                                <Link 
+                                    href="/auth/login"
+                                    className="w-full bg-[#111] dark:bg-white text-white dark:text-[#111] py-3.5 rounded-xl font-bold hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-colors shadow-lg flex items-center justify-center gap-2 text-sm"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
                                     Tillbaka till inloggning
                                 </Link>
                             </div>
-                        </form>
-                    )}
+                        ) : (
+                            <form className="space-y-5" onSubmit={handleSubmit}>
+                                {error && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }} 
+                                        animate={{ opacity: 1, y: 0 }} 
+                                        className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-medium text-center"
+                                    >
+                                        {error}
+                                    </motion.div>
+                                )}
+
+                                <div className="space-y-1.5">
+                                    <label htmlFor="email" className="block text-sm font-medium text-foreground">
+                                        E-postadress
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Mail className="h-5 w-5 text-foreground/30" />
+                                        </div>
+                                        <input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            autoComplete="email"
+                                            required
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="w-full pl-11 px-4 py-4 rounded-xl border border-border bg-background text-foreground focus:border-champagne-500 focus:ring-2 focus:ring-champagne-500/20 outline-none transition-all leading-normal placeholder:text-foreground/30 text-sm font-medium"
+                                            placeholder="din.epost@exempel.se"
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading || !email}
+                                    className="w-full bg-[#111] dark:bg-white text-white dark:text-[#111] py-3.5 rounded-xl font-bold hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-colors shadow-lg flex justify-center items-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isLoading ? (
+                                        <Loader2 className="w-5 h-5 animate-spin text-white dark:text-[#111]" />
+                                    ) : (
+                                        <span>Skicka återställningslänk</span>
+                                    )}
+                                </button>
+
+                                <div className="text-center pt-2">
+                                    <Link href="/auth/login" className="text-xs font-bold text-foreground/50 hover:text-champagne-600 transition-colors flex items-center justify-center gap-1.5 uppercase tracking-wider">
+                                        <ArrowLeft className="w-4 h-4" />
+                                        Tillbaka till inloggning
+                                    </Link>
+                                </div>
+                            </form>
+                        )}
+                    </div>
                 </motion.div>
-            </div>
+            </main>
         </div>
     );
 }
