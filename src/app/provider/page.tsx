@@ -293,7 +293,18 @@ export default function ProviderDashboard() {
         const apt = appointments.find((a: any) => a.id === aptId);
         if (!apt) return;
 
-        // 1. Grant Loyalty Points if customer ID exists
+        // 1. Sync completion to database immediately and trigger feedback email
+        try {
+            await fetch('/api/bookings/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appointmentId: aptId })
+            });
+        } catch (e) {
+            console.error('Failed to sync appointment completion to DB:', e);
+        }
+
+        // 2. Grant Loyalty Points if customer ID exists
         if (apt.customerId || apt.clientEmail) {
             try {
                 await fetch('/api/loyalty/earn', {

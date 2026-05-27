@@ -690,3 +690,57 @@ export const sendProviderReceiptEmail = async (
     }
 };
 
+/**
+ * 8. Feedback & Rating Request Email for Customers after completed booking
+ */
+export const sendCustomerFeedbackRequestEmail = async (
+    email: string,
+    customerFirstName: string,
+    salonName: string,
+    reviewUrl: string
+) => {
+    const htmlContent = `
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Tack för ditt besök! ✨</h1>
+        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hej ${customerFirstName},</p>
+        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+            Tack för din bokning hos <strong>${salonName}</strong>. Vi hoppas att du trivdes och älskade resultatet.
+        </p>
+        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+            Din feedback betyder mycket och hjälper både salongen och andra kunder att känna sig trygga när de bokar.
+        </p>
+        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+            Lämna gärna ett snabbt betyg här:
+        </p>
+        
+        <div style="margin:28px 0 36px;text-align:left;">
+            <a href="${reviewUrl}" style="display:inline-block;background-color:#C1B363;color:#000000;padding:14px 32px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Lämna betyg</a>
+        </div>
+        
+        <p style="color:#aaaaaa;margin:24px 0 16px 0;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Tack för att du använder Glowbook.</p>
+        <p style="color:#cccccc;margin:0;font-size:15px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+            Vänliga hälsningar,<br/>
+            <strong style="color:#ffffff;">Glowbook & ${salonName}</strong>
+        </p>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: `Glowbook Bokning <${FROM_EMAIL}>`,
+            to: email,
+            subject: `Tack för ditt besök hos ${salonName} ✨`,
+            html: getHtmlWrapper(htmlContent),
+        });
+        
+        if (error) {
+            console.error('Resend API Error (Feedback Request):', error);
+            return { success: false, error };
+        }
+        
+        return { success: true, data };
+    } catch (error) {
+        console.error('Error sending feedback request email:', error);
+        return { success: false, error };
+    }
+};
+
+
