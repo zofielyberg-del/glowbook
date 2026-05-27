@@ -482,78 +482,97 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 return;
             }
 
-            // Normalize slug if it's not a UUID
-            if (salonId.length < 30) {
-                salonId = salonId.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-            }
+            // Helper to hydrate a salon object from an API result
+            const hydrateSalon = (s: any, loyaltyActive = false) => ({
+                ...s,
+                appointments: (s.appointments || []).map(mapDbAppointment),
+                profileImage: s.logo_url || s.profileImage,
+                backgroundImage: s.banner_url || s.backgroundImage,
+                tier: (s.membership_tier || s.tier || 'bas').toLowerCase(),
+                acceptsGlowpoints: loyaltyActive
+            });
 
-            // 1. Try Database lookup
+            // Helper to do a full GET by ID (includes appointments)
+            const fetchById = async (id: string) => {
+                try {
+                    const res = await fetch(`/api/salons/get?id=${encodeURIComponent(id)}`);
+                    const data = await res.json();
+                    if (data.success && data.salon) return data.salon;
+                } catch { }
+                return null;
+            };
+
+            // Helper to do a GET by slug
+            const fetchBySlug = async (slug: string) => {
+                try {
+                    const res = await fetch(`/api/salons/get?slug=${encodeURIComponent(slug)}`);
+                    const data = await res.json();
+                    if (data.success && data.salon) return data.salon;
+                } catch { }
+                return null;
+            };
+
+            // Normalize: strip special chars, lowercase
+            const normalized = salonId.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            const isUuid = salonId.length > 30;
+
             try {
-                const query = salonId.length > 20 ? `id=${salonId}` : `slug=${salonId}`;
-                const response = await fetch(`/api/salons/get?${query}`);
-                const data = await response.json();
+                let found: any = null;
 
-                if (data.success && data.salon) {
-                    const s = data.salon;
+                // 1. Try by ID if it looks like a UUID, else try by slug
+                if (isUuid) {
+                    found = await fetchById(salonId);
+                } else {
+                    found = await fetchBySlug(normalized);
+                }
+
+                // 2. If slug failed, also try by ID (handles cases where URL is a short UUID)
+                if (!found && !isUuid) {
+                    found = await fetchById(normalized);
+                }
+
+                // 3. If still not found, search by name and do a follow-up GET for full data
+                if (!found) {
+                    const searchRes = await fetch(`/api/salons/list?q=${encodeURIComponent(normalized)}`);
+                    const searchData = await searchRes.json();
+                    if (searchData.success && searchData.salons?.length > 0) {
+                        found = await fetchById(searchData.salons[0].id);
+                    }
+                }
+
+                if (found) {
                     let loyaltyActive = false;
                     try {
-                        const loyaltyRaw = localStorage.getItem(`glowbook_loyalty_config_${s.id}`);
-                        if (loyaltyRaw) {
-                            loyaltyActive = JSON.parse(loyaltyRaw).enabled === true;
-                        }
+                        const loyaltyRaw = localStorage.getItem(`glowbook_loyalty_config_${found.id}`);
+                        if (loyaltyRaw) loyaltyActive = JSON.parse(loyaltyRaw).enabled === true;
                     } catch { }
-
-                    const mappedApts = (s.appointments || []).map(mapDbAppointment);
-                    setSalon({
-                        ...s,
-                        appointments: mappedApts,
-                        profileImage: s.logo_url || s.profileImage,
-                        backgroundImage: s.banner_url || s.backgroundImage,
-                        tier: (s.membership_tier || s.tier || 'bas').toLowerCase(),
-                        acceptsGlowpoints: loyaltyActive
-                    });
+                    setSalon(hydrateSalon(found, loyaltyActive));
                     setStatus('ready');
                     return;
-                } else {
-                    console.warn('Salon API returned non-success:', data);
-                }
-                
-                // 2. Extra fallback: Search by name if slug/id fails
-                if (salonId.length < 30) {
-                   const searchRes = await fetch(`/api/salons/list?q=${salonId}`);
-                   const searchData = await searchRes.json();
-                   if (searchData.success && searchData.salons?.length > 0) {
-                       const s = searchData.salons[0];
-                       const mappedApts = (s.appointments || []).map(mapDbAppointment);
-                       setSalon({
-                           ...s,
-                           appointments: mappedApts,
-                           profileImage: s.logo_url || s.profileImage,
-                           backgroundImage: s.banner_url || s.backgroundImage,
-                           tier: (s.membership_tier || s.tier || 'bas').toLowerCase()
-                       });
-                       setStatus('ready');
-                       return;
-                   }
                 }
             } catch (error) {
                 console.error('Failed to load salon from DB:', error);
             }
 
-            // Fallback to local
+            // 4. Last resort: local storage (for providers testing on their own device)
             const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
             if (saved) {
-                const localData = JSON.parse(saved);
-                if (localData.id === salonId || localData.slug === salonId) {
-                    const mappedApts = (localData.appointments || []).map(mapDbAppointment);
-                    setSalon({
-                        ...localData,
-                        appointments: mappedApts,
-                        tier: (localData.tier || 'bas').toLowerCase(),
-                    });
-                    setStatus('ready');
-                    return;
-                }
+                try {
+                    const localData = JSON.parse(saved);
+                    const localSlug = localData.name
+                        ? localData.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+                        : '';
+                    if (
+                        localData.id === salonId ||
+                        localData.slug === salonId ||
+                        localSlug === normalized ||
+                        localData.id === normalized
+                    ) {
+                        setSalon(hydrateSalon(localData));
+                        setStatus('ready');
+                        return;
+                    }
+                } catch { }
             }
             
             setSalon('not_found');
