@@ -14,25 +14,117 @@ export async function GET(req: Request) {
             AND: []
         };
 
-        // 1. Handle Query (Search text)
+        // 1. Handle Query (Smart, Case-Insensitive Search with Synonyms and Deep Matching)
         if (query) {
+            const lowerQuery = query.toLowerCase().trim();
+            const queryTerms = [lowerQuery];
+
+            // Smart synonym matching: Nagel/Naglar/Nails/Manikyr/Pedikyr/Gellack/Akryl/Gelé
+            if (
+                lowerQuery.includes('nagel') || 
+                lowerQuery.includes('naglar') || 
+                lowerQuery.includes('nails') || 
+                lowerQuery.includes('manikyr') || 
+                lowerQuery.includes('pedikyr') || 
+                lowerQuery.includes('gellack') || 
+                lowerQuery.includes('akryl') || 
+                lowerQuery.includes('gelé') ||
+                lowerQuery.includes('gele')
+            ) {
+                queryTerms.push('nails', 'naglar', 'manikyr', 'pedikyr', 'gellack', 'akryl', 'gelé', 'gele', 'nagel');
+            }
+
+            // Smart synonym matching: Fransar/Bryn/Lashes/Brows/Lashlift/Browlift
+            if (
+                lowerQuery.includes('frans') || 
+                lowerQuery.includes('bryn') || 
+                lowerQuery.includes('lash') || 
+                lowerQuery.includes('brow') || 
+                lowerQuery.includes('lift')
+            ) {
+                queryTerms.push('lashes', 'fransar', 'bryn', 'brows', 'lashlift', 'browlift');
+            }
+
+            // Smart synonym matching: Hår/Frisör/Klipp/Färg/Hair/Balayage
+            if (
+                lowerQuery.includes('hår') || 
+                lowerQuery.includes('har') ||
+                lowerQuery.includes('frisör') || 
+                lowerQuery.includes('frisor') ||
+                lowerQuery.includes('klipp') || 
+                lowerQuery.includes('färg') || 
+                lowerQuery.includes('farg') ||
+                lowerQuery.includes('hair')
+            ) {
+                queryTerms.push('hair', 'hår', 'frisör', 'klippning', 'färgning', 'klipp', 'slingor', 'balayage');
+            }
+
+            // Smart synonym matching: Massage/Spa/Avslappning
+            if (
+                lowerQuery.includes('massage') || 
+                lowerQuery.includes('spa') || 
+                lowerQuery.includes('avslapp')
+            ) {
+                queryTerms.push('massage', 'spa', 'avslappning');
+            }
+
+            const orConditions: Prisma.SalonWhereInput[] = [];
+
+            // Add text matching (case-insensitive) for each synonym term
+            queryTerms.forEach(term => {
+                orConditions.push(
+                    { name: { contains: term, mode: 'insensitive' as const } },
+                    { description: { contains: term, mode: 'insensitive' as const } },
+                    { city: { contains: term, mode: 'insensitive' as const } },
+                    { municipality: { contains: term, mode: 'insensitive' as const } }
+                );
+            });
+
+            // Match in JSON categories
+            queryTerms.forEach(term => {
+                orConditions.push(
+                    { category: { path: [], string_contains: term } },
+                    { categories: { path: [], string_contains: term } }
+                );
+            });
+
+            // Match inside services (any service name containing any query terms, or matching category)
+            orConditions.push({
+                services: {
+                    some: {
+                        OR: [
+                            ...queryTerms.map(term => ({ name: { contains: term, mode: 'insensitive' as const } })),
+                            ...queryTerms.map(term => ({ category: { contains: term, mode: 'insensitive' as const } }))
+                        ]
+                    }
+                }
+            });
+
+            // Match inside practitioners (any practitioner title/name containing query terms, or having matching categories)
+            orConditions.push({
+                practitioners: {
+                    some: {
+                        OR: [
+                            ...queryTerms.map(term => ({ name: { contains: term, mode: 'insensitive' as const } })),
+                            ...queryTerms.map(term => ({ title: { contains: term, mode: 'insensitive' as const } })),
+                            ...queryTerms.map(term => ({ categories: { path: [], string_contains: term } }))
+                        ]
+                    }
+                }
+            });
+
             (where.AND as any[]).push({
-                OR: [
-                    { name: { contains: query } },
-                    { description: { contains: query } },
-                    { city: { contains: query } },
-                    { municipality: { contains: query } }
-                ]
+                OR: orConditions
             });
         }
 
-        // 2. Handle Municipality/City/Location
+        // 2. Handle Municipality/City/Location (Case-Insensitive)
         const ignoredLocations = ['Hela Sverige', 'Alla städer', 'Sverige'];
         if (municipality && !ignoredLocations.includes(municipality)) {
             (where.AND as any[]).push({
                 OR: [
-                    { city: { contains: municipality } },
-                    { municipality: { contains: municipality } }
+                    { city: { contains: municipality, mode: 'insensitive' as const } },
+                    { municipality: { contains: municipality, mode: 'insensitive' as const } }
                 ]
             });
         }
