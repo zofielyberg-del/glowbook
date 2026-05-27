@@ -19,6 +19,7 @@ export default function ExploreContent() {
     const { t, currency, language } = useLanguage();
 
     const [salons, setSalons] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [citySearch, setCitySearch] = useState(municipality);
     const [searchTerm, setSearchTerm] = useState(query);
     const [priceFilter, setPriceFilter] = useState<number | null>(null);
@@ -90,9 +91,14 @@ export default function ExploreContent() {
     };
 
     useEffect(() => {
-        const loadSalons = async () => {
+        // Debounce search by 300ms to avoid hammering the API on every keystroke
+        const timer = setTimeout(async () => {
+            setIsLoading(true);
             try {
-                const response = await fetch(`/api/salons/list?municipality=${citySearch}&category=${category}&q=${searchTerm}`);
+                const response = await fetch(
+                    `/api/salons/list?municipality=${encodeURIComponent(citySearch)}&category=${encodeURIComponent(category)}&q=${encodeURIComponent(searchTerm)}`,
+                    { cache: 'no-store' }
+                );
                 const data = await response.json();
 
                 // Always get the local salon
@@ -103,10 +109,7 @@ export default function ExploreContent() {
                     const filteredLocal = localSalons.filter((ls: any) => !data.salons.some((ss: any) => ss.id === ls.id));
                     const combined = [...data.salons, ...filteredLocal];
 
-                    // Show all salons from API, even if they have no services yet (important for onboarding)
-                    const activeSalons = combined;
-
-                    setSalons(activeSalons.map(s => {
+                    setSalons(combined.map(s => {
                         const tier = (s.tier || s.membership_tier || 'bas').toLowerCase();
                         const rawPrice = calculateMinPrice(s);
                         return {
@@ -133,10 +136,12 @@ export default function ExploreContent() {
                     const ls = JSON.parse(saved);
                     setSalons([{ ...ls, priceFrom: calculateMinPrice(ls) }]);
                 }
+            } finally {
+                setIsLoading(false);
             }
-        };
+        }, 300);
 
-        loadSalons();
+        return () => clearTimeout(timer);
     }, [citySearch, category, searchTerm, t]);
 
     const filteredSalons = useMemo(() => {
@@ -544,55 +549,69 @@ export default function ExploreContent() {
                         </div>
                     </div>
 
-                    <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                        {filteredSalons.map((salon, i) => (
-                            <motion.div key={salon.id || i} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
-                                <Link href={`/salon/${salon.slug || salon.id || (salon.name ? salon.name.toLowerCase().trim().replace(/\s+/g, '-') : 'unknown')}`} className="group block space-y-4">
-                                    <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-md relative transition-transform duration-300 group-hover:-translate-y-1 border border-black/5 dark:border-white/5 bg-card">
-                                        <img src={(salon.banner_url || salon.backgroundImage || salon.profileImage || salon.logo_url || salon.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=100').replace(/w=\d+/g, 'w=1200').replace(/q=\d+/g, 'q=100')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={salon.name} />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                                        {salon.is_verified && (
-                                            <div className="absolute top-5 right-5 bg-blue-500 text-white p-1.5 rounded-full shadow-md" title="Verifierad Salong"><BadgeCheck size={14} /></div>
-                                        )}
-                                        {salon.priceFrom && (
-                                            <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between">
-                                                {salon.acceptsGlowpoints && (
-                                                    <div className="flex items-center gap-1.5 bg-emerald-500/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-[10px] font-bold text-white"><Coins size={11} />Glowpoints</div>
-                                                )}
-                                                <div className="bg-black/80 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-bold text-white">
-                                                    Från {salon.priceFrom} {currency}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                    {isLoading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="space-y-4 animate-pulse">
+                                    <div className="aspect-[4/5] rounded-3xl bg-foreground/10" />
                                     <div className="px-1 space-y-2">
-                                        {(() => {
-                                            const joinedDate = salon.joined || salon.created_at;
-                                            const isNew = !salon.rating && joinedDate && (
-                                                (new Date().getTime() - new Date(joinedDate).getTime()) / (1000 * 3600 * 24) <= 21
-                                            );
-                                            
-                                            return (
-                                                <div className="flex justify-between items-center">
-                                                    <h3 className="text-xl font-bold text-foreground truncate">{salon.name}</h3>
-                                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-champagne-500/10 rounded-lg text-sm font-black text-champagne-600">
-                                                        <Star size={12} className={salon.rating ? "fill-current" : ""} />
-                                                        <span>{salon.rating || (isNew ? 'NY' : '-')}</span>
+                                        <div className="h-5 rounded-lg bg-foreground/10 w-3/4" />
+                                        <div className="h-3 rounded-lg bg-foreground/5 w-1/2" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                            {filteredSalons.map((salon, i) => (
+                                <motion.div key={salon.id || i} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
+                                    <Link href={`/salon/${salon.slug || salon.id || (salon.name ? salon.name.toLowerCase().trim().replace(/\s+/g, '-') : 'unknown')}`} className="group block space-y-4">
+                                        <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-md relative transition-transform duration-300 group-hover:-translate-y-1 border border-black/5 dark:border-white/5 bg-card">
+                                            <img src={(salon.banner_url || salon.backgroundImage || salon.profileImage || salon.logo_url || salon.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=100').replace(/w=\d+/g, 'w=1200').replace(/q=\d+/g, 'q=100')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={salon.name} />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                                            {salon.is_verified && (
+                                                <div className="absolute top-5 right-5 bg-blue-500 text-white p-1.5 rounded-full shadow-md" title="Verifierad Salong"><BadgeCheck size={14} /></div>
+                                            )}
+                                            {salon.priceFrom && (
+                                                <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between">
+                                                    {salon.acceptsGlowpoints && (
+                                                        <div className="flex items-center gap-1.5 bg-emerald-500/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-[10px] font-bold text-white"><Coins size={11} />Glowpoints</div>
+                                                    )}
+                                                    <div className="bg-black/80 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-bold text-white">
+                                                        Från {salon.priceFrom} {currency}
                                                     </div>
                                                 </div>
-                                            );
-                                        })()}
-                                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-foreground/40">
-                                            <MapPin size={10} />
-                                            <span>{salon.municipality || 'Sverige'}</span>
+                                            )}
                                         </div>
-                                    </div>
-                                </Link>
-                            </motion.div>
-                        ))}
-                    </motion.div>
+                                        <div className="px-1 space-y-2">
+                                            {(() => {
+                                                const joinedDate = salon.joined || salon.created_at;
+                                                const isNew = !salon.rating && joinedDate && (
+                                                    (new Date().getTime() - new Date(joinedDate).getTime()) / (1000 * 3600 * 24) <= 21
+                                                );
+                                                
+                                                return (
+                                                    <div className="flex justify-between items-center">
+                                                        <h3 className="text-xl font-bold text-foreground truncate">{salon.name}</h3>
+                                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-champagne-500/10 rounded-lg text-sm font-black text-champagne-600">
+                                                            <Star size={12} className={salon.rating ? "fill-current" : ""} />
+                                                            <span>{salon.rating || (isNew ? 'NY' : '-')}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-foreground/40">
+                                                <MapPin size={10} />
+                                                <span>{salon.municipality || 'Sverige'}</span>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    )}
 
-                    {filteredSalons.length === 0 && (
+                    {!isLoading && filteredSalons.length === 0 && (
                         <div className="py-24 text-center space-y-6">
                             <div className="w-20 h-20 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto text-black/20 dark:text-white/20"><Search size={32} /></div>
                             <div className="space-y-2">
@@ -602,6 +621,7 @@ export default function ExploreContent() {
                             <Link href="/search" className="inline-block px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-sm hover:opacity-80 transition-all">{t('new_search_link')}</Link>
                         </div>
                     )}
+
                 </div>
             </main>
         </div>

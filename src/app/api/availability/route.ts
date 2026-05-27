@@ -27,21 +27,26 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'Missing salonId or serviceId' }, { status: 400 });
         }
 
-        const salon = await prisma.salon.findUnique({
-            where: { id: salonId },
-            include: {
-                practitioners: true,
-                appointments: {
-                    where: {
-                        status: { not: 'cancelled' }
+        const fourWeeksFromNow = addDays(new Date(), 28);
+
+        // Run both DB queries in parallel for max speed
+        const [salon, service] = await Promise.all([
+            prisma.salon.findUnique({
+                where: { id: salonId },
+                include: {
+                    practitioners: true,
+                    appointments: {
+                        where: {
+                            status: { not: 'cancelled' },
+                            start_time: { gte: new Date(), lte: fourWeeksFromNow }
+                        }
                     }
                 }
-            }
-        });
-
-        const service = await prisma.service.findUnique({
-            where: { id: serviceId }
-        });
+            }),
+            prisma.service.findUnique({
+                where: { id: serviceId }
+            })
+        ]);
 
         if (!salon || !service) {
             return NextResponse.json({ error: 'Salon or Service not found' }, { status: 404 });
@@ -243,7 +248,11 @@ export async function GET(req: Request) {
             return NextResponse.json({ success: true, availability: [], debug: debugLog.join(" | ") });
         }
 
-        return NextResponse.json({ success: true, availability: allFrames, debug: "Found " + allFrames.length });
+        return NextResponse.json({ success: true, availability: allFrames, debug: "Found " + allFrames.length }, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
+            }
+        });
 
     } catch (error) {
         console.error('API Error /api/availability:', error);

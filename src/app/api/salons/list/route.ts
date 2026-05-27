@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
+
+export const revalidate = 60; // Cache for 60 seconds
+
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
@@ -241,6 +244,7 @@ export async function GET(req: Request) {
 
         const salons = await prisma.salon.findMany({
             where,
+            take: 100,
             include: {
                 services: {
                     select: {
@@ -251,9 +255,6 @@ export async function GET(req: Request) {
                         category: true
                     }
                 }
-            },
-            orderBy: {
-                created_at: 'desc'
             }
         });
 
@@ -299,6 +300,10 @@ export async function GET(req: Request) {
         return NextResponse.json({
             success: true,
             salons: processedData
+        }, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'
+            }
         });
 
     } catch (error) {

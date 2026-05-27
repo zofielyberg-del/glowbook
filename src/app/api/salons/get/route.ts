@@ -2,7 +2,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+
 export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 export async function GET(req: Request) {
     try {
@@ -24,7 +26,8 @@ export async function GET(req: Request) {
                 owner: true,
                 appointments: {
                     where: {
-                        status: { not: 'cancelled' }
+                        status: { not: 'cancelled' },
+                        start_time: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days + future
                     }
                 }
             }
@@ -52,6 +55,10 @@ export async function GET(req: Request) {
                     ...s,
                     duration: s.duration_minutes // Map duration_minutes to duration for UI
                 }))
+            }
+        }, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
             }
         });
 
