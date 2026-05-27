@@ -88,8 +88,10 @@ export async function POST(req: Request) {
             salon: salonData,
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Login error:', error);
-        return NextResponse.json({ error: 'Ett tekniskt fel uppstod' }, { status: 500 });
+        return NextResponse.json({ 
+            error: `Ett tekniskt fel uppstod: ${error.message || error}` 
+        }, { status: 500 });
     }
 }
