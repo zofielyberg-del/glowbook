@@ -39,12 +39,13 @@ export default function LoginPage() {
                 setLoginError(data.error || 'Inloggningen misslyckades');
                 return;
             }
-
             // Success! Store data in sessionStorage (maintaining existing UI logic)
             if (role === 'provider' && data.salon) {
+                sessionStorage.removeItem('glowbook_customer'); // Clear opposite session
                 sessionStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
                 router.push('/provider');
             } else {
+                sessionStorage.removeItem('glowbook_salon'); // Clear opposite session
                 sessionStorage.setItem('glowbook_customer', JSON.stringify(data.user));
                 router.push('/profile');
             }
@@ -95,6 +96,7 @@ export default function LoginPage() {
             }
 
             if (role === 'provider') {
+                sessionStorage.removeItem('glowbook_customer'); // Clear opposite session
                 if (data.salon) {
                     sessionStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
                     window.dispatchEvent(new Event('glowbook_update'));
@@ -113,6 +115,7 @@ export default function LoginPage() {
                     router.push('/onboarding/provider');
                 }
             } else {
+                sessionStorage.removeItem('glowbook_salon'); // Clear opposite session
                 sessionStorage.setItem('glowbook_customer', JSON.stringify(data.user));
                 window.dispatchEvent(new Event('glowbook_update'));
                 router.push('/profile');

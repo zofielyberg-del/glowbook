@@ -718,24 +718,24 @@ export default function ProviderDashboard() {
 
                                 <div className="space-y-3">
                                     {UPCOMING_TODAY.map((item) => (
-                                        <div key={item.id} className={`group flex items-center justify-between p-4 bg-background rounded-2xl border ${item.status === 'cancelled' ? 'border-red-500/30 opacity-60' : 'border-border/50 hover:border-champagne-300'} transition-all`}>
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 text-sm font-black text-foreground/60">{item.startTime}</div>
-                                                <div className={`w-1 h-8 ${item.status === 'cancelled' ? 'bg-red-500/50' : 'bg-champagne-500'} rounded-full`} />
-                                                <div>
-                                                    <h4 className={`font-bold text-sm ${item.status === 'cancelled' ? 'text-red-500 dark:text-red-400 line-through' : 'text-foreground'}`}>{item.clientName || item.customer_name || 'Kund'}</h4>
-                                                    <p className="text-[10px] font-medium text-foreground/60">{item.service || item.service_name || 'Tjänst'}</p>
-                                                    <div className="flex items-center gap-3 mt-1">
-                                                        <span className="text-[9px] text-foreground/40 flex items-center gap-1">
-                                                            <Eye size={10} className="text-blue-400" /> {item.clientEmail || item.customer_email || 'Ingen e-post'}
+                                        <div key={item.id} className={`group flex flex-col sm:flex-row sm:items-center justify-between p-5 sm:p-4 bg-background rounded-2xl border ${item.status === 'cancelled' ? 'border-red-500/30 opacity-60' : 'border-border/50 hover:border-champagne-300'} transition-all gap-4 sm:gap-6`}>
+                                            <div className="flex items-start gap-4">
+                                                <div className="text-sm font-black text-foreground/60 min-w-[3rem] mt-0.5">{item.startTime}</div>
+                                                <div className={`w-1 h-10 ${item.status === 'cancelled' ? 'bg-red-500/50' : 'bg-champagne-500'} rounded-full shrink-0`} />
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className={`font-bold text-sm ${item.status === 'cancelled' ? 'text-red-500 dark:text-red-400 line-through' : 'text-foreground'} truncate`}>{item.clientName || item.customer_name || 'Kund'}</h4>
+                                                    <p className="text-[10px] font-medium text-foreground/60 mt-0.5 truncate">{item.service || item.service_name || 'Tjänst'}</p>
+                                                    <div className="flex flex-col xs:flex-row xs:items-center gap-1.5 xs:gap-3 mt-2">
+                                                        <span className="text-[9px] text-foreground/45 flex items-center gap-1 min-w-0">
+                                                            <Eye size={10} className="text-blue-400 shrink-0" /> <span className="truncate">{item.clientEmail || item.customer_email || 'Ingen e-post'}</span>
                                                         </span>
-                                                        <span className="text-[9px] text-foreground/40 flex items-center gap-1">
-                                                            <MousePointerClick size={10} className="text-emerald-400" /> {item.clientPhone || item.customer_phone || 'Inget nummer'}
+                                                        <span className="text-[9px] text-foreground/45 flex items-center gap-1 shrink-0">
+                                                            <MousePointerClick size={10} className="text-emerald-400 shrink-0" /> {item.clientPhone || item.customer_phone || 'Inget nummer'}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex items-center justify-end sm:justify-start gap-3 w-full sm:w-auto border-t border-foreground/5 sm:border-t-0 pt-3 sm:pt-0 shrink-0">
                                                 {item.status === 'cancelled' ? (
                                                     <span className="px-3 py-1 rounded-full bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-tighter flex items-center gap-1">
                                                         <Trash2 size={12} /> Avbokad
@@ -747,12 +747,12 @@ export default function ProviderDashboard() {
                                                 ) : (
                                                     <button
                                                         onClick={() => handleApproveAppointment(item.id)}
-                                                        className="px-4 py-2 bg-foreground text-background rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-lg active:scale-95"
+                                                        className="w-full sm:w-auto px-5 py-2.5 bg-foreground text-background rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-lg active:scale-95 text-center"
                                                     >
                                                         Markera som klar
                                                     </button>
                                                 )}
-                                                <button className="p-2 hover:bg-foreground/5 rounded-full transition-colors opacity-0 group-hover:opacity-100">
+                                                <button className="hidden sm:block p-2 hover:bg-foreground/5 rounded-full transition-colors opacity-0 group-hover:opacity-100">
                                                     <ArrowRight size={16} className="text-foreground/30" />
                                                 </button>
                                             </div>

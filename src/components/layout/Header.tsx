@@ -229,13 +229,26 @@ export default function Header() {
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {[
-                                    ...(showLoggedInUI ? [
-                                        { href: isProvider ? "/provider" : "/profile", icon: User, label: isProvider ? 'Översikt' : t('my_pages') },
-                                        { href: "/explore", icon: Compass, label: t('discover') },
-                                        { href: "/search", icon: Search, label: t('nav_search') },
-                                        { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
-                                        ...(isProvider ? [{ href: "/provider/settings", icon: Settings, label: t('nav_settings') }] : []),
-                                    ] : [
+                                    ...(showLoggedInUI ? (
+                                        isProviderPortal ? [
+                                            { href: "/provider", icon: Calendar, label: t('nav_dashboard') },
+                                            { href: "/provider/customers", icon: Users, label: t('dash_nav_customers') },
+                                            { href: "/provider/services", icon: Scissors, label: t('dash_nav_services') },
+                                            { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
+                                            { href: "/provider/settings", icon: Settings, label: t('nav_settings') },
+                                        ] : isProvider ? [
+                                            { href: "/provider", icon: User, label: 'Översikt' },
+                                            { href: "/explore", icon: Compass, label: t('discover') },
+                                            { href: "/search", icon: Search, label: t('nav_search') },
+                                            { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
+                                            { href: "/provider/settings", icon: Settings, label: t('nav_settings') },
+                                        ] : [
+                                            { href: "/profile", icon: User, label: t('my_pages') },
+                                            { href: "/explore", icon: Compass, label: t('discover') },
+                                            { href: "/search", icon: Search, label: t('nav_search') },
+                                            { href: "/support", icon: HelpCircle, label: t('nav_support') },
+                                        ]
+                                    ) : [
                                         { href: "/explore", icon: Compass, label: t('discover') },
                                         { href: "/search", icon: Search, label: t('nav_search') },
                                         { href: "/guides", icon: BookOpen, label: t('nav_guides') },
