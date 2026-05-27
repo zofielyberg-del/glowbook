@@ -112,7 +112,11 @@ export async function GET(req: Request) {
                 
                 if (dateStr < todayStr) continue;
 
-                const dayAvailability = salonAvailability.filter(a => a.dayIndex === dayIndex);
+                const dayAvailability = salonAvailability.filter(a => {
+                    if (a.dayIndex !== dayIndex) return false;
+                    if (a.week && a.week !== weekStr) return false;
+                    return true;
+                });
                 if (dayAvailability.length > 0 && w === 0) {
                     debugLog.push(`Day ${dayIndex} (${dateStr}) has ${dayAvailability.length} frames`);
                 }

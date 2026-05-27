@@ -136,6 +136,7 @@ export default function CalendarPage() {
                 }
             } else {
                 isSingleSlot = true;
+                duration = 40; // Default to 40 min for single slots to prevent 0px height cards, layout loops, and incorrect overlap checks
             }
 
             const newFrame = {

@@ -221,12 +221,30 @@ export default function ExploreContent() {
         });
 
         return [...filtered].sort((a, b) => {
-            if (sortBy === 'price') return (a.priceFrom || 0) - (b.priceFrom || 0);
-            if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+            if (sortBy === 'price') {
+                return (a.priceFrom || 0) - (b.priceFrom || 0);
+            }
+            if (sortBy === 'rating') {
+                const ratingA = Number(a.rating) || 0;
+                const ratingB = Number(b.rating) || 0;
+                if (ratingA !== ratingB) return ratingB - ratingA;
+                return (b.review_count || 0) - (a.review_count || 0);
+            }
+            
+            // Default "recommended" sort: Tier (LUXE > PRO > BAS) -> Rating -> Reviews -> Name
             const tierA = tierOrder[(a.tier || a.membership_tier || '').toLowerCase()] || 0;
             const tierB = tierOrder[(b.tier || b.membership_tier || '').toLowerCase()] || 0;
             if (tierA !== tierB) return tierB - tierA;
-            return (b.rating || 0) - (a.rating || 0);
+            
+            const ratingA = Number(a.rating) || 0;
+            const ratingB = Number(b.rating) || 0;
+            if (ratingA !== ratingB) return ratingB - ratingA;
+            
+            const revA = a.review_count || 0;
+            const revB = b.review_count || 0;
+            if (revA !== revB) return revB - revA;
+            
+            return (a.name || '').localeCompare(b.name || '');
         });
     }, [salons, committedSearchTerm, category, priceFilter, ratingFilter, showAvailableOnly, citySearch, sortBy, t]);
 

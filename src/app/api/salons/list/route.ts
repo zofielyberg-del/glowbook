@@ -19,7 +19,7 @@ export async function GET(req: Request) {
             const lowerQuery = query.toLowerCase().trim();
             const queryTerms = [lowerQuery];
 
-            // Smart synonym matching: Nagel/Naglar/Nails/Manikyr/Pedikyr/Gellack/Akryl/Gelé
+            // Smart synonym matching: Nagel/Naglar/Nails/Manikyr/Pedikyr/Gellack/Akryl/Gelé/Manicure/Pedicure/Shellac/Negler/Negle
             if (
                 lowerQuery.includes('nagel') || 
                 lowerQuery.includes('naglar') || 
@@ -29,23 +29,33 @@ export async function GET(req: Request) {
                 lowerQuery.includes('gellack') || 
                 lowerQuery.includes('akryl') || 
                 lowerQuery.includes('gelé') ||
-                lowerQuery.includes('gele')
+                lowerQuery.includes('gele') ||
+                lowerQuery.includes('manicure') ||
+                lowerQuery.includes('pedicure') ||
+                lowerQuery.includes('shellac') ||
+                lowerQuery.includes('negler') ||
+                lowerQuery.includes('negle') ||
+                lowerQuery.includes('kynnet')
             ) {
-                queryTerms.push('nails', 'naglar', 'manikyr', 'pedikyr', 'gellack', 'akryl', 'gelé', 'gele', 'nagel');
+                queryTerms.push('nails', 'naglar', 'manikyr', 'pedikyr', 'gellack', 'akryl', 'gelé', 'gele', 'nagel', 'manicure', 'pedicure', 'shellac', 'negler', 'negle', 'kynnet');
             }
 
-            // Smart synonym matching: Fransar/Bryn/Lashes/Brows/Lashlift/Browlift
+            // Smart synonym matching: Fransar/Bryn/Lashes/Brows/Lashlift/Browlift/Vipper/Kulmat/Augabrúnir
             if (
                 lowerQuery.includes('frans') || 
                 lowerQuery.includes('bryn') || 
                 lowerQuery.includes('lash') || 
                 lowerQuery.includes('brow') || 
-                lowerQuery.includes('lift')
+                lowerQuery.includes('lift') ||
+                lowerQuery.includes('vipp') ||
+                lowerQuery.includes('kulmat') ||
+                lowerQuery.includes('augabrúnir') ||
+                lowerQuery.includes('augabrunir')
             ) {
-                queryTerms.push('lashes', 'fransar', 'bryn', 'brows', 'lashlift', 'browlift');
+                queryTerms.push('lashes', 'fransar', 'bryn', 'brows', 'lashlift', 'browlift', 'vipper', 'vippeforlengelse', 'eyebrows');
             }
 
-            // Smart synonym matching: Hår/Frisör/Klipp/Färg/Hair/Balayage
+            // Smart synonym matching: Hår/Frisör/Klipp/Färg/Hair/Balayage/Barber/Skägg/Rakning
             if (
                 lowerQuery.includes('hår') || 
                 lowerQuery.includes('har') ||
@@ -54,18 +64,107 @@ export async function GET(req: Request) {
                 lowerQuery.includes('klipp') || 
                 lowerQuery.includes('färg') || 
                 lowerQuery.includes('farg') ||
-                lowerQuery.includes('hair')
+                lowerQuery.includes('hair') ||
+                lowerQuery.includes('barber') ||
+                lowerQuery.includes('skägg') ||
+                lowerQuery.includes('skegg') ||
+                lowerQuery.includes('shave') ||
+                lowerQuery.includes('rakning') ||
+                lowerQuery.includes('fade')
             ) {
-                queryTerms.push('hair', 'hår', 'frisör', 'klippning', 'färgning', 'klipp', 'slingor', 'balayage');
+                queryTerms.push('hair', 'hår', 'frisör', 'klippning', 'färgning', 'klipp', 'slingor', 'balayage', 'barber', 'skägg', 'shave', 'barberare');
             }
 
-            // Smart synonym matching: Massage/Spa/Avslappning
+            // Smart synonym matching: Massage/Spa/Avslappning/Massasje/Hieronta/Nudd
             if (
                 lowerQuery.includes('massage') || 
                 lowerQuery.includes('spa') || 
-                lowerQuery.includes('avslapp')
+                lowerQuery.includes('avslapp') ||
+                lowerQuery.includes('massasje') ||
+                lowerQuery.includes('hieronta') ||
+                lowerQuery.includes('nudd')
             ) {
-                queryTerms.push('massage', 'spa', 'avslappning');
+                queryTerms.push('massage', 'spa', 'avslappning', 'massasje', 'hieronta', 'nudd');
+            }
+
+            // Smart synonym matching: Facial/Ansikte/Hudvård/Skincare/Peeling/Dermapen/Microneedling/Iho/Húð
+            if (
+                lowerQuery.includes('ansikte') ||
+                lowerQuery.includes('hud') ||
+                lowerQuery.includes('hudvård') ||
+                lowerQuery.includes('hudvard') ||
+                lowerQuery.includes('facial') ||
+                lowerQuery.includes('skincare') ||
+                lowerQuery.includes('peeling') ||
+                lowerQuery.includes('dermapen') ||
+                lowerQuery.includes('microneedle') ||
+                lowerQuery.includes('iho') ||
+                lowerQuery.includes('húð') ||
+                lowerQuery.includes('hud')
+            ) {
+                queryTerms.push('ansikte', 'hud', 'hudvård', 'facial', 'skincare', 'peeling', 'dermapen', 'microneedling', 'ansiktsbehandling', 'skin');
+            }
+
+            // Smart synonym matching: Makeup/Smink/Sminkning/Meikki/Förðun
+            if (
+                lowerQuery.includes('smink') ||
+                lowerQuery.includes('makeup') ||
+                lowerQuery.includes('sminkning') ||
+                lowerQuery.includes('meikki') ||
+                lowerQuery.includes('förðun') ||
+                lowerQuery.includes('fordun') ||
+                lowerQuery.includes('pmu')
+            ) {
+                queryTerms.push('smink', 'makeup', 'sminkning', 'meikki', 'förðun', 'permanent makeup', 'pmu');
+            }
+
+            // Smart synonym matching: Waxing/Vaxning/Voksing/Sugaring
+            if (
+                lowerQuery.includes('vaxning') ||
+                lowerQuery.includes('vax') ||
+                lowerQuery.includes('waxing') ||
+                lowerQuery.includes('voksing') ||
+                lowerQuery.includes('sugaring')
+            ) {
+                queryTerms.push('vaxning', 'vax', 'waxing', 'voksing', 'sugaring');
+            }
+
+            // Smart synonym matching: Tattoo/Tatuering/Tatovering/Tatuointi/Húðflúr/Gaddning
+            if (
+                lowerQuery.includes('tatuering') ||
+                lowerQuery.includes('tattoo') ||
+                lowerQuery.includes('gaddning') ||
+                lowerQuery.includes('tatovering') ||
+                lowerQuery.includes('tatuointi') ||
+                lowerQuery.includes('húðflúr') ||
+                lowerQuery.includes('hudflur')
+            ) {
+                queryTerms.push('tatuering', 'tattoo', 'gaddning', 'tatovering', 'tatuointi');
+            }
+
+            // Smart synonym matching: Piercing/Pierca
+            if (
+                lowerQuery.includes('piercing') ||
+                lowerQuery.includes('pierca')
+            ) {
+                queryTerms.push('piercing', 'pierca');
+            }
+
+            // Smart synonym matching: Foot care/Fotvård/Fotpleie/Fodpleie/Jalkahoito/Fótsnyrting/Pedikyr/Pedicure
+            if (
+                lowerQuery.includes('fotvård') ||
+                lowerQuery.includes('fotvard') ||
+                lowerQuery.includes('fotpleie') ||
+                lowerQuery.includes('fodpleie') ||
+                lowerQuery.includes('jalkahoito') ||
+                lowerQuery.includes('fótsnyrting') ||
+                lowerQuery.includes('fotsnyrting') ||
+                lowerQuery.includes('foot care') ||
+                lowerQuery.includes('footcare') ||
+                lowerQuery.includes('pedikyr') ||
+                lowerQuery.includes('pedicure')
+            ) {
+                queryTerms.push('fotvård', 'fotpleie', 'fodpleie', 'foot care', 'pedikyr', 'pedicure', 'medical pedicure');
             }
 
             const orConditions: Prisma.SalonWhereInput[] = [];
@@ -177,6 +276,24 @@ export async function GET(req: Request) {
                 backgroundImage: salon.banner_url,
                 tier: (salon.membership_tier || 'bas').toLowerCase(),
             };
+        });
+
+        // Smart recommended sorting: Tier (LUXE > PRO > BAS) -> Rating (high to low) -> Review Count (high to low) -> Name (alphabetical)
+        const tierOrder: Record<string, number> = { 'luxe': 3, 'pro': 2, 'bas': 1 };
+        processedData.sort((a, b) => {
+            const tierA = tierOrder[a.tier] || 0;
+            const tierB = tierOrder[b.tier] || 0;
+            if (tierA !== tierB) return tierB - tierA;
+
+            const ratingA = Number(a.rating) || 0;
+            const ratingB = Number(b.rating) || 0;
+            if (ratingA !== ratingB) return ratingB - ratingA;
+
+            const revA = Number(a.review_count) || 0;
+            const revB = Number(b.review_count) || 0;
+            if (revA !== revB) return revB - revA;
+
+            return (a.name || '').localeCompare(b.name || '');
         });
 
         return NextResponse.json({

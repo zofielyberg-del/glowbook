@@ -170,7 +170,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         const [hour, minute] = item.startTime.split(':').map(Number);
         const startHour = 6; // Matching new hours start
         const top = (hour - startHour) * PX_PER_HOUR + (minute / 60) * PX_PER_HOUR;
-        const height = (item.duration / 60) * PX_PER_HOUR;
+        const height = ((item.duration || 40) / 60) * PX_PER_HOUR;
         return { top: `${top}px`, height: `${height}px` };
     };
 
@@ -194,7 +194,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     // Get appointments that overlap a given frame for a specific column date
     const getAppointmentsInFrame = useCallback((frame: TimeFrame, columnDate?: Date) => {
         const frameStart = timeToMins(frame.startTime);
-        const frameEnd = frameStart + frame.duration;
+        const frameEnd = frameStart + (frame.duration || 40);
         const columnDateStr = columnDate ? format(columnDate, 'yyyy-MM-dd') : null;
 
         return appointments.filter((aptRaw: any) => {
@@ -254,7 +254,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     // Split a frame into free/booked segments
     const getFrameSegments = useCallback((frame: TimeFrame, columnDate?: Date): FrameSegment[] => {
         const frameStart = timeToMins(frame.startTime);
-        const frameEnd = frameStart + frame.duration;
+        const frameEnd = frameStart + (frame.duration || 40);
         const overlapping = getAppointmentsInFrame(frame, columnDate);
 
         if (overlapping.length === 0) {
@@ -362,7 +362,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         const frames: TimeFrame[] = data.availability || [];
 
         const frameStart = timeToMins(frame.startTime);
-        const frameEnd = frameStart + frame.duration;
+        const frameEnd = frameStart + (frame.duration || 40);
         const removeStart = timeToMins(segStart);
         const removeEnd = timeToMins(segEnd);
 
@@ -608,6 +608,9 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                     {availability.filter(frame => {
                                         if (frame.dayIndex !== dayIndex) return false;
 
+                                        const dayStr = format(day, 'yyyy-MM-dd');
+                                        if ((frame as any).date && (frame as any).date !== dayStr) return false;
+
                                         const weekStartStr = format(startOfWeek(day, { weekStartsOn: 1 }), 'yyyy-MM-dd');
                                         if ((frame as any).week && (frame as any).week !== weekStartStr) return false;
 
@@ -635,9 +638,9 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                         const isEditing = editingFrame?.frame.id === frame.id;
                                         const hasBookings = segments.some(s => s.type === 'booked');
                                         const frameStartMins = timeToMins(frame.startTime);
-                                        const frameEndMins = frameStartMins + frame.duration;
+                                        const frameEndMins = frameStartMins + (frame.duration || 40);
                                         const freeSegments = segments.filter(s => s.type === 'free');
-                                        let labelTopMins = frameStartMins + frame.duration / 2;
+                                        let labelTopMins = frameStartMins + (frame.duration || 40) / 2;
                                         if (freeSegments.length > 0) {
                                             const largest = freeSegments.reduce((prev, curr) => {
                                                 const prevDur = timeToMins(prev.end) - timeToMins(prev.start);
@@ -860,7 +863,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                 lang="sv-SE"
                                                 value={editingFrame.frame.startTime}
                                                 onChange={(e) => {
-                                                    const end = minsToTime(timeToMins(editingFrame.frame.startTime) + editingFrame.frame.duration);
+                                                    const end = minsToTime(timeToMins(editingFrame.frame.startTime) + (editingFrame.frame.duration || 40));
                                                     updateFrameTimes(editingFrame.frame, e.target.value, end);
                                                 }}
                                                 className="w-full p-2.5 bg-background border border-border rounded-xl font-bold text-sm text-foreground focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
@@ -871,7 +874,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                             <input
                                                 type="time"
                                                 lang="sv-SE"
-                                                value={minsToTime(timeToMins(editingFrame.frame.startTime) + editingFrame.frame.duration)}
+                                                value={minsToTime(timeToMins(editingFrame.frame.startTime) + (editingFrame.frame.duration || 40))}
                                                 onChange={(e) => {
                                                     updateFrameTimes(editingFrame.frame, editingFrame.frame.startTime, e.target.value);
                                                 }}
