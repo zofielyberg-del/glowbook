@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import crypto from 'crypto';
+import { hashPassword } from '@/lib/password';
 
 export async function POST(request: Request) {
     try {
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         }
 
         // Hash the new password
-        const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+        const passwordHash = hashPassword(password);
 
         // Update password and clear reset token
         await prisma.profile.update({

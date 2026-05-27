@@ -38,7 +38,19 @@ export async function POST(request: Request) {
             }
         });
 
-        const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se'}/auth/reset-password?token=${resetToken}`;
+        // Get the origin dynamically from the request, falling back to env var
+        let origin = '';
+        try {
+            const reqUrl = new URL(request.url);
+            origin = reqUrl.origin;
+        } catch (e) {
+            origin = process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se';
+        }
+        if (origin.endsWith('/')) {
+            origin = origin.slice(0, -1);
+        }
+
+        const resetUrl = `${origin}/auth/reset-password?token=${resetToken}`;
 
         // Send email using Resend
         if (resend) {
