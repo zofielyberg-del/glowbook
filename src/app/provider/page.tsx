@@ -147,12 +147,28 @@ export default function ProviderDashboard() {
                 const timeCounts: Record<string, number> = {};
                 const revenueByDay = [0, 0, 0, 0, 0, 0, 0];
 
+                // Build a set of the last 7 days (Mon-Sun of the current week)
+                const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+                const weekDates = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
+
                 confirmedApts.forEach((a: any) => {
                     const serviceName = a.service_name || a.service;
                     if (serviceName) serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
                     
-                    if (a.status === 'completed' && typeof a.dayIndex === 'number') {
-                        revenueByDay[a.dayIndex] += (a.price || a.total_price || 0);
+                    if (a.status === 'completed') {
+                        // Compute day index from the appointment date (works for both local and DB appointments)
+                        let aptDateStr = a.date || '';
+                        if (!aptDateStr && a.start_time) {
+                            try { aptDateStr = format(new Date(a.start_time), 'yyyy-MM-dd'); } catch {}
+                        }
+                        if (!aptDateStr && a.booking_date) {
+                            try { aptDateStr = format(new Date(a.booking_date), 'yyyy-MM-dd'); } catch {}
+                        }
+                        const dayIdx = weekDates.indexOf(aptDateStr);
+                        if (dayIdx !== -1) {
+                            const price = Number(a.price || a.total_price || 0);
+                            revenueByDay[dayIdx] += price;
+                        }
                     }
 
                     const aptTime = a.startTime || (a.start_time ? format(new Date(a.start_time), 'HH:mm') : '');
@@ -293,7 +309,32 @@ export default function ProviderDashboard() {
         const apt = appointments.find((a: any) => a.id === aptId);
         if (!apt) return;
 
-        // 1. Sync completion to database immediately and trigger feedback email
+        // 1. Optimistically update React state immediately so the UI reflects the change
+        const updatedAppointments = appointments.map((a: any) =>
+            a.id === aptId ? { ...a, status: 'completed' } : a
+        );
+        setAllAppointments(updatedAppointments);
+
+        // Update revenue chart for the current week
+        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+        const weekDates = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
+        let aptDateStr = apt.date || '';
+        if (!aptDateStr && apt.start_time) {
+            try { aptDateStr = format(new Date(apt.start_time), 'yyyy-MM-dd'); } catch {}
+        }
+        if (!aptDateStr && apt.booking_date) {
+            try { aptDateStr = format(new Date(apt.booking_date), 'yyyy-MM-dd'); } catch {}
+        }
+        const dayIdx = weekDates.indexOf(aptDateStr);
+        if (dayIdx !== -1) {
+            setDailyRevenue(prev => {
+                const next = [...prev];
+                next[dayIdx] += Number(apt.price || apt.total_price || 0);
+                return next;
+            });
+        }
+
+        // 2. Sync completion to database and trigger feedback email
         try {
             await fetch('/api/bookings/complete', {
                 method: 'POST',
@@ -304,7 +345,7 @@ export default function ProviderDashboard() {
             console.error('Failed to sync appointment completion to DB:', e);
         }
 
-        // 2. Grant Loyalty Points if customer ID exists
+        // 3. Grant Loyalty Points if customer ID exists
         if (apt.customerId || apt.clientEmail) {
             try {
                 await fetch('/api/loyalty/earn', {
@@ -314,9 +355,9 @@ export default function ProviderDashboard() {
                         userId: apt.customerId,
                         email: apt.clientEmail,
                         salonId: data.id,
-                        amount: apt.price || 0,
+                        amount: apt.price || apt.total_price || 0,
                         bookingId: apt.id,
-                        description: `Behandling: ${apt.service}`
+                        description: `Behandling: ${apt.service || apt.service_name}`
                     }),
                 });
             } catch (e) {
@@ -324,15 +365,8 @@ export default function ProviderDashboard() {
             }
         }
 
-        const updatedAppointments = appointments.map((a: any) =>
-            a.id === aptId ? { ...a, status: 'completed' } : a
-        );
-
-        const updated = {
-            ...data,
-            appointments: updatedAppointments
-        };
-
+        // 4. Persist updated status to localStorage/sessionStorage
+        const updated = { ...data, appointments: updatedAppointments };
         localStorage.setItem('glowbook_salon', JSON.stringify(updated));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(updated));
         window.dispatchEvent(new Event('glowbook_update'));
@@ -350,7 +384,7 @@ export default function ProviderDashboard() {
 
     const totalRevenue = allAppointments
         .filter((apt: any) => apt.status === 'completed')
-        .reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
+        .reduce((sum: number, apt: any) => sum + Number(apt.price || apt.total_price || 0), 0);
 
     const todayStr = format(new Date(), 'yyyy-MM-dd');
 
