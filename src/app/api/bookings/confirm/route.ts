@@ -80,8 +80,7 @@ export async function POST(req: Request) {
                 update: {
                     first_name: customerInfo.firstName,
                     last_name: customerInfo.lastName,
-                    phone: customerInfo.phone,
-                    role: 'customer'
+                    phone: customerInfo.phone
                 },
                 create: {
                     email: customerInfo.email,
