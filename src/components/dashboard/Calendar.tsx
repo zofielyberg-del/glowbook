@@ -733,12 +733,10 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                         className="absolute inset-x-0 flex items-center justify-center pointer-events-none transition-all duration-300"
                                                         style={{ top: `${labelTopPx}px`, transform: 'translateY(-50%)' }}
                                                     >
-                                                        {!isEditing && (
+                                                        {!isEditing && !hasBookings && (
                                                             <div className={clsx(
                                                                 "text-[10px] font-black px-3 py-1 rounded-full shadow-2xl uppercase tracking-[0.15em] border border-emerald-400/30 transition-all group-hover/frame:scale-110",
-                                                                hasBookings
-                                                                    ? "bg-emerald-600/90 text-white backdrop-blur-sm"
-                                                                    : "bg-emerald-600 text-white"
+                                                                "bg-emerald-600 text-white"
                                                             )}>
                                                                 {frame.startTime} – {minsToTime(frameEndMins)}
                                                             </div>
@@ -779,7 +777,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                 setViewingAppointment(apt);
                                             }}
                                             className={clsx(
-                                                "absolute inset-x-1 rounded-lg border p-2 text-[10px] cursor-pointer hover:shadow-md transition-all z-10 overflow-hidden flex flex-col justify-between",
+                                                "absolute inset-x-1 rounded-lg border p-2 text-[10px] cursor-pointer hover:shadow-md transition-all z-[25] overflow-hidden flex flex-col justify-between",
                                                 "bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm"
                                             )}
                                             style={getItemStyle(apt)}
