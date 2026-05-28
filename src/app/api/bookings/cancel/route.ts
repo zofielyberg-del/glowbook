@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendCustomerCancellationEmail, sendProviderCancellationEmail, sendCustomerCancellationByProviderEmail } from '@/lib/email';
-
+import { emitAvailabilityUpdate } from '@/lib/realtime';
 export async function POST(req: Request) {
     try {
         const { appointmentId, bypassPolicy } = await req.json();
@@ -110,6 +110,11 @@ export async function POST(req: Request) {
             } catch (emailErr) {
                 console.error('Error sending provider cancellation email:', emailErr);
             }
+        }
+
+        // Emit real‑time update so clients refresh availability
+        if (appointment.salon_id) {
+            emitAvailabilityUpdate(appointment.salon_id, { salonId: appointment.salon_id });
         }
 
         return NextResponse.json({

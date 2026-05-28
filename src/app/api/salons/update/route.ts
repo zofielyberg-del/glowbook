@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { emitAvailabilityUpdate } from '@/lib/realtime';
 
 export async function POST(req: Request) {
     try {
@@ -199,6 +200,9 @@ export async function POST(req: Request) {
                 }
             });
         }
+
+        // Trigger real-time availability update for client pages
+        emitAvailabilityUpdate(realSalonId, { salonId: realSalonId });
 
         return NextResponse.json({ success: true, salonId: realSalonId });
     } catch (error: any) {

@@ -240,15 +240,23 @@ export async function GET(req: Request) {
             }
         }
 
+        const noCacheHeaders = {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        };
+
         if (allFrames.length === 0) {
-            return NextResponse.json({ success: true, availability: [], debug: debugLog.join(" | ") });
+            return NextResponse.json(
+                { success: true, availability: [], debug: debugLog.join(" | ") },
+                { headers: noCacheHeaders }
+            );
         }
 
-        return NextResponse.json({ success: true, availability: allFrames, debug: "Found " + allFrames.length }, {
-            headers: {
-                'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
-            }
-        });
+        return NextResponse.json(
+            { success: true, availability: allFrames, debug: "Found " + allFrames.length },
+            { headers: noCacheHeaders }
+        );
 
     } catch (error) {
         console.error('API Error /api/availability:', error);

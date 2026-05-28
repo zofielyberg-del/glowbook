@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendCustomerBookingConfirmation, sendProviderBookingNotification } from '@/lib/email';
+import { emitAvailabilityUpdate } from '@/lib/realtime';
 
 export async function POST(req: Request) {
     try {
@@ -198,6 +199,11 @@ export async function POST(req: Request) {
             }
         } catch (providerEmailErr) {
             console.error('Error sending provider booking email:', providerEmailErr);
+        }
+
+        // Emit real‑time update so clients refresh availability
+        if (salonId) {
+            emitAvailabilityUpdate(salonId, { salonId });
         }
 
         return NextResponse.json({

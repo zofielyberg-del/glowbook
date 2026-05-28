@@ -86,6 +86,10 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
     // Load data on mount and listen for changes
     useEffect(() => {
+        let isMounted = true;
+        let eventSource: EventSource | null = null;
+        let retryTimeout: NodeJS.Timeout | null = null;
+
         const loadData = () => {
             try {
                 const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
@@ -174,9 +178,82 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         window.addEventListener('storage', loadData);
         window.addEventListener('glowbook_update', loadData);
 
+        // Fetch fresh salon details from server and update local state
+        const refreshSalonData = async (salonId: string) => {
+            try {
+                const response = await fetch(`/api/salons/get?id=${salonId}&_t=${Date.now()}`);
+                const resData = await response.json();
+                if (isMounted && resData.success && resData.salon) {
+                    const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+                    if (saved) {
+                        const currentData = JSON.parse(saved);
+                        const merged = {
+                            ...currentData,
+                            ...resData.salon,
+                            availability: currentData.availability, // Preserve local availability during background updates to prevent race conditions & flickering
+                            appointments: resData.salon.appointments || currentData.appointments
+                        };
+                        localStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                        sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                        
+                        // Force redraw
+                        loadData();
+                        window.dispatchEvent(new Event('glowbook_update'));
+                    }
+                }
+            } catch (err) {
+                console.error('[SSE] Failed to refresh salon data in calendar:', err);
+            }
+        };
+
+        // Real-time synchronization
+        const connectSSE = () => {
+            const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+            if (!saved) return;
+            try {
+                const salon = JSON.parse(saved);
+                if (!salon.id) return;
+
+                eventSource = new EventSource(`/api/realtime/availability/stream?salonId=${salon.id}`);
+
+                eventSource.onmessage = (event) => {
+                    try {
+                        const sseData = JSON.parse(event.data);
+                        if (sseData.type === 'availability_update') {
+                            console.log('[SSE] Provider calendar received availability update. Re-fetching data...');
+                            refreshSalonData(salon.id);
+                        }
+                    } catch (e) {}
+                };
+
+                eventSource.onerror = (err) => {
+                    if (isMounted) {
+                        if (eventSource) {
+                            eventSource.close();
+                            eventSource = null;
+                        }
+                        retryTimeout = setTimeout(connectSSE, 5000);
+                    }
+                };
+            } catch (e) {
+                if (isMounted) {
+                    retryTimeout = setTimeout(connectSSE, 5000);
+                }
+            }
+        };
+
+        connectSSE();
+
         return () => {
+            isMounted = false;
             window.removeEventListener('storage', loadData);
             window.removeEventListener('glowbook_update', loadData);
+            if (eventSource) {
+                eventSource.close();
+            }
+            if (retryTimeout) {
+                clearTimeout(retryTimeout);
+            }
         };
     }, []);
 

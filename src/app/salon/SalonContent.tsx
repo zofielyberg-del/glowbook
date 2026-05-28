@@ -634,11 +634,13 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         }
         
         let isMounted = true;
+        let eventSource: EventSource | null = null;
+        let retryTimeout: NodeJS.Timeout | null = null;
         
         async function fetchAvailability() {
             try {
                 const targetP = selectedPractitioner ? selectedPractitioner.id : 'any';
-                const url = `/api/availability?salonId=${salon.id}&serviceId=${selectedService.id}&practitionerId=${targetP}`;
+                const url = `/api/availability?salonId=${salon.id}&serviceId=${selectedService.id}&practitionerId=${targetP}&_t=${Date.now()}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 
@@ -651,8 +653,54 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         }
         
         fetchAvailability();
+
+        // Connect to Server-Sent Events for real-time synchronization
+        function connectSSE() {
+            if (!salon || !salon.id) return;
+            try {
+                eventSource = new EventSource(`/api/realtime/availability/stream?salonId=${salon.id}`);
+
+                eventSource.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'availability_update') {
+                            console.log('[SSE] Real-time availability update received. Refreshing...');
+                            fetchAvailability();
+                        }
+                    } catch (e) {
+                        // ignore heartbeat keepalive
+                    }
+                };
+
+                eventSource.onerror = (err) => {
+                    if (isMounted) {
+                        console.warn('[SSE] EventSource closed or errored. Retrying in 5 seconds...', err);
+                        if (eventSource) {
+                            eventSource.close();
+                            eventSource = null;
+                        }
+                        retryTimeout = setTimeout(connectSSE, 5000);
+                    }
+                };
+            } catch (err) {
+                console.error('[SSE] EventSource connection setup failed:', err);
+                if (isMounted) {
+                    retryTimeout = setTimeout(connectSSE, 5000);
+                }
+            }
+        }
+
+        connectSSE();
         
-        return () => { isMounted = false; };
+        return () => {
+            isMounted = false;
+            if (eventSource) {
+                eventSource.close();
+            }
+            if (retryTimeout) {
+                clearTimeout(retryTimeout);
+            }
+        };
     }, [salon, selectedService, selectedPractitioner]);
     const matchingPractitioners = useMemo(() => {
         if (!selectedService || !salon) return [];
