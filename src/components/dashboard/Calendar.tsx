@@ -901,7 +901,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-[420px] bg-card border border-border shadow-2xl rounded-3xl z-[100] flex flex-col overflow-hidden max-h-[85vh] transition-all"
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-[420px] bg-card border border-border shadow-2xl rounded-3xl z-[100] flex flex-col overflow-hidden max-h-[85vh]"
                         >
                             {/* Panel header */}
                             <div className="p-4 border-b border-border bg-foreground/[0.02] flex items-center justify-between shrink-0">
@@ -1047,7 +1047,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-96 bg-card border border-border shadow-2xl rounded-3xl z-[100] flex flex-col overflow-hidden max-h-[85vh] transition-all"
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-96 bg-card border border-border shadow-2xl rounded-3xl z-[100] flex flex-col overflow-hidden max-h-[85vh]"
                         >
                             <div className="p-4 border-b border-border bg-foreground/[0.02] flex items-center justify-between shrink-0">
                                 <div>
@@ -1146,7 +1146,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-96 bg-card border border-border shadow-2xl rounded-3xl z-[100] flex flex-col overflow-hidden max-h-[85vh] transition-all"
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-96 bg-card border border-border shadow-2xl rounded-3xl z-[100] flex flex-col overflow-hidden max-h-[85vh]"
                         >
                             {/* Header */}
                             <div className="p-4 border-b border-border bg-foreground/[0.02] flex items-center justify-between shrink-0">
