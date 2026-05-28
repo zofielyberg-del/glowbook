@@ -55,25 +55,12 @@ export default function CalendarPage() {
     }, []);
 
     const handleCancelAppointment = async (aptId: string) => {
-        // 1. Sync deletion to database immediately using bypassPolicy
-        try {
-            const res = await fetch('/api/bookings/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ appointmentId: aptId, bypassPolicy: true })
-            });
-            const result = await res.json();
-            if (!res.ok) {
-                console.warn('Database cancellation note:', result.error);
-            }
-        } catch (e) {
-            console.error('Failed to sync database cancellation:', e);
-        }
-
-        // 2. Keep local sessionStorage & localStorage updated
+        // 1. Keep local sessionStorage & localStorage updated immediately (Optimistic UI)
         const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+        let dataId: string | null = null;
         if (saved) {
             const data = JSON.parse(saved);
+            dataId = data.id;
             const appointments = data.appointments || [];
             const filtered = appointments.filter((a: any) => a.id !== aptId);
             const updatedData = { ...data, appointments: filtered };
@@ -82,30 +69,47 @@ export default function CalendarPage() {
             localStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
         }
 
-        // 3. Background fetch fresh data from server
-        const savedData = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
-        if (savedData) {
-            const data = JSON.parse(savedData);
-            if (data.id) {
+        // 2. Dispatch event to update the UI instantly
+        window.dispatchEvent(new Event('glowbook_update'));
+
+        // 3. Trigger cancellation and background sync asynchronously
+        (async () => {
+            try {
+                const res = await fetch('/api/bookings/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ appointmentId: aptId, bypassPolicy: true })
+                });
+                const result = await res.json();
+                if (!res.ok) {
+                    console.warn('Database cancellation note:', result.error);
+                }
+            } catch (e) {
+                console.error('Failed to sync database cancellation:', e);
+            }
+
+            // Background fetch fresh data from server to ensure everything is perfectly aligned
+            if (dataId) {
                 try {
-                    const response = await fetch(`/api/salons/get?id=${data.id}&_t=${Date.now()}`);
+                    const response = await fetch(`/api/salons/get?id=${dataId}&_t=${Date.now()}`);
                     const serverResult = await response.json();
                     if (serverResult.success) {
-                        const currentSaved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon') || savedData;
-                        const currentData = JSON.parse(currentSaved);
-                        const merged = { 
-                            ...currentData, 
-                            ...serverResult.salon,
-                            availability: currentData.availability || serverResult.salon.availability
-                        };
-                        sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
-                        localStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                        const currentSaved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+                        if (currentSaved) {
+                            const currentData = JSON.parse(currentSaved);
+                            const merged = { 
+                                ...currentData, 
+                                ...serverResult.salon,
+                                availability: currentData.availability || serverResult.salon.availability
+                            };
+                            sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                            localStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                            window.dispatchEvent(new Event('glowbook_update'));
+                        }
                     }
                 } catch (e) {}
             }
-        }
-
-        window.dispatchEvent(new Event('glowbook_update'));
+        })();
     };
 
     const WEEKDAYS = [
@@ -163,29 +167,33 @@ export default function CalendarPage() {
             availability: updatedFrames
         };
 
-        // Sync to server (sending optimized light payload)
-        try {
-            const response = await fetch('/api/salons/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: data.id, availability: updatedFrames })
-            });
-
-            if (!response.ok) {
-                console.error('Failed to sync to server');
-            }
-        } catch (e) {
-            console.error('Network error during sync:', e);
-        }
-
+        // 1. Update localStorage & sessionStorage instantly (Optimistic UI)
         localStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
 
-        // Dispatch event for same-tab update
+        // 2. Dispatch event to update the same-tab calendar instantly
         window.dispatchEvent(new Event('glowbook_update'));
 
+        // 3. Close the modal and reset day selection instantly!
         setIsPostingTimes(false);
         setSelectedFrames([]);
+
+        // 4. Sync to server in the background (asynchronously)
+        (async () => {
+            try {
+                const response = await fetch('/api/salons/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: data.id, availability: updatedFrames })
+                });
+
+                if (!response.ok) {
+                    console.error('Failed to sync to server');
+                }
+            } catch (e) {
+                console.error('Network error during sync:', e);
+            }
+        })();
     };
 
     return (
