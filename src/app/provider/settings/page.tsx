@@ -88,7 +88,7 @@ function SettingsContent() {
                 // Then try to fetch fresh data from server if it has a real ID
                 if (localData.id && localData.id.length > 20) {
                     try {
-                        const response = await fetch(`/api/salons/get?id=${localData.id}`);
+                        const response = await fetch(`/api/salons/get?id=${localData.id}&_t=${Date.now()}`);
                         const serverData = await response.json();
                         if (serverData.success && serverData.salon) {
                             const salon = serverData.salon;

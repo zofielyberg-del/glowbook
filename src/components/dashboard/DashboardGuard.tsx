@@ -37,7 +37,7 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
                     if (saved) {
                         const localData = JSON.parse(saved);
                         if (localData.id && localData.id.length > 20) {
-                            const response = await fetch(`/api/salons/get?id=${localData.id}`);
+                            const response = await fetch(`/api/salons/get?id=${localData.id}&_t=${Date.now()}`);
                             const data = await response.json();
                             if (data.success && data.salon) {
                                 // Merge category arrays properly if needed

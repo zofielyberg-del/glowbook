@@ -34,7 +34,7 @@ export function useAuth() {
 
             // 🔄 Background Sync: Refresh data from server without blocking the UI
             if (data.id && data.id.length > 20) {
-                fetch(`/api/salons/get?id=${data.id}`)
+                fetch(`/api/salons/get?id=${data.id}&_t=${Date.now()}`)
                     .then(res => res.json())
                     .then(serverResult => {
                         if (serverResult.success) {

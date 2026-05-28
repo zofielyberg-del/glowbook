@@ -286,7 +286,7 @@ export default function ProviderDashboard() {
             const data = JSON.parse(savedData);
             if (data.id) {
                 try {
-                    const response = await fetch(`/api/salons/get?id=${data.id}`);
+                    const response = await fetch(`/api/salons/get?id=${data.id}&_t=${Date.now()}`);
                     const serverResult = await response.json();
                     if (serverResult.success) {
                         const merged = { ...data, ...serverResult.salon };
