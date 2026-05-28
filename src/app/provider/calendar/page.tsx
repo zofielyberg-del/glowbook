@@ -30,7 +30,8 @@ export default function CalendarPage() {
         // Start of current week (Monday)
         let monday = startOfWeek(now, { weekStartsOn: 1 });
         
-        for (let i = 0; i < 6; i++) {
+        // Extended from 6 to 12 weeks to allow scheduling into July, August and beyond
+        for (let i = 0; i < 12; i++) {
             const start = addDays(monday, i * 7);
             const end = addDays(start, 6);
             const weekNum = format(start, 'w', { locale: sv });
@@ -156,12 +157,12 @@ export default function CalendarPage() {
             availability: updatedFrames
         };
 
-        // Sync to server
+        // Sync to server (sending optimized light payload)
         try {
             const response = await fetch('/api/salons/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedData)
+                body: JSON.stringify({ id: data.id, availability: updatedFrames })
             });
 
             if (!response.ok) {

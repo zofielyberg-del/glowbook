@@ -194,7 +194,8 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         const saved = localStorage.getItem('glowbook_salon');
         if (!saved) return;
         const data = JSON.parse(saved);
-        const updatedData = { ...data, availability: updatedAvailability };
+        // Send only id and availability to optimize request size & speed
+        const updatedData = { id: data.id, availability: updatedAvailability };
 
         try {
             await fetch('/api/salons/update', {
@@ -389,7 +390,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     };
 
     // Remove a free segment from a frame (split the frame around booked parts)
-    const removeSegment = (frame: TimeFrame, segStart: string, segEnd: string) => {
+    const removeSegment = async (frame: TimeFrame, segStart: string, segEnd: string) => {
         const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         if (!saved) return;
         const data = JSON.parse(saved);
@@ -424,13 +425,13 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         data.availability = remaining;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
-        syncWithServer(remaining);
+        await syncWithServer(remaining);
         window.dispatchEvent(new Event('glowbook_update'));
         setEditingFrame(null);
     };
 
     // Delete the entire frame (only if no bookings)
-    const deleteFrame = (frame: TimeFrame) => {
+    const deleteFrame = async (frame: TimeFrame) => {
         const overlapping = getAppointmentsInFrame(frame);
         if (overlapping.length > 0) {
             setConflictWarning(`Kan inte ta bort — det finns ${overlapping.length} bokning(ar) i detta tidsblock. Avboka dem först.`);
@@ -444,13 +445,13 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         data.availability = updatedAvailability;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
-        syncWithServer(updatedAvailability);
+        await syncWithServer(updatedAvailability);
         window.dispatchEvent(new Event('glowbook_update'));
         setEditingFrame(null);
     };
 
     // Update frame times (with booking protection)
-    const updateFrameTimes = (frame: TimeFrame, newStart: string, newEnd: string) => {
+    const updateFrameTimes = async (frame: TimeFrame, newStart: string, newEnd: string) => {
         const newStartMins = timeToMins(newStart);
         const newEndMins = timeToMins(newEnd);
         const newDuration = newEndMins - newStartMins;
@@ -481,7 +482,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             data.availability = frames;
             localStorage.setItem('glowbook_salon', JSON.stringify(data));
             sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
-            syncWithServer(frames);
+            await syncWithServer(frames);
             window.dispatchEvent(new Event('glowbook_update'));
 
             // Update editing frame
@@ -492,7 +493,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     };
 
     // Add new availability slot
-    const addNewSlot = () => {
+    const addNewSlot = async () => {
         if (!addingSlot) return;
         const fromMins = timeToMins(newSlotTimes.from);
         const toMins = timeToMins(newSlotTimes.to);
@@ -517,7 +518,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         data.availability = updatedAvailability;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
-        syncWithServer(updatedAvailability);
+        await syncWithServer(updatedAvailability);
         window.dispatchEvent(new Event('glowbook_update'));
         setAddingSlot(null);
     };
