@@ -497,7 +497,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         const removeEnd = timeToMins(segEnd);
 
         // Remove the original frame
-        const remaining = frames.filter(f => f.id !== frame.id);
+        const remaining = frames.filter(f => String(f.id) !== String(frame.id));
 
         // Add back the parts that remain (before and after the removed segment)
         if (removeStart > frameStart) {
@@ -540,7 +540,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         if (!saved) return;
         const data = JSON.parse(saved);
-        const updatedAvailability = (data.availability || []).filter((f: any) => f.id !== frame.id);
+        const updatedAvailability = (data.availability || []).filter((f: any) => String(f.id) !== String(frame.id));
         data.availability = updatedAvailability;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
@@ -579,7 +579,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         if (!saved) return;
         const data = JSON.parse(saved);
         const frames: TimeFrame[] = data.availability || [];
-        const idx = frames.findIndex(f => f.id === frame.id);
+        const idx = frames.findIndex(f => String(f.id) === String(frame.id));
         if (idx !== -1) {
             frames[idx] = { ...frames[idx], startTime: newStart, duration: newDuration };
             data.availability = frames;
@@ -779,7 +779,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                         return true;
                                     }).map(frame => {
                                         const segments = getFrameSegments(frame, day);
-                                        const isEditing = editingFrame?.frame.id === frame.id;
+                                        const isEditing = editingFrame && String(editingFrame.frame.id) === String(frame.id);
                                         const hasBookings = segments.some(s => s.type === 'booked');
                                         const frameStartMins = timeToMins(frame.startTime);
                                         const frameEndMins = frameStartMins + (frame.duration || 40);
