@@ -27,7 +27,7 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'Missing salonId or serviceId' }, { status: 400 });
         }
 
-        const fourWeeksFromNow = addDays(new Date(), 28);
+        const twelveWeeksFromNow = addDays(new Date(), 84);
 
         // Run both DB queries in parallel for max speed
         const [salon, service] = await Promise.all([
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
                     appointments: {
                         where: {
                             status: { not: 'cancelled' },
-                            start_time: { gte: new Date(), lte: fourWeeksFromNow }
+                            start_time: { gte: new Date(), lte: twelveWeeksFromNow }
                         }
                     }
                 }
@@ -60,8 +60,8 @@ export async function GET(req: Request) {
         const currentDayIdx = (now.getDay() + 6) % 7;
         const currentMins = now.getHours() * 60 + now.getMinutes();
         
-        // Generate availability for the current week and the next 4 weeks
-        const weeksToGenerate = 4;
+        // Generate availability for the current week and the next 12 weeks
+        const weeksToGenerate = 12;
         const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
 
         const isLuxe = (salon.membership_tier || 'bas').toLowerCase() === 'luxe';
