@@ -289,7 +289,13 @@ export default function ProviderDashboard() {
                     const response = await fetch(`/api/salons/get?id=${data.id}&_t=${Date.now()}`);
                     const serverResult = await response.json();
                     if (serverResult.success) {
-                        const merged = { ...data, ...serverResult.salon };
+                        const currentSaved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon') || savedData;
+                        const currentData = JSON.parse(currentSaved);
+                        const merged = { 
+                            ...currentData, 
+                            ...serverResult.salon,
+                            availability: currentData.availability || serverResult.salon.availability
+                        };
                         sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
                         localStorage.setItem('glowbook_salon', JSON.stringify(merged));
                     }

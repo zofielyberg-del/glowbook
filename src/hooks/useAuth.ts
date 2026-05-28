@@ -38,7 +38,14 @@ export function useAuth() {
                     .then(res => res.json())
                     .then(serverResult => {
                         if (serverResult.success) {
-                            const refreshedData = { ...data, ...serverResult.salon };
+                            const currentSaved = sessionStorage.getItem('glowbook_salon');
+                            const currentData = currentSaved ? JSON.parse(currentSaved) : data;
+                            const refreshedData = { 
+                                ...currentData, 
+                                ...serverResult.salon,
+                                // Keep local availability as the provider's active session is the absolute source of truth
+                                availability: currentData.availability || serverResult.salon.availability
+                            };
                             sessionStorage.setItem('glowbook_salon', JSON.stringify(refreshedData));
                             setState({ user: refreshedData, role, isLoading: false });
                         } else if (serverResult.error === 'Salon not found') {

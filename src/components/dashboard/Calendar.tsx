@@ -91,7 +91,25 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                 const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
                 if (saved) {
                     const data = JSON.parse(saved);
-                    if (data.availability) setInternalAvailability(data.availability);
+                    if (data.availability) {
+                        let hasChanges = false;
+                        const normalized = data.availability.map((f: any) => {
+                            if (!f.id) {
+                                hasChanges = true;
+                                return { ...f, id: `frame-${f.dayIndex}-${f.startTime}` };
+                            }
+                            return f;
+                        });
+                        if (hasChanges) {
+                            data.availability = normalized;
+                            sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
+                            localStorage.setItem('glowbook_salon', JSON.stringify(data));
+                            setTimeout(() => {
+                                syncWithServer(normalized);
+                            }, 50);
+                        }
+                        setInternalAvailability(normalized);
+                    }
                     if (data.appointments) {
                         const mapped = data.appointments.map((apt: any) => {
                             const sDate = apt.start_time ? new Date(apt.start_time) : null;
@@ -425,9 +443,13 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         data.availability = remaining;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
+        
+        // Optimistic update
+        setInternalAvailability(remaining);
+        setEditingFrame(null);
+
         await syncWithServer(remaining);
         window.dispatchEvent(new Event('glowbook_update'));
-        setEditingFrame(null);
     };
 
     // Delete the entire frame (only if no bookings)
@@ -445,9 +467,13 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         data.availability = updatedAvailability;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
+        
+        // Optimistic update
+        setInternalAvailability(updatedAvailability);
+        setEditingFrame(null);
+
         await syncWithServer(updatedAvailability);
         window.dispatchEvent(new Event('glowbook_update'));
-        setEditingFrame(null);
     };
 
     // Update frame times (with booking protection)
@@ -482,13 +508,15 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             data.availability = frames;
             localStorage.setItem('glowbook_salon', JSON.stringify(data));
             sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
-            await syncWithServer(frames);
-            window.dispatchEvent(new Event('glowbook_update'));
-
-            // Update editing frame
+            
+            // Optimistic update
+            setInternalAvailability(frames);
             const updatedFrame = frames[idx];
             const segments = getFrameSegments(updatedFrame);
             setEditingFrame({ frame: updatedFrame, dayIndex: updatedFrame.dayIndex, segments });
+
+            await syncWithServer(frames);
+            window.dispatchEvent(new Event('glowbook_update'));
         }
     };
 
@@ -518,9 +546,13 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         data.availability = updatedAvailability;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
+        
+        // Optimistic update
+        setInternalAvailability(updatedAvailability);
+        setAddingSlot(null);
+
         await syncWithServer(updatedAvailability);
         window.dispatchEvent(new Event('glowbook_update'));
-        setAddingSlot(null);
     };
 
     const prevWeek = () => setCurrentDate(addDays(currentDate, -7));
@@ -692,7 +724,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                 <div
                                                     onClick={(e) => handleFrameClick(frame, e, day)}
                                                     className={clsx(
-                                                        "absolute inset-x-0.5 rounded-lg z-[5] cursor-pointer transition-all",
+                                                        "group/frame absolute inset-x-0.5 rounded-lg z-[5] cursor-pointer transition-all",
                                                         isEditing
                                                             ? "ring-2 ring-emerald-400 ring-offset-1 ring-offset-background shadow-xl shadow-emerald-500/20 z-[15]"
                                                             : "hover:shadow-lg hover:z-10"
