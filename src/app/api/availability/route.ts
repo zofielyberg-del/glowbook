@@ -89,13 +89,9 @@ export async function GET(req: Request) {
                 });
             }
 
-            // Final fallback if STILL empty
+            // Final fallback if STILL empty (Disabled: Only show times that the provider has actually posted)
             if (salonAvailability.length === 0) {
-                salonAvailability = [0, 1, 2, 3, 4, 5, 6].map(dayIndex => ({
-                    dayIndex,
-                    startTime: '10:00',
-                    duration: 540
-                }));
+                salonAvailability = [];
             }
         }
 
