@@ -43,7 +43,7 @@ export async function POST(req: Request) {
                 country: salonInfo.country,
                 slug: salonInfo.slug,
                 category: salonInfo.category,
-                categories: salonInfo.categories || [],
+                categories: salonInfo.categories !== undefined ? salonInfo.categories : (existing ? existing.categories : []),
                 // 🎯 Race-Condition Protection: Fall back to existing database assets if payload is empty/null
                 logo_url: salonInfo.profileImage || salonInfo.logo_url || (existing ? existing.logo_url : null),
                 banner_url: salonInfo.backgroundImage || salonInfo.banner_url || (existing ? existing.banner_url : null),
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
                     : (salonInfo.gallery_images && salonInfo.gallery_images.length > 0)
                         ? salonInfo.gallery_images
                         : (existing ? existing.gallery_images : []),
-                membership_tier: (salonInfo.tier || salonInfo.membership_tier || 'bas').toLowerCase(),
+                membership_tier: (salonInfo.tier || salonInfo.membership_tier || (existing ? existing.membership_tier : 'bas')).toLowerCase(),
                 availability: salonInfo.availability !== undefined ? salonInfo.availability : (existing ? existing.availability : []),
                 duration: salonInfo.duration !== undefined ? parseInt(salonInfo.duration) : undefined,
                 cancellation_window_hours: salonInfo.cancellation_window_hours !== undefined ? parseInt(salonInfo.cancellation_window_hours) : 24
