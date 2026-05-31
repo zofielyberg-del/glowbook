@@ -691,6 +691,13 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         }
 
         connectSSE();
+
+        // Polling fallback: ensures slots that just got booked by other customers disappear
+        // in real-time even on Vercel serverless where SSE EventEmitter is per-instance and
+        // won't fire cross-instance. 5s polling is imperceptible to users and reliable.
+        const pollInterval = setInterval(() => {
+            if (isMounted) fetchAvailability();
+        }, 5000);
         
         return () => {
             isMounted = false;
@@ -700,6 +707,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             if (retryTimeout) {
                 clearTimeout(retryTimeout);
             }
+            clearInterval(pollInterval);
         };
     }, [salon, selectedService, selectedPractitioner]);
     const matchingPractitioners = useMemo(() => {

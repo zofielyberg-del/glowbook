@@ -110,9 +110,9 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                             data.availability = normalized;
                             sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
                             localStorage.setItem('glowbook_salon', JSON.stringify(data));
-                            setTimeout(() => {
-                                syncWithServer(normalized);
-                            }, 50);
+                            // NOTE: Do NOT call syncWithServer() here — this runs on every mount and would
+                            // trigger a server write + SSE emit + re-fetch loop causing constant flickering.
+                            // ID normalization is a local-only concern.
                         }
                         setInternalAvailability(normalized);
                     }
@@ -189,14 +189,15 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                     const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
                     if (saved) {
                         const currentData = JSON.parse(saved);
-                        // Optimize: Check if appointments or availability actually changed to prevent redundant rerenders & flickering
-                        const currentApptsStr = JSON.stringify(currentData.appointments || []);
-                        const serverApptsStr = JSON.stringify(resData.salon.appointments || []);
-                        const currentAvailStr = JSON.stringify(currentData.availability || []);
-                        const serverAvailStr = JSON.stringify(resData.salon.availability || []);
+                        // Use ID-based comparison (not full JSON.stringify) to avoid false positives
+                        // caused by client-side ID normalization producing different strings than server IDs.
+                        const currentAptIds = (currentData.appointments || []).map((a: any) => a.id).sort().join('|');
+                        const serverAptIds = (resData.salon.appointments || []).map((a: any) => a.id).sort().join('|');
+                        const currentAvailCount = (currentData.availability || []).length;
+                        const serverAvailCount = (resData.salon.availability || []).length;
 
-                        if (currentApptsStr === serverApptsStr && currentAvailStr === serverAvailStr) {
-                            console.log('[SSE] No changes detected in appointments or availability. Skipping redraw.');
+                        if (currentAptIds === serverAptIds && currentAvailCount === serverAvailCount) {
+                            console.log('[SSE] No structural changes detected. Skipping redraw.');
                             return;
                         }
 
@@ -209,9 +210,10 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                         localStorage.setItem('glowbook_salon', JSON.stringify(merged));
                         sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
                         
-                        // Force redraw
+                        // Call loadData() ONCE — do NOT also dispatch 'glowbook_update' here.
+                        // Dispatching glowbook_update would trigger the 'glowbook_update' listener
+                        // which calls loadData() AGAIN → double render → flickering.
                         loadData();
-                        window.dispatchEvent(new Event('glowbook_update'));
                     }
                 }
             } catch (err) {
@@ -257,6 +259,20 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
         connectSSE();
 
+        // Polling fallback: SSE uses a process-singleton EventEmitter which won't work
+        // across serverless function instances (e.g. Vercel). Polling every 15s guarantees
+        // providers always see new bookings even if SSE doesn't fire.
+        const pollInterval = setInterval(() => {
+            if (!isMounted) return;
+            const savedForPoll = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+            if (savedForPoll) {
+                try {
+                    const salonForPoll = JSON.parse(savedForPoll);
+                    if (salonForPoll.id) refreshSalonData(salonForPoll.id);
+                } catch (e) {}
+            }
+        }, 15000);
+
         return () => {
             isMounted = false;
             window.removeEventListener('storage', loadData);
@@ -267,6 +283,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             if (retryTimeout) {
                 clearTimeout(retryTimeout);
             }
+            clearInterval(pollInterval);
         };
     }, []);
 
@@ -405,13 +422,12 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             const bookedPids = overlapping.map((apt: any) => apt.practitioner_id || apt.practitionerId || 'owner');
             const allBooked = frame.practitionerIds.every(pid => bookedPids.includes(pid));
             if (!allBooked) {
-                // Find the actual free practitioner and assign them to this frame
-                const firstFreePid = frame.practitionerIds.find(pid => !bookedPids.includes(pid));
-                if (firstFreePid) {
-                    frame.practitionerId = firstFreePid;
-                }
-                
-                // At least one qualified practitioner is free, so the slot remains free
+                // Find the first free practitioner — do NOT mutate frame.practitionerId directly.
+                // Mutating during render causes instability: React sees changed props on child
+                // components and triggers extra re-renders, visible as flickering.
+                // The correct practitionerId from /api/availability is already on the frame
+                // in customer mode; in provider mode onSelectSlot is not used.
+                // At least one qualified practitioner is free, so the slot remains free.
                 return [{ start: frame.startTime, end: minsToTime(frameEnd), type: 'free' }];
             }
         }
