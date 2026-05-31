@@ -44,7 +44,7 @@ export function useAuth() {
                                 ...currentData, 
                                 ...serverResult.salon,
                                 // Keep local availability as the provider's active session is the absolute source of truth
-                                availability: currentData.availability || serverResult.salon.availability
+                                availability: serverResult.salon.availability || currentData.availability
                             };
                             sessionStorage.setItem('glowbook_salon', JSON.stringify(refreshedData));
                             setState({ user: refreshedData, role, isLoading: false });

@@ -203,7 +203,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                         const merged = {
                             ...currentData,
                             ...resData.salon,
-                            availability: currentData.availability, // Preserve local availability during background updates to prevent race conditions & flickering
+                            availability: resData.salon.availability || currentData.availability,
                             appointments: resData.salon.appointments || currentData.appointments
                         };
                         localStorage.setItem('glowbook_salon', JSON.stringify(merged));

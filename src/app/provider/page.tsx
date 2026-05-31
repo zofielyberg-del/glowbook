@@ -294,7 +294,7 @@ export default function ProviderDashboard() {
                         const merged = { 
                             ...currentData, 
                             ...serverResult.salon,
-                            availability: currentData.availability || serverResult.salon.availability
+                            availability: serverResult.salon.availability || currentData.availability
                         };
                         sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
                         localStorage.setItem('glowbook_salon', JSON.stringify(merged));
