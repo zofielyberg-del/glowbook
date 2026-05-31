@@ -580,7 +580,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             
             const sameTime = f.startTime === frame.startTime;
             const sameDuration = (f.duration || 40) === (frame.duration || 40);
-            const sameWeek = f.week === frame.week;
+            const sameWeek = (f as any).week === (frame as any).week;
             
             if (sameTime && sameDuration && sameWeek) {
                 const otherOverlapping = getAppointmentsInFrame(f);
