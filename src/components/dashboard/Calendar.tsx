@@ -98,9 +98,11 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                     if (data.availability) {
                         let hasChanges = false;
                         const normalized = data.availability.map((f: any) => {
-                            if (!f.id) {
+                            const hasWeekSuffix = f.week && f.id && f.id.includes(f.week);
+                            if (!f.id || (f.week && !hasWeekSuffix && f.id.startsWith('frame-'))) {
                                 hasChanges = true;
-                                return { ...f, id: `frame-${f.dayIndex}-${f.startTime}` };
+                                const weekSuffix = f.week ? `-${f.week}` : '';
+                                return { ...f, id: `frame-${f.dayIndex}-${f.startTime}${weekSuffix}` };
                             }
                             return f;
                         });
