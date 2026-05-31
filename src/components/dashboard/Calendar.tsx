@@ -187,6 +187,17 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                     const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
                     if (saved) {
                         const currentData = JSON.parse(saved);
+                        // Optimize: Check if appointments or availability actually changed to prevent redundant rerenders & flickering
+                        const currentApptsStr = JSON.stringify(currentData.appointments || []);
+                        const serverApptsStr = JSON.stringify(resData.salon.appointments || []);
+                        const currentAvailStr = JSON.stringify(currentData.availability || []);
+                        const serverAvailStr = JSON.stringify(resData.salon.availability || []);
+
+                        if (currentApptsStr === serverApptsStr && currentAvailStr === serverAvailStr) {
+                            console.log('[SSE] No changes detected in appointments or availability. Skipping redraw.');
+                            return;
+                        }
+
                         const merged = {
                             ...currentData,
                             ...resData.salon,
