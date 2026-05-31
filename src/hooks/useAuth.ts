@@ -65,15 +65,12 @@ export function useAuth() {
             
             // 🔄 Background verify
             if (data.id && data.id.length > 20) {
-                fetch(`/api/admin/data`)
+                fetch(`/api/auth/verify?id=${data.id}`)
                     .then(res => res.json())
                     .then(result => {
-                        if (result.success) {
-                            const exists = result.users.some((u: any) => u.id === data.id);
-                            if (!exists) {
-                                sessionStorage.removeItem('glowbook_customer');
-                                setState({ user: null, role: 'guest', isLoading: false });
-                            }
+                        if (result.success && !result.exists) {
+                            sessionStorage.removeItem('glowbook_customer');
+                            setState({ user: null, role: 'guest', isLoading: false });
                         }
                     })
                     .catch(() => {});

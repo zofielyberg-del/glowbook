@@ -6,9 +6,9 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const createPrismaClient = () => {
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
-    max: 2, // Keep connections low in serverless/Vercel environments
+    max: 5, // Keep connections reasonable but allow concurrency under transient load
     idleTimeoutMillis: 15000, // Close idle connections quickly (15 seconds)
-    connectionTimeoutMillis: 5000, // Error out if connection takes too long
+    connectionTimeoutMillis: 10000, // Allow up to 10 seconds to establish a connection under load
   });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
