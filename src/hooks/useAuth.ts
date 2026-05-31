@@ -40,11 +40,14 @@ export function useAuth() {
                         if (serverResult.success) {
                             const currentSaved = sessionStorage.getItem('glowbook_salon');
                             const currentData = currentSaved ? JSON.parse(currentSaved) : data;
+                            const lastMutation = localStorage.getItem('glowbook_last_mutation') || sessionStorage.getItem('glowbook_last_mutation');
+                            const isRecentMutation = lastMutation && (Date.now() - Number(lastMutation) < 4000);
                             const refreshedData = { 
                                 ...currentData, 
                                 ...serverResult.salon,
-                                // Keep local availability as the provider's active session is the absolute source of truth
-                                availability: serverResult.salon.availability || currentData.availability
+                                availability: isRecentMutation 
+                                    ? currentData.availability 
+                                    : (serverResult.salon.availability || currentData.availability)
                             };
                             sessionStorage.setItem('glowbook_salon', JSON.stringify(refreshedData));
                             setState({ user: refreshedData, role, isLoading: false });

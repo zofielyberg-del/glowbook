@@ -575,7 +575,20 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         if (!saved) return;
         const data = JSON.parse(saved);
-        const updatedAvailability = (data.availability || []).filter((f: any) => String(f.id) !== String(frame.id));
+        const updatedAvailability = (data.availability || []).filter((f: any) => {
+            if (String(f.id) === String(frame.id)) return false;
+            
+            const sameTime = f.startTime === frame.startTime;
+            const sameDuration = (f.duration || 40) === (frame.duration || 40);
+            const sameWeek = f.week === frame.week;
+            
+            if (sameTime && sameDuration && sameWeek) {
+                const otherOverlapping = getAppointmentsInFrame(f);
+                if (otherOverlapping.length > 0) return true; // Protect active bookings
+                return false;
+            }
+            return true;
+        });
         data.availability = updatedAvailability;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
