@@ -320,7 +320,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     };
 
     const syncWithServer = async (updatedAvailability: TimeFrame[]) => {
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
         if (!saved) return;
         const data = JSON.parse(saved);
         // Send only id and availability to optimize request size & speed

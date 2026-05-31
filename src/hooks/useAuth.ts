@@ -50,9 +50,11 @@ export function useAuth() {
                                     : (serverResult.salon.availability || currentData.availability)
                             };
                             sessionStorage.setItem('glowbook_salon', JSON.stringify(refreshedData));
+                            localStorage.setItem('glowbook_salon', JSON.stringify(refreshedData));
                             setState({ user: refreshedData, role, isLoading: false });
                         } else if (serverResult.error === 'Salon not found') {
                             sessionStorage.removeItem('glowbook_salon');
+                            localStorage.removeItem('glowbook_salon');
                             setState({ user: null, role: 'guest', isLoading: false });
                         }
                     })
