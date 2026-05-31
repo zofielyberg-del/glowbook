@@ -97,10 +97,14 @@ export default function CalendarPage() {
                         const currentSaved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
                         if (currentSaved) {
                             const currentData = JSON.parse(currentSaved);
+                            const lastMutation = localStorage.getItem('glowbook_last_mutation') || sessionStorage.getItem('glowbook_last_mutation');
+                            const isRecentMutation = lastMutation && (Date.now() - Number(lastMutation) < 4000);
                             const merged = { 
                                 ...currentData, 
                                 ...serverResult.salon,
-                                availability: serverResult.salon.availability || currentData.availability
+                                availability: isRecentMutation 
+                                    ? currentData.availability 
+                                    : (serverResult.salon.availability || currentData.availability)
                             };
                             sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
                             localStorage.setItem('glowbook_salon', JSON.stringify(merged));
@@ -170,6 +174,8 @@ export default function CalendarPage() {
         // 1. Update localStorage & sessionStorage instantly (Optimistic UI)
         localStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
+        localStorage.setItem('glowbook_last_mutation', Date.now().toString());
+        sessionStorage.setItem('glowbook_last_mutation', Date.now().toString());
 
         // 2. Dispatch event to update the same-tab calendar instantly
         window.dispatchEvent(new Event('glowbook_update'));

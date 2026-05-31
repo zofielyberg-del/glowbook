@@ -201,10 +201,14 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                             return;
                         }
 
+                        const lastMutation = localStorage.getItem('glowbook_last_mutation') || sessionStorage.getItem('glowbook_last_mutation');
+                        const isRecentMutation = lastMutation && (Date.now() - Number(lastMutation) < 4000);
                         const merged = {
                             ...currentData,
                             ...resData.salon,
-                            availability: resData.salon.availability || currentData.availability,
+                            availability: isRecentMutation 
+                                ? currentData.availability 
+                                : (resData.salon.availability || currentData.availability),
                             appointments: resData.salon.appointments || currentData.appointments
                         };
                         localStorage.setItem('glowbook_salon', JSON.stringify(merged));
@@ -549,6 +553,8 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         data.availability = remaining;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
+        localStorage.setItem('glowbook_last_mutation', Date.now().toString());
+        sessionStorage.setItem('glowbook_last_mutation', Date.now().toString());
         
         // Optimistic update
         setInternalAvailability(remaining);
@@ -573,6 +579,8 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         data.availability = updatedAvailability;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
+        localStorage.setItem('glowbook_last_mutation', Date.now().toString());
+        sessionStorage.setItem('glowbook_last_mutation', Date.now().toString());
         
         // Optimistic update
         setInternalAvailability(updatedAvailability);
@@ -614,6 +622,8 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             data.availability = frames;
             localStorage.setItem('glowbook_salon', JSON.stringify(data));
             sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
+            localStorage.setItem('glowbook_last_mutation', Date.now().toString());
+            sessionStorage.setItem('glowbook_last_mutation', Date.now().toString());
             
             // Optimistic update
             setInternalAvailability(frames);
@@ -652,6 +662,8 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         data.availability = updatedAvailability;
         localStorage.setItem('glowbook_salon', JSON.stringify(data));
         sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
+        localStorage.setItem('glowbook_last_mutation', Date.now().toString());
+        sessionStorage.setItem('glowbook_last_mutation', Date.now().toString());
         
         // Optimistic update
         setInternalAvailability(updatedAvailability);

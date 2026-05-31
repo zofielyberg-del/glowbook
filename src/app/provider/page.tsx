@@ -291,10 +291,14 @@ export default function ProviderDashboard() {
                     if (serverResult.success) {
                         const currentSaved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon') || savedData;
                         const currentData = JSON.parse(currentSaved);
+                        const lastMutation = localStorage.getItem('glowbook_last_mutation') || sessionStorage.getItem('glowbook_last_mutation');
+                        const isRecentMutation = lastMutation && (Date.now() - Number(lastMutation) < 4000);
                         const merged = { 
                             ...currentData, 
                             ...serverResult.salon,
-                            availability: serverResult.salon.availability || currentData.availability
+                            availability: isRecentMutation 
+                                ? currentData.availability 
+                                : (serverResult.salon.availability || currentData.availability)
                         };
                         sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
                         localStorage.setItem('glowbook_salon', JSON.stringify(merged));
