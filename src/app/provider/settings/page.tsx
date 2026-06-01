@@ -258,6 +258,7 @@ function SettingsContent() {
         }
 
         sessionStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
+        localStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 3000);
     };

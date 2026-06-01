@@ -182,8 +182,14 @@ export async function GET(req: Request) {
                 );
             });
 
-            // Match in JSON categories
-            queryTerms.forEach(term => {
+            // Match in JSON categories (support lowercase and Capitalized versions for case-insensitivity in JSON columns)
+            const jsonMatchTerms = Array.from(new Set([
+                ...queryTerms,
+                ...queryTerms.map(t => t.charAt(0).toUpperCase() + t.slice(1)),
+                ...queryTerms.map(t => t.toLowerCase())
+            ]));
+
+            jsonMatchTerms.forEach(term => {
                 orConditions.push(
                     { category: { path: [], string_contains: term } },
                     { categories: { path: [], string_contains: term } }
@@ -209,7 +215,7 @@ export async function GET(req: Request) {
                         OR: [
                             ...queryTerms.map(term => ({ name: { contains: term, mode: 'insensitive' as const } })),
                             ...queryTerms.map(term => ({ title: { contains: term, mode: 'insensitive' as const } })),
-                            ...queryTerms.map(term => ({ categories: { path: [], string_contains: term } }))
+                            ...jsonMatchTerms.map(term => ({ categories: { path: [], string_contains: term } }))
                         ]
                     }
                 }
@@ -233,11 +239,17 @@ export async function GET(req: Request) {
 
         // 3. Handle Category (Salon category OR Service category)
         if (category && category !== 'Alla' && category !== 'Nya') {
+            const lowerCat = category.toLowerCase();
+            const capitalizedCat = category.charAt(0).toUpperCase() + category.slice(1);
             (where.AND as any[]).push({
                 OR: [
                     { category: { path: [], string_contains: category } },
+                    { category: { path: [], string_contains: lowerCat } },
+                    { category: { path: [], string_contains: capitalizedCat } },
                     { categories: { path: [], string_contains: category } },
-                    { services: { some: { category: { equals: category } } } }
+                    { categories: { path: [], string_contains: lowerCat } },
+                    { categories: { path: [], string_contains: capitalizedCat } },
+                    { services: { some: { category: { equals: category, mode: 'insensitive' as const } } } }
                 ]
             });
         }
