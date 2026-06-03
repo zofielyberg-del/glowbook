@@ -24,14 +24,21 @@ export async function POST(req: Request) {
 
         // 2. Create Stripe Account if it doesn't exist
         if (!stripeAccountId) {
-            // Fetch owner email explicitly
+            // Fetch owner details explicitly
             let ownerEmail: string | undefined;
+            let ownerFirstName: string | undefined;
+            let ownerLastName: string | undefined;
+            let ownerPhone: string | undefined;
+
             if (salon.owner_id) {
                 const owner = await prisma.profile.findUnique({
                     where: { id: salon.owner_id },
-                    select: { email: true }
+                    select: { email: true, first_name: true, last_name: true, phone: true }
                 });
                 ownerEmail = owner?.email ?? undefined;
+                ownerFirstName = owner?.first_name ?? undefined;
+                ownerLastName = owner?.last_name ?? undefined;
+                ownerPhone = owner?.phone ?? undefined;
             }
 
             if (!ownerEmail) {
@@ -40,6 +47,7 @@ export async function POST(req: Request) {
 
             console.log(`Creating Stripe account for salon "${salon.name}" with email: ${ownerEmail}`);
 
+            // Pre-fill parameters (website, MCC, name, contact) to make Stripe Express onboarding extremely quick & easy
             const account = await stripe.accounts.create({
                 type: 'express',
                 country: 'SE',
@@ -52,6 +60,14 @@ export async function POST(req: Request) {
                 business_type: 'individual',
                 business_profile: {
                     name: salon.name,
+                    url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se'}/salon/${salon.id}`,
+                    mcc: '7298', // Health and Beauty Spas category (eliminates industry selection step)
+                },
+                individual: {
+                    first_name: ownerFirstName || undefined,
+                    last_name: ownerLastName || undefined,
+                    email: ownerEmail,
+                    phone: ownerPhone || undefined,
                 },
                 settings: {
                     payouts: {
