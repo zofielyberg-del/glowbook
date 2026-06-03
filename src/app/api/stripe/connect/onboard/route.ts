@@ -45,7 +45,20 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: 'Kunde inte hitta ägarens e-postadress' }, { status: 400 });
             }
 
-            console.log(`Creating Stripe account for salon "${salon.name}" with email: ${ownerEmail}`);
+            // Format phone to E.164 format (+46...) required by Stripe Connect
+            let formattedPhone: string | undefined;
+            if (ownerPhone) {
+                const cleaned = ownerPhone.replace(/[^\d+]/g, '');
+                if (cleaned.startsWith('+')) {
+                    formattedPhone = cleaned;
+                } else if (cleaned.startsWith('0')) {
+                    formattedPhone = '+46' + cleaned.substring(1);
+                } else {
+                    formattedPhone = '+46' + cleaned;
+                }
+            }
+
+            console.log(`Creating Stripe account for salon "${salon.name}" with email: ${ownerEmail}, phone: ${formattedPhone}`);
 
             // Pre-fill parameters (website, MCC, name, contact) to make Stripe Express onboarding extremely quick & easy
             const account = await stripe.accounts.create({
@@ -67,7 +80,7 @@ export async function POST(req: Request) {
                     first_name: ownerFirstName || undefined,
                     last_name: ownerLastName || undefined,
                     email: ownerEmail,
-                    phone: ownerPhone || undefined,
+                    phone: formattedPhone || undefined,
                 },
                 settings: {
                     payouts: {
