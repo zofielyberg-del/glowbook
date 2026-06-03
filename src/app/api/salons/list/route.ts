@@ -192,7 +192,9 @@ export async function GET(req: Request) {
             jsonMatchTerms.forEach(term => {
                 orConditions.push(
                     { category: { path: [], string_contains: term } },
-                    { categories: { path: [], string_contains: term } }
+                    { categories: { path: [], string_contains: term } },
+                    { category: { array_contains: term } },
+                    { categories: { array_contains: term } }
                 );
             });
 
@@ -215,7 +217,8 @@ export async function GET(req: Request) {
                         OR: [
                             ...queryTerms.map(term => ({ name: { contains: term, mode: 'insensitive' as const } })),
                             ...queryTerms.map(term => ({ title: { contains: term, mode: 'insensitive' as const } })),
-                            ...jsonMatchTerms.map(term => ({ categories: { path: [], string_contains: term } }))
+                            ...jsonMatchTerms.map(term => ({ categories: { path: [], string_contains: term } })),
+                            ...jsonMatchTerms.map(term => ({ categories: { array_contains: term } }))
                         ]
                     }
                 }
@@ -239,18 +242,54 @@ export async function GET(req: Request) {
 
         // 3. Handle Category (Salon category OR Service category)
         if (category && category !== 'Alla' && category !== 'Nya') {
-            const lowerCat = category.toLowerCase();
-            const capitalizedCat = category.charAt(0).toUpperCase() + category.slice(1);
+            const getCategoryTerms = (cat: string): string[] => {
+                const terms = [cat, cat.toLowerCase(), cat.charAt(0).toUpperCase() + cat.slice(1)];
+                const lower = cat.toLowerCase();
+                if (lower === 'hårvård' || lower === 'hair' || lower === 'frisör' || lower === 'frisor' || lower.includes('hår')) {
+                    terms.push('hair', 'hår', 'frisör', 'frisor', 'klippning', 'färgning', 'klipp', 'slingor', 'balayage', 'barber', 'skägg', 'shave', 'barberare');
+                } else if (lower === 'naglar' || lower === 'nails' || lower.includes('nagel')) {
+                    terms.push('nails', 'naglar', 'manikyr', 'pedikyr', 'gellack', 'akryl', 'gelé', 'gele', 'nagel', 'manicure', 'pedicure', 'shellac');
+                } else if (lower === 'fransar & bryn' || lower === 'fransar och bryn' || lower === 'lashes' || lower.includes('frans') || lower.includes('bryn')) {
+                    terms.push('lashes', 'fransar', 'bryn', 'brows', 'lashlift', 'browlift', 'vipper', 'eyebrows');
+                } else if (lower === 'massage' || lower === 'massage/spa' || lower.includes('spa')) {
+                    terms.push('massage', 'spa', 'avslappning', 'massasje', 'hieronta');
+                } else if (lower === 'hudvård' || lower === 'facial' || lower === 'skincare' || lower.includes('hud')) {
+                    terms.push('ansikte', 'hud', 'hudvård', 'facial', 'skincare', 'peeling', 'dermapen', 'microneedling', 'ansiktsbehandling', 'skin');
+                } else if (lower === 'makeup' || lower === 'smink') {
+                    terms.push('smink', 'makeup', 'sminkning', 'meikki', 'förðun', 'permanent makeup', 'pmu');
+                } else if (lower === 'tatuering' || lower === 'tattoo') {
+                    terms.push('tatuering', 'tattoo', 'gaddning', 'tatovering', 'tatuointi');
+                } else if (lower === 'piercing') {
+                    terms.push('piercing', 'pierca');
+                }
+                return Array.from(new Set(terms));
+            };
+
+            const terms = getCategoryTerms(category);
+            const orConditions: any[] = [];
+            
+            terms.forEach(term => {
+                const lowerTerm = term.toLowerCase();
+                const capitalizedTerm = term.charAt(0).toUpperCase() + term.slice(1);
+                orConditions.push(
+                    { category: { path: [], string_contains: term } },
+                    { category: { path: [], string_contains: lowerTerm } },
+                    { category: { path: [], string_contains: capitalizedTerm } },
+                    { categories: { path: [], string_contains: term } },
+                    { categories: { path: [], string_contains: lowerTerm } },
+                    { categories: { path: [], string_contains: capitalizedTerm } },
+                    { category: { array_contains: term } },
+                    { category: { array_contains: lowerTerm } },
+                    { category: { array_contains: capitalizedTerm } },
+                    { categories: { array_contains: term } },
+                    { categories: { array_contains: lowerTerm } },
+                    { categories: { array_contains: capitalizedTerm } },
+                    { services: { some: { category: { equals: term, mode: 'insensitive' as const } } } }
+                );
+            });
+            
             (where.AND as any[]).push({
-                OR: [
-                    { category: { path: [], string_contains: category } },
-                    { category: { path: [], string_contains: lowerCat } },
-                    { category: { path: [], string_contains: capitalizedCat } },
-                    { categories: { path: [], string_contains: category } },
-                    { categories: { path: [], string_contains: lowerCat } },
-                    { categories: { path: [], string_contains: capitalizedCat } },
-                    { services: { some: { category: { equals: category, mode: 'insensitive' as const } } } }
-                ]
+                OR: orConditions
             });
         }
 

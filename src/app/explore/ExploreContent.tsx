@@ -147,6 +147,29 @@ export default function ExploreContent() {
     const filteredSalons = useMemo(() => {
         const tierOrder: Record<string, number> = { 'luxe': 3, 'pro': 2, 'bas': 1 };
 
+        const getCategoryTerms = (cat: string): string[] => {
+            const terms = [cat, cat.toLowerCase()];
+            const lower = cat.toLowerCase();
+            if (lower === 'hårvård' || lower === 'hair' || lower === 'frisör' || lower === 'frisor' || lower.includes('hår')) {
+                terms.push('hair', 'hår', 'frisör', 'frisor', 'klippning', 'färgning', 'klipp', 'slingor', 'balayage', 'barber', 'skägg', 'shave', 'barberare');
+            } else if (lower === 'naglar' || lower === 'nails' || lower.includes('nagel')) {
+                terms.push('nails', 'naglar', 'manikyr', 'pedikyr', 'gellack', 'akryl', 'gelé', 'gele', 'nagel', 'manicure', 'pedicure', 'shellac');
+            } else if (lower === 'fransar & bryn' || lower === 'fransar och bryn' || lower === 'lashes' || lower.includes('frans') || lower.includes('bryn')) {
+                terms.push('lashes', 'fransar', 'bryn', 'brows', 'lashlift', 'browlift', 'vipper', 'eyebrows');
+            } else if (lower === 'massage' || lower === 'massage/spa' || lower.includes('spa')) {
+                terms.push('massage', 'spa', 'avslappning', 'massasje', 'hieronta');
+            } else if (lower === 'hudvård' || lower === 'facial' || lower === 'skincare' || lower.includes('hud')) {
+                terms.push('ansikte', 'hud', 'hudvård', 'facial', 'skincare', 'peeling', 'dermapen', 'microneedling', 'ansiktsbehandling', 'skin');
+            } else if (lower === 'makeup' || lower === 'smink') {
+                terms.push('smink', 'makeup', 'sminkning', 'meikki', 'förðun', 'permanent makeup', 'pmu');
+            } else if (lower === 'tatuering' || lower === 'tattoo') {
+                terms.push('tatuering', 'tattoo', 'gaddning', 'tatovering', 'tatuointi');
+            } else if (lower === 'piercing') {
+                terms.push('piercing', 'pierca');
+            }
+            return Array.from(new Set(terms));
+        };
+
         const filtered = salons.filter(s => {
             if (!s.name) return false;
 
@@ -169,6 +192,15 @@ export default function ExploreContent() {
                     });
                 } else if (typeof s.category === 'string') {
                     allSearchTerms.push(s.category.toLowerCase());
+                }
+            }
+            if (s.categories) {
+                if (Array.isArray(s.categories)) {
+                    s.categories.forEach((c: any) => {
+                        if (typeof c === 'string') allSearchTerms.push(c.toLowerCase());
+                    });
+                } else if (typeof s.categories === 'string') {
+                    allSearchTerms.push(s.categories.toLowerCase());
                 }
             }
             if (s.practitioners) {
@@ -197,8 +229,13 @@ export default function ExploreContent() {
 
             // Sidebar Category Filter
             const activeCat = (category || '').toLowerCase().trim();
-            const matchesCategory = !activeCat || activeCat === 'alla' || activeCat === 'nya' ||
-                allSearchTerms.some(term => term.includes(activeCat));
+            let matchesCategory = !activeCat || activeCat === 'alla' || activeCat === 'nya';
+            if (!matchesCategory) {
+                const categoryTerms = getCategoryTerms(activeCat);
+                matchesCategory = allSearchTerms.some(term => 
+                    categoryTerms.some(catTerm => term.includes(catTerm.toLowerCase()))
+                );
+            }
 
             // Price/Rating/Quick Filters from state
             const matchesPrice = !priceFilter || (s.priceFrom || 0) <= priceFilter;
