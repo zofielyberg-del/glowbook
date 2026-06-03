@@ -73,11 +73,36 @@ function SettingsContent() {
     const [verificationCategory, setVerificationCategory] = useState('Naglar');
     const [loyaltyState, setLoyaltyState] = useState<ProviderLoyaltyState>(getDefaultLoyaltyState());
 
-    // Cancellation & UI states
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [cancellationReason, setCancellationReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
     const [comparisonDuration, setComparisonDuration] = useState(1);
+
+    const getNextPayoutDate = () => {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth(); // 0-indexed
+        const currentDay = today.getDate();
+
+        let payoutMonth = currentMonth;
+        let payoutYear = currentYear;
+
+        if (currentDay >= 25) {
+            payoutMonth += 1;
+            if (payoutMonth > 11) {
+                payoutMonth = 0;
+                payoutYear += 1;
+            }
+        }
+
+        const months = [
+            'januari', 'februari', 'mars', 'april', 'maj', 'juni',
+            'juli', 'augusti', 'september', 'oktober', 'november', 'december'
+        ];
+
+        const capitalizedMonth = months[payoutMonth].charAt(0).toUpperCase() + months[payoutMonth].slice(1);
+        return `25 ${capitalizedMonth}`;
+    };
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
     const [stripeOnboardUrl, setStripeOnboardUrl] = useState<string | null>(null);
     const [stripeConnectError, setStripeConnectError] = useState<string | null>(null);
@@ -1788,7 +1813,7 @@ function SettingsContent() {
                                         </p>
                                         <div className="pt-2">
                                             <span className="text-xs font-bold text-champagne-600 bg-champagne-50 dark:bg-champagne-950/30 px-3 py-1.5 rounded-full uppercase tracking-widest">
-                                                Nästa utbetalning: 25 Mars
+                                                Nästa utbetalning: {getNextPayoutDate()}
                                             </span>
                                         </div>
                                     </section>
