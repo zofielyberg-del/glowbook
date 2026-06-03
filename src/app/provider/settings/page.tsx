@@ -44,6 +44,7 @@ function SettingsContent() {
         lastName: '',
         description: '',
         email: '',
+        phone: '',
         tier: 'pro',
         duration: 1,
         profileImage: null as string | null,
@@ -964,12 +965,22 @@ function SettingsContent() {
                                                 className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all"
                                             />
                                         </div>
-                                        <div className="col-span-2">
+                                        <div className="col-span-2 md:col-span-1">
                                             <label className="block text-sm font-bold text-foreground mb-2">{t('label_email')}</label>
                                             <input
                                                 type="email"
                                                 value={salonData.email}
                                                 onChange={(e) => setSalonData({ ...salonData, email: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div className="col-span-2 md:col-span-1">
+                                            <label className="block text-sm font-bold text-foreground mb-2">Telefonnummer</label>
+                                            <input
+                                                type="tel"
+                                                value={(salonData as any).phone || ''}
+                                                onChange={(e) => setSalonData({ ...salonData, phone: e.target.value })}
+                                                placeholder="T.ex. +46702589848"
                                                 className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all"
                                             />
                                         </div>

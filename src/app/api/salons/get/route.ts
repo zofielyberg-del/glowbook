@@ -44,6 +44,7 @@ export async function GET(req: Request) {
                 firstName: salon.owner?.first_name || '',
                 lastName: salon.owner?.last_name || '',
                 email: salon.owner?.email || '',
+                phone: salon.owner?.phone || '',
                 profileImage: salon.logo_url,
                 backgroundImage: salon.banner_url,
                 galleryImages: salon.gallery_images || [],
