@@ -104,6 +104,7 @@ function SettingsContent() {
         return `25 ${capitalizedMonth}`;
     };
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
+    const [isDisconnectingStripe, setIsDisconnectingStripe] = useState(false);
     const [stripeOnboardUrl, setStripeOnboardUrl] = useState<string | null>(null);
     const [stripeConnectError, setStripeConnectError] = useState<string | null>(null);
 
@@ -529,6 +530,51 @@ function SettingsContent() {
             setStripeConnectError('Ett nätverksfel uppstod under anslutningen');
         } finally {
             setIsConnectingStripe(false);
+        }
+    };
+
+    const handleDisconnectStripe = async () => {
+        const confirmMsg = "Är du säker på att du vill koppla från det online-betalsystemet? Om du gör det försvinner möjligheten för dina kunder att betala via Klarna och kort direkt vid bokning. Din salong kan då endast erbjuda betalning på plats.";
+        if (!window.confirm(confirmMsg)) return;
+
+        setIsDisconnectingStripe(true);
+        try {
+            const response = await fetch('/api/salons/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: salonData.id,
+                    stripe_account_id: null
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                // Update local storage and state
+                const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+                if (saved) {
+                    try {
+                        const raw = JSON.parse(saved);
+                        const mergedRaw = { ...raw, stripe_account_id: null };
+                        localStorage.setItem('glowbook_salon', JSON.stringify(mergedRaw));
+                        sessionStorage.setItem('glowbook_salon', JSON.stringify(mergedRaw));
+                    } catch (e) {}
+                }
+
+                setSalonData(prev => ({
+                    ...prev,
+                    stripeConnected: false,
+                    stripe_account_id: null
+                }));
+
+                alert("Online-betalsystemet har kopplats från framgångsrikt.");
+            } else {
+                alert(data.error || "Kunde inte koppla från Stripe.");
+            }
+        } catch (err) {
+            console.error('Error disconnecting Stripe:', err);
+            alert("Ett nätverksfel uppstod under frånkopplingen.");
+        } finally {
+            setIsDisconnectingStripe(false);
         }
     };
 
@@ -1751,30 +1797,43 @@ function SettingsContent() {
                                                 {/* Glowing Background Element */}
                                                 <div className="absolute -top-12 -right-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl"></div>
                                                 
-                                                <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10">
+                                                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6 relative z-10">
                                                     <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-inner">
                                                         <CheckCircle2 size={36} className="text-emerald-500 animate-pulse" />
                                                     </div>
                                                     <div className="flex-1 space-y-2">
                                                         <div className="flex flex-wrap items-center gap-3">
-                                                            <h3 className="font-heading font-black text-2xl text-foreground">Ansluten till Stripe</h3>
+                                                            <h3 className="font-heading font-black text-2xl text-foreground">Du är ansluten till online-betalningar</h3>
                                                             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase rounded-full tracking-widest border border-emerald-500/20 animate-pulse">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                                 Aktiv & Kopplad
                                                             </span>
                                                         </div>
                                                         <p className="text-sm text-foreground/80 leading-relaxed max-w-xl">
-                                                            Gratulerar! Din salong är nu helt integrerad med Glowbook. Du kan ta emot kortbetalningar och Klarna direkt vid bokning.
+                                                            Kunder kan nu betala med kort och Klarna direkt vid bokning. Pengarna sätts in säkert på ditt bankkonto.
+                                                        </p>
+                                                        <p className="text-xs text-red-500/90 font-medium">
+                                                            ℹ️ Om du väljer att koppla från online-betalsystemet försvinner möjligheten för kunder att betala via Klarna och kort.
                                                         </p>
                                                     </div>
-                                                    <button
-                                                        onClick={handleStripeConnect}
-                                                        disabled={isConnectingStripe}
-                                                        className="w-full md:w-auto px-6 py-4 bg-foreground text-background dark:bg-foreground dark:text-background rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-champagne-600 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md border border-border"
-                                                    >
-                                                        {isConnectingStripe && <RefreshCw className="animate-spin" size={14} />}
-                                                        Hantera hos Stripe
-                                                    </button>
+                                                    <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3 shrink-0">
+                                                        <button
+                                                            onClick={handleStripeConnect}
+                                                            disabled={isConnectingStripe}
+                                                            className="px-6 py-4 bg-foreground text-background dark:bg-foreground dark:text-background rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-champagne-600 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md border border-border"
+                                                        >
+                                                            {isConnectingStripe && <RefreshCw className="animate-spin" size={14} />}
+                                                            Hantera hos Stripe
+                                                        </button>
+                                                        <button
+                                                            onClick={handleDisconnectStripe}
+                                                            disabled={isDisconnectingStripe}
+                                                            className="px-6 py-4 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm border border-red-500/20"
+                                                        >
+                                                            {isDisconnectingStripe ? <RefreshCw className="animate-spin" size={14} /> : <XCircle size={14} />}
+                                                            Koppla från
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 {/* Connection Details/Feature Checklists */}
