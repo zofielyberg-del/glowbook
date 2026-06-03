@@ -141,6 +141,33 @@ function SettingsContent() {
                 };
             };
 
+            const fetchFreshData = async (salonId: string) => {
+                try {
+                    const res = await fetch(`/api/salons/get?id=${salonId}&_t=${Date.now()}`);
+                    const data = await res.json();
+                    if (data.success && data.salon) {
+                        const parsedFresh = parseSalonObject(data.salon);
+                        
+                        preventSave.current = true;
+                        
+                        localStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
+                        sessionStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
+                        
+                        setSalonData(prev => ({ ...prev, ...parsedFresh }));
+                        setComparisonDuration(parsedFresh.duration || 1);
+                        if (parsedFresh.category) {
+                            setVerificationCategory(parsedFresh.category);
+                        }
+                        
+                        setTimeout(() => {
+                            preventSave.current = false;
+                        }, 200);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch fresh salon data:", err);
+                }
+            };
+
             const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
             if (saved) {
                 const localData = JSON.parse(saved);
@@ -157,6 +184,10 @@ function SettingsContent() {
 
                 if (parsedLocal.category) {
                     setVerificationCategory(parsedLocal.category);
+                }
+
+                if (localData.id) {
+                    fetchFreshData(localData.id);
                 }
             }
             
