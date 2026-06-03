@@ -58,7 +58,16 @@ export async function POST(req: Request) {
                 }
             }
 
-            console.log(`Creating Stripe account for salon "${salon.name}" with email: ${ownerEmail}, phone: ${formattedPhone}`);
+            // Stripe Connect in live mode requires a valid, secure https production URL.
+            // If the local environment is localhost or empty, fallback to the production URL.
+            let businessUrl = 'https://glowbook.se';
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+            if (appUrl && appUrl.startsWith('https://') && !appUrl.includes('localhost')) {
+                businessUrl = appUrl;
+            }
+            const fullBusinessUrl = `${businessUrl}/salon/${salon.id}`;
+
+            console.log(`Creating Stripe account for salon "${salon.name}" with email: ${ownerEmail}, phone: ${formattedPhone}, business URL: ${fullBusinessUrl}`);
 
             // Pre-fill parameters (website, MCC, name, contact) to make Stripe Express onboarding extremely quick & easy
             const account = await stripe.accounts.create({
@@ -73,7 +82,7 @@ export async function POST(req: Request) {
                 business_type: 'individual',
                 business_profile: {
                     name: salon.name,
-                    url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se'}/salon/${salon.id}`,
+                    url: fullBusinessUrl,
                     mcc: '7298', // Health and Beauty Spas category (eliminates industry selection step)
                 },
                 individual: {
