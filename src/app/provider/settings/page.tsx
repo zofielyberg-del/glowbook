@@ -79,6 +79,7 @@ function SettingsContent() {
     const [comparisonDuration, setComparisonDuration] = useState(1);
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
     const [stripeOnboardUrl, setStripeOnboardUrl] = useState<string | null>(null);
+    const [stripeConnectError, setStripeConnectError] = useState<string | null>(null);
 
     useEffect(() => {
         const loadData = () => {
@@ -449,6 +450,7 @@ function SettingsContent() {
     const handleStripeConnect = async () => {
         if (isConnectingStripe) return;
         setIsConnectingStripe(true);
+        setStripeConnectError(null);
         try {
             const response = await fetch('/api/stripe/connect/onboard', {
                 method: 'POST',
@@ -463,11 +465,11 @@ function SettingsContent() {
                     setStripeOnboardUrl(data.url);
                 }
             } else {
-                alert(data.error || 'Kunde inte starta Stripe-anslutning');
+                setStripeConnectError(data.error || 'Kunde inte starta Stripe-anslutning');
             }
         } catch (err) {
             console.error('Error connecting Stripe:', err);
-            alert('Ett nätverksfel uppstod');
+            setStripeConnectError('Ett nätverksfel uppstod under anslutningen');
         } finally {
             setIsConnectingStripe(false);
         }
@@ -1579,6 +1581,28 @@ function SettingsContent() {
                                                                 >
                                                                     Generera ny länk
                                                                 </button>
+                                                            </div>
+                                                        )}
+
+                                                        {stripeConnectError && (
+                                                            <div className="mt-6 p-5 bg-red-500/5 border border-red-500/20 text-red-400 rounded-2xl text-xs space-y-3 leading-relaxed animate-in fade-in duration-300">
+                                                                <div className="flex items-center gap-2 font-bold text-red-500">
+                                                                    <XCircle size={16} />
+                                                                    <span>Anslutningsfel</span>
+                                                                </div>
+                                                                <p className="text-foreground/75 text-[11px] font-medium leading-relaxed">{stripeConnectError}</p>
+                                                                {stripeConnectError.includes('signed up for Connect') && (
+                                                                    <div className="pt-2">
+                                                                        <a
+                                                                            href="https://dashboard.stripe.com/connect"
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl font-bold transition-all text-[10px] uppercase tracking-wider border border-red-500/10"
+                                                                        >
+                                                                            Gå till Stripe Connect <ExternalLink size={12} />
+                                                                        </a>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
