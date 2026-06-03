@@ -1747,22 +1747,74 @@ function SettingsContent() {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="bg-emerald-500/5 p-8 rounded-3xl border border-emerald-500/20 flex flex-col md:flex-row items-center gap-6">
-                                                <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center shrink-0">
-                                                    <CheckCircle2 size={32} />
+                                            <div className="bg-gradient-to-br from-emerald-500/5 via-emerald-500/[0.02] to-transparent p-8 rounded-[36px] border border-emerald-500/20 dark:border-emerald-500/10 shadow-lg shadow-emerald-500/[0.02] relative overflow-hidden space-y-6">
+                                                {/* Glowing Background Element */}
+                                                <div className="absolute -top-12 -right-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl"></div>
+                                                
+                                                <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10">
+                                                    <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-inner">
+                                                        <CheckCircle2 size={36} className="text-emerald-500 animate-pulse" />
+                                                    </div>
+                                                    <div className="flex-1 space-y-2">
+                                                        <div className="flex flex-wrap items-center gap-3">
+                                                            <h3 className="font-heading font-black text-2xl text-foreground">Ansluten till Stripe</h3>
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase rounded-full tracking-widest border border-emerald-500/20 animate-pulse">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                Aktiv & Kopplad
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-foreground/80 leading-relaxed max-w-xl">
+                                                            Gratulerar! Din salong är nu helt integrerad med Glowbook. Du kan ta emot kortbetalningar och Klarna direkt vid bokning.
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={handleStripeConnect}
+                                                        disabled={isConnectingStripe}
+                                                        className="w-full md:w-auto px-6 py-4 bg-foreground text-background dark:bg-foreground dark:text-background rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-champagne-600 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md border border-border"
+                                                    >
+                                                        {isConnectingStripe && <RefreshCw className="animate-spin" size={14} />}
+                                                        Hantera hos Stripe
+                                                    </button>
                                                 </div>
-                                                <div className="flex-1 text-center md:text-left space-y-1">
-                                                    <h3 className="font-bold text-lg text-foreground">Ansluten till Stripe</h3>
-                                                    <p className="text-sm text-emerald-700 dark:text-emerald-400 font-semibold">Din salong kan nu ta emot onlinebetalningar via Glowbook.</p>
+
+                                                {/* Connection Details/Feature Checklists */}
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-border/40 relative z-10">
+                                                    <div className="bg-foreground/[0.01] border border-border/80 p-5 rounded-2xl space-y-2">
+                                                        <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                                                            <div className="w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                                                                <Check size={10} />
+                                                            </div>
+                                                            Kortbetalningar
+                                                        </div>
+                                                        <p className="text-[11px] text-foreground/70 leading-relaxed font-medium">
+                                                            Visa, Mastercard, American Express och Apple Pay är aktiverade för direktbetalning.
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="bg-foreground/[0.01] border border-border/80 p-5 rounded-2xl space-y-2">
+                                                        <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                                                            <div className="w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                                                                <Check size={10} />
+                                                            </div>
+                                                            Klarna Integration
+                                                        </div>
+                                                        <p className="text-[11px] text-foreground/70 leading-relaxed font-medium">
+                                                            Möjlighet till faktura och delbetalning. Kom ihåg att slå på Klarna i din Stripe-dashboard.
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="bg-foreground/[0.01] border border-border/80 p-5 rounded-2xl space-y-2">
+                                                        <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                                                            <div className="w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                                                                <Check size={10} />
+                                                            </div>
+                                                            Bankutbetalningar
+                                                        </div>
+                                                        <p className="text-[11px] text-foreground/70 leading-relaxed font-medium">
+                                                            Dina pengar samlas på ditt Stripe-konto och betalas ut automatiskt till ditt bankkonto.
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <button
-                                                    onClick={handleStripeConnect}
-                                                    disabled={isConnectingStripe}
-                                                    className="px-6 py-3 bg-foreground text-background rounded-xl text-xs font-black uppercase tracking-widest hover:bg-champagne-600 hover:text-white transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-                                                >
-                                                    {isConnectingStripe && <RefreshCw className="animate-spin" size={12} />}
-                                                    Hantera hos Stripe
-                                                </button>
                                             </div>
                                         )}
                                     </div>
