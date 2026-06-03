@@ -19,9 +19,9 @@ export function useAuth() {
     });
 
     const checkAuth = useCallback(async () => {
-        const adminData = sessionStorage.getItem('glowbook_admin');
-        const salonDataString = sessionStorage.getItem('glowbook_salon');
-        const customerData = sessionStorage.getItem('glowbook_customer');
+        const adminData = sessionStorage.getItem('glowbook_admin') || localStorage.getItem('glowbook_admin');
+        const salonDataString = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+        const customerData = sessionStorage.getItem('glowbook_customer') || localStorage.getItem('glowbook_customer');
 
         if (adminData && (!salonDataString || !JSON.parse(salonDataString).isImpersonated)) {
             setState({ user: JSON.parse(adminData), role: 'admin', isLoading: false });
@@ -38,7 +38,7 @@ export function useAuth() {
                     .then(res => res.json())
                     .then(serverResult => {
                         if (serverResult.success) {
-                            const currentSaved = sessionStorage.getItem('glowbook_salon');
+                            const currentSaved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
                             const currentData = currentSaved ? JSON.parse(currentSaved) : data;
                             const lastMutation = localStorage.getItem('glowbook_last_mutation') || sessionStorage.getItem('glowbook_last_mutation');
                             const isRecentMutation = lastMutation && (Date.now() - Number(lastMutation) < 4000);
@@ -107,6 +107,9 @@ export function useAuth() {
         sessionStorage.removeItem('glowbook_admin');
         sessionStorage.removeItem('glowbook_salon');
         sessionStorage.removeItem('glowbook_customer');
+        localStorage.removeItem('glowbook_admin');
+        localStorage.removeItem('glowbook_salon');
+        localStorage.removeItem('glowbook_customer');
         window.dispatchEvent(new Event('glowbook_update'));
     };
 

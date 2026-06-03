@@ -34,6 +34,13 @@ export async function POST(req: Request) {
                 ...(Array.isArray(salonInfo.categories) ? salonInfo.categories : [])
             ])).filter(Boolean);
 
+            let finalAvailability = salonInfo.availability !== undefined ? salonInfo.availability : (existing ? existing.availability : []);
+            if (salonInfo.openingHoursSettings) {
+                const currentAvail = Array.isArray(finalAvailability) ? finalAvailability : [];
+                const filteredAvail = currentAvail.filter((a: any) => a && a.type !== 'settings');
+                finalAvailability = [...filteredAvail, salonInfo.openingHoursSettings];
+            }
+
             const updateData = {
                 name: salonInfo.name,
                 description: salonInfo.description,
@@ -53,9 +60,13 @@ export async function POST(req: Request) {
                         ? salonInfo.gallery_images
                         : (existing ? existing.gallery_images : []),
                 membership_tier: (salonInfo.tier || salonInfo.membership_tier || (existing ? existing.membership_tier : 'bas')).toLowerCase(),
-                availability: salonInfo.availability !== undefined ? salonInfo.availability : (existing ? existing.availability : []),
+                availability: finalAvailability,
                 duration: salonInfo.duration !== undefined ? parseInt(salonInfo.duration) : undefined,
-                cancellation_window_hours: salonInfo.cancellation_window_hours !== undefined ? parseInt(salonInfo.cancellation_window_hours) : 24
+                cancellation_window_hours: salonInfo.cancellation_window_hours !== undefined ? parseInt(salonInfo.cancellation_window_hours) : 24,
+                is_verified: salonInfo.isVerified !== undefined ? salonInfo.isVerified : (existing ? existing.is_verified : false),
+                verification_requested: salonInfo.verification_requested !== undefined ? salonInfo.verification_requested : (existing ? existing.verification_requested : false),
+                verified_categories: salonInfo.verifiedCategories !== undefined ? salonInfo.verifiedCategories : (existing ? existing.verified_categories : []),
+                onboarding_progress: salonInfo.onboardingProgress !== undefined ? salonInfo.onboardingProgress : (existing ? existing.onboarding_progress : null)
             };
 
             if (existing) {

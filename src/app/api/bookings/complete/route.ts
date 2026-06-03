@@ -50,8 +50,8 @@ export async function POST(req: Request) {
 
             // Build rating URL (using short link slug structure for beautiful URLs)
             const reviewUrl = salonSlug 
-                ? `${origin}/${salonSlug}` 
-                : `${origin}/salon/${appointment.salon_id}`;
+                ? `${origin}/${salonSlug}?review=${appointmentId}` 
+                : `${origin}/salon/${appointment.salon_id}?review=${appointmentId}`;
 
             try {
                 await sendCustomerFeedbackRequestEmail(email, firstName, salonName, reviewUrl);

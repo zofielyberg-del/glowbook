@@ -3,29 +3,54 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/layout/Header";
-import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, ExternalLink, Coins, Check, ChevronLeft, ImageIcon } from "lucide-react";
+import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Calendar from "@/components/dashboard/Calendar";
 import clsx from "clsx";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { REWARD_TIERS } from "@/lib/loyalty";
+import { useSearchParams, useRouter } from "next/navigation";
 
 function getServiceCategory(service: any, salonCategory: string) {
-    if (service?.category) return service.category;
+    const ignoredCategories = ['skönhet', 'skönhetssalong'];
+    let cat = service?.category;
+    if (cat && ignoredCategories.includes(cat.toLowerCase())) {
+        cat = null;
+    }
+    if (cat) return cat;
+
     const name = service?.name?.toLowerCase() || '';
-    if (name.includes('klipp') && !name.includes('skägg')) return 'Frisör';
+    if (name.includes('klipp') && !name.includes('skägg')) return 'Hårvård';
     if (name.includes('skägg') || name.includes('rakning') || name.includes('barber')) return 'Barberare';
-    if (name.includes('frans') || name.includes('lash')) return 'Fransstylist';
-    if (name.includes('bryn') || name.includes('brow')) return 'Brow stylist';
-    if (name.includes('nagel') || name.includes('gel') || name.includes('manikyr')) return 'Nagelterapeut';
-    if (name.includes('ansikt') || name.includes('hud') || name.includes('peeling')) return 'Hudterapeut';
-    if (name.includes('massage')) return 'Massör';
-    if (name.includes('tatuering') || name.includes('tattoo')) return 'Tatuerare';
-    if (name.includes('laser')) return 'Lasertekniker';
-    if (name.includes('fotvård') || name.includes('pedikyr')) return 'Fotvårdsterapeut';
-    if (name.includes('makeup') || name.includes('smink')) return 'Makeup-artist';
-    return salonCategory || null; // Fallback to salon category
+    if (name.includes('frans') || name.includes('lash') || name.includes('bryn') || name.includes('brow')) return 'Fransar & Bryn';
+    if (name.includes('nagel') || name.includes('gel') || name.includes('manikyr') || name.includes('pedikyr')) return 'Naglar';
+    if (name.includes('ansikt') || name.includes('hud') || name.includes('peeling') || name.includes('laser')) return 'Hudvård';
+    if (name.includes('massage')) return 'Massage';
+    if (name.includes('tatuering') || name.includes('tattoo')) return 'Tatuering';
+    if (name.includes('fotvård')) return 'Fotvård';
+    if (name.includes('makeup') || name.includes('smink')) return 'Makeup';
+    if (name.includes('piercing')) return 'Piercing';
+    if (name.includes('spa')) return 'Spa';
+    
+    // Fallback to salon category if not generic
+    if (salonCategory && !ignoredCategories.includes(salonCategory.toLowerCase())) {
+        const lowerSalonCat = salonCategory.toLowerCase();
+        if (lowerSalonCat === 'naglar') return 'Naglar';
+        if (lowerSalonCat === 'hårvård') return 'Hårvård';
+        if (lowerSalonCat === 'massage') return 'Massage';
+        if (lowerSalonCat === 'hudvård') return 'Hudvård';
+        if (lowerSalonCat === 'fransar & bryn') return 'Fransar & Bryn';
+        if (lowerSalonCat === 'estetisk injektion') return 'Estetisk Injektion';
+        if (lowerSalonCat === 'tatuering') return 'Tatuering';
+        if (lowerSalonCat === 'fotvård') return 'Fotvård';
+        if (lowerSalonCat === 'spa') return 'Spa';
+        if (lowerSalonCat === 'makeup') return 'Makeup';
+        if (lowerSalonCat === 'barberare') return 'Barberare';
+        if (lowerSalonCat === 'piercing') return 'Piercing';
+        return salonCategory;
+    }
+    return 'Övrigt';
 }
 
 function timeToMins(t: string) {
@@ -87,6 +112,93 @@ function mapDbAppointment(apt: any) {
 export default function SalonContent({ params }: { params?: { id: string } }) {
     const { t } = useLanguage();
     const [salon, setSalon] = useState<any>(null);
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    const [reviewBookingId, setReviewBookingId] = useState<string | null>(null);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewText, setReviewText] = useState('');
+    const [reviewInfo, setReviewInfo] = useState<any>(null);
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+    const [reviewError, setReviewError] = useState('');
+    const [reviewSuccess, setReviewSuccess] = useState(false);
+
+    useEffect(() => {
+        const bookingId = searchParams.get('review');
+        if (bookingId) {
+            setReviewBookingId(bookingId);
+            setIsReviewModalOpen(true);
+            
+            fetch(`/api/bookings/get?id=${bookingId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.appointment) {
+                        setReviewInfo(data.appointment);
+                    }
+                })
+                .catch(e => console.error("Error fetching review booking details:", e));
+        }
+    }, [searchParams]);
+
+    const handleReviewSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!reviewBookingId) return;
+
+        setIsSubmittingReview(true);
+        setReviewError('');
+        setReviewSuccess(false);
+
+        try {
+            const response = await fetch('/api/reviews/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    appointmentId: reviewBookingId,
+                    rating: reviewRating,
+                    text: reviewText
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                setReviewError(data.error || 'Något gick fel.');
+            } else {
+                setReviewSuccess(true);
+                
+                if (salon?.id) {
+                    const res = await fetch(`/api/salons/get?id=${encodeURIComponent(salon.id)}`);
+                    const freshData = await res.json();
+                    if (freshData.success && freshData.salon) {
+                        setSalon(freshData.salon);
+                    }
+                }
+                
+                const params = new URLSearchParams(window.location.search);
+                params.delete('review');
+                const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                router.replace(newRelativePathQuery);
+
+                setTimeout(() => {
+                    setIsReviewModalOpen(false);
+                    setReviewSuccess(false);
+                    setReviewText('');
+                    setReviewBookingId(null);
+                    setReviewInfo(null);
+                }, 3000);
+            }
+        } catch (err: any) {
+            setReviewError(err.message || 'Nätverksfel.');
+        } finally {
+            setIsSubmittingReview(false);
+        }
+    };
+
+    const reviews = useMemo(() => {
+        const availability = Array.isArray(salon?.availability) ? salon.availability : [];
+        const reviewsBlock = availability.find((a: any) => a && a.type === 'reviews');
+        return reviewsBlock?.list || [];
+    }, [salon?.availability]);
     const [selectedService, setSelectedService] = useState<any>(null);
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [bookingStep, setBookingStep] = useState(1); // 1: Select Service, 2: Select Time, 3: Confirm
@@ -96,6 +208,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'onsite' | 'stripe' | 'giftcard'>('onsite');
     const [giftCardSecondaryMethod, setGiftCardSecondaryMethod] = useState<'onsite' | 'stripe'>('onsite');
     const [isBooked, setIsBooked] = useState(false);
+    const [isBooking, setIsBooking] = useState(false);
     const [galleryLightbox, setGalleryLightbox] = useState<number | null>(null);
     const [giftCardCode, setGiftCardCode] = useState('');
     const [giftCardStatus, setGiftCardStatus] = useState<{ valid: boolean; balance: number; message: string } | null>(null);
@@ -274,12 +387,15 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
     const handleConfirmBooking = async () => {
         if (!selectedService || !selectedTime) return;
+        if (isBooking) return;
+        setIsBooking(true);
 
         // Prevent providers from booking
         try {
             const isProvider = !!sessionStorage.getItem('glowbook_salon');
             if (isProvider) {
                 alert('Som utförare kan du inte boka tjänster hos andra utförare.');
+                setIsBooking(false);
                 return;
             }
         } catch { }
@@ -470,6 +586,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         } catch (error) {
             console.error('Booking error:', error);
             alert('Ett oväntat fel uppstod vid bokningen.');
+        } finally {
+            setIsBooking(false);
         }
     };
 
@@ -489,7 +607,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 profileImage: s.logo_url || s.profileImage,
                 backgroundImage: s.banner_url || s.backgroundImage,
                 tier: (s.membership_tier || s.tier || 'bas').toLowerCase(),
-                acceptsGlowpoints: loyaltyActive
+                acceptsGlowpoints: loyaltyActive,
+                isVerified: s.is_verified !== undefined ? s.is_verified : (s.isVerified || false),
+                is_verified: s.is_verified !== undefined ? s.is_verified : (s.isVerified || false),
+                verifiedCategories: s.verified_categories || s.verifiedCategories || []
             });
 
             // Helper to do a full GET by ID (includes appointments)
@@ -819,13 +940,24 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
                     <div className="flex-1 space-y-4">
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                            {[
-                                ...(salon.category ? [salon.category] : []),
-                                ...(salon.categories || []),
-                                ...(salon.practitioners?.flatMap((p: any) => p.categories || []) || [])
-                            ].filter((v, i, a) => a.indexOf(v) === i).map(cat => (
-                                <span key={cat} className="bg-champagne-100 text-champagne-700 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">{cat}</span>
-                            ))}
+                            {(() => {
+                                const ignoredCategories = ['skönhet', 'skönhetssalong'];
+                                const allBadges = [
+                                    ...(salon.category ? [salon.category] : []),
+                                    ...(salon.categories || []),
+                                    ...(salon.practitioners?.flatMap((p: any) => p.categories || []) || [])
+                                ]
+                                    .map(c => typeof c === 'string' ? c.trim() : '')
+                                    .filter(c => c && !ignoredCategories.includes(c.toLowerCase()));
+
+                                const uniqueBadges = allBadges.filter((v, i, a) => 
+                                    a.findIndex(x => x.toLowerCase() === v.toLowerCase()) === i
+                                );
+
+                                return uniqueBadges.map(cat => (
+                                    <span key={cat} className="bg-champagne-100 text-champagne-700 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">{cat}</span>
+                                ));
+                            })()}
                             {salon.acceptsGlowpoints && (
                                 <span className="flex items-center gap-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-full text-xs font-bold">
                                     <Coins size={13} />
@@ -846,15 +978,34 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                 </div>
                             )}
                         </div>
-                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-foreground/50">
+                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 md:gap-6 text-foreground/50">
                             <div className="flex items-center gap-2">
                                 <MapPin size={18} className="text-champagne-500" />
                                 <span>{salon.municipality}, Sverige</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Clock size={18} className="text-champagne-500" />
-                                <span className="text-sm md:text-base">Öppet · Stänger 18:00</span>
-                            </div>
+                            {salon.verifiedCategories && salon.verifiedCategories.length > 0 && (
+                                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 rounded-xl text-xs font-bold text-blue-600 border border-blue-500/20">
+                                    <Award size={14} className="text-blue-500 fill-blue-500/20 shrink-0" />
+                                    <span>Diplomerad i: {salon.verifiedCategories.join(', ')}</span>
+                                </div>
+                            )}
+                            {(() => {
+                                const availability = Array.isArray(salon.availability) ? salon.availability : [];
+                                const settings = availability.find((a: any) => a && a.type === 'settings');
+                                const hoursType = settings?.openingHoursType || 'dynamic';
+                                const customHours = settings?.customOpeningHours || '';
+
+                                return (
+                                    <div className="flex items-center gap-2">
+                                        <Clock size={18} className="text-champagne-500" />
+                                        <span className="text-sm md:text-base">
+                                            {hoursType === 'fixed' && customHours 
+                                                ? `Öppet · ${customHours}` 
+                                                : 'Öppet enligt tidsbokning'}
+                                        </span>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
 
@@ -934,8 +1085,29 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                     </p>
                                 </>
                             )}
-
                         </div>
+
+                        {salon.isVerified && (
+                            <div className="bg-card rounded-[40px] p-10 space-y-4 border border-blue-500/20 bg-gradient-to-br from-blue-500/[0.02] to-transparent shadow-lg shadow-blue-500/[0.01]">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                        <Shield size={20} className="fill-blue-500/20 text-blue-500 shrink-0" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-foreground">Glowbook-verifierad utförare</h3>
+                                </div>
+                                <p className="text-xs text-foreground/55 leading-relaxed">
+                                    Denna salong är trygghetstestad och manuellt godkänd av Glowbooks administratörer. De har uppvisat giltiga diplom och yrkesbevis för följande specialistkategorier:
+                                </p>
+                                <div className="flex flex-wrap gap-2 pt-2">
+                                    {(salon.verifiedCategories && salon.verifiedCategories.length > 0 ? salon.verifiedCategories : ['Yrkesverksam']).map((cat: string) => (
+                                        <div key={cat} className="flex items-center gap-1.5 px-4 py-2 bg-blue-500/10 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-500/20">
+                                            <CheckCircle2 size={12} className="text-blue-500 shrink-0" />
+                                            {cat}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
 
 
@@ -943,14 +1115,67 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         <div className="bg-card rounded-[40px] p-10 space-y-6 border border-border">
                             <div className="flex justify-between items-center">
                                 <h2 className="text-2xl font-heading font-bold text-foreground">{t('salon_reviews')}</h2>
+                                {reviews.length > 0 && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex text-champagne-500">
+                                            {Array.from({ length: 5 }).map((_, i) => (
+                                                <Star
+                                                    key={i}
+                                                    size={16}
+                                                    fill={i < Math.round(salon.rating || 0) ? "currentColor" : "none"}
+                                                    className={i < Math.round(salon.rating || 0) ? "text-champagne-500" : "text-foreground/25"}
+                                                />
+                                            ))}
+                                        </div>
+                                        <span className="text-sm font-bold text-foreground">{salon.rating} / 5</span>
+                                    </div>
+                                )}
                             </div>
                             <div className="space-y-6">
-                                <div className="py-8 text-center space-y-3">
-                                    <div className="w-12 h-12 bg-foreground/5 rounded-full flex items-center justify-center mx-auto text-foreground/20">
-                                        <Star size={20} />
+                                {reviews.length === 0 ? (
+                                    <div className="py-8 text-center space-y-3">
+                                        <div className="w-12 h-12 bg-foreground/5 rounded-full flex items-center justify-center mx-auto text-foreground/20">
+                                            <Star size={20} />
+                                        </div>
+                                        <p className="text-xs text-foreground/40 italic">Inga recensioner än för {salon.name}.</p>
                                     </div>
-                                    <p className="text-xs text-foreground/40 italic">Inga recensioner än för {salon.name}.</p>
-                                </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 gap-6 divide-y divide-border/30">
+                                        {reviews.map((rev: any, index: number) => (
+                                            <div key={rev.id || index} className={clsx("space-y-3", index > 0 && "pt-6 border-t border-border/30")}>
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <span className="font-bold text-foreground flex items-center gap-2 text-sm md:text-base">
+                                                            {rev.customerName}
+                                                            <span className="text-[9px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded-full font-bold border border-green-500/20 inline-flex items-center gap-1">
+                                                                ✓ Verifierad kund
+                                                            </span>
+                                                        </span>
+                                                        <span className="text-[10px] text-foreground/30 block">Bokade {rev.serviceName}</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-foreground/30">
+                                                        {new Date(rev.date).toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                    </span>
+                                                </div>
+                                                <div className="flex text-champagne-500">
+                                                    {Array.from({ length: 5 }).map((_, i) => (
+                                                        <Star
+                                                            key={i}
+                                                            size={14}
+                                                            fill={i < rev.rating ? "currentColor" : "none"}
+                                                            className={i < rev.rating ? "text-champagne-500" : "text-foreground/25"}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                {rev.text && (
+                                                    <p className="text-xs md:text-sm text-foreground/70 leading-relaxed bg-foreground/[0.01] p-4 rounded-2xl border border-border/20 italic">
+                                                        "{rev.text}"
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1346,10 +1571,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                     </div>
                                                                     <div className="flex-1">
                                                                         <div className="flex items-center gap-2">
-                                                                            <h5 className="font-bold text-sm">Betala online</h5>
+                                                                            <h5 className="font-bold text-sm">Betala nu (Kort, Klarna)</h5>
                                                                             <span className="text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black uppercase tracking-widest">Säker betalning</span>
                                                                         </div>
-                                                                        <p className="text-[10px] text-foreground/40 font-medium">Kort, Apple Pay & Google Pay</p>
+                                                                        <p className="text-[10px] text-foreground/40 font-medium">Betala direkt med kort, eller i din egen takt med Klarna.</p>
                                                                     </div>
                                                                 </div>
                                                             )}
@@ -1432,7 +1657,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                                     >
                                                                                         <CreditCard size={16} />
                                                                                         <div className="text-left">
-                                                                                            <h6 className="font-bold text-xs">Betala online</h6>
+                                                                                            <h6 className="font-bold text-xs">Betala nu (Kort, Klarna)</h6>
                                                                                         </div>
                                                                                     </div>
                                                                                 )}
@@ -1551,20 +1776,22 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                         </div>
 
                                                         <button
-                                                            disabled={!isFormValid || (selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid)}
+                                                            disabled={!isFormValid || (selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid) || isBooking}
                                                             onClick={handleConfirmBooking}
                                                             className={clsx(
                                                                 "w-full py-5 rounded-2xl font-bold text-sm transition-all shadow-xl active:scale-95",
-                                                                isFormValid && (selectedPaymentMethod !== 'giftcard' || giftCardStatus?.valid)
+                                                                isFormValid && (selectedPaymentMethod !== 'giftcard' || giftCardStatus?.valid) && !isBooking
                                                                     ? "bg-foreground text-background hover:bg-champagne-600 hover:text-white shadow-black/10"
                                                                     : "bg-foreground/5 text-foreground/20 cursor-not-allowed shadow-none"
                                                             )}
                                                         >
-                                                            {!isFormValid
-                                                                ? 'Fyll i dina uppgifter'
-                                                                : selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid
-                                                                    ? 'Validera presentkort först'
-                                                                    : `✓ ${t('salon_book_now')}`}
+                                                            {isBooking
+                                                                ? 'Bokar din tid...'
+                                                                : !isFormValid
+                                                                    ? 'Fyll i dina uppgifter'
+                                                                    : selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid
+                                                                        ? 'Validera presentkort först'
+                                                                        : `✓ ${t('salon_book_now')}`}
                                                         </button>
                                                         {!isFormValid && (
                                                             <p className="text-[10px] text-center text-red-500/60 font-medium">
@@ -1623,7 +1850,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                             <span className="text-foreground/40">Betalsätt</span>
                                             <span className="font-bold">
                                                 {selectedPaymentMethod === 'giftcard' ? 'Presentkort' : 
-                                                 selectedPaymentMethod === 'stripe' ? 'Betalat Online' : 'Betalas på plats'}
+                                                 selectedPaymentMethod === 'stripe' ? 'Betalat nu (Kort, Klarna)' : 'Betalas på plats'}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm border-t border-border pt-4">
@@ -1647,6 +1874,120 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             )}
 
                             {/* Stripe payment overlay will be added here in the future */}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Review Modal */}
+            <AnimatePresence>
+                {isReviewModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/60 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-card rounded-[40px] w-full max-w-lg shadow-2xl p-8 relative overflow-hidden border border-border flex flex-col gap-6"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-champagne-300 via-pink-200 to-champagne-300"></div>
+
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-3 bg-champagne-500/10 text-champagne-500 rounded-2xl">
+                                        <MessageSquare size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-foreground">Lämna recension</h3>
+                                        <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest">{salon?.name}</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        setIsReviewModalOpen(false);
+                                        const params = new URLSearchParams(window.location.search);
+                                        params.delete('review');
+                                        router.replace(window.location.pathname + (params.toString() ? '?' + params.toString() : ''));
+                                    }} 
+                                    className="p-2 hover:bg-foreground/5 rounded-full transition-colors text-foreground/40"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            {reviewSuccess ? (
+                                <div className="py-8 text-center space-y-4 animate-in fade-in zoom-in duration-300">
+                                    <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto shadow-xl shadow-green-500/20">
+                                        <CheckCircle2 size={32} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h4 className="text-xl font-bold text-foreground">Tack för din feedback!</h4>
+                                        <p className="text-sm text-foreground/50">Din recension har sparats och visas nu på salongens sida.</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleReviewSubmit} className="space-y-6">
+                                    {reviewError && (
+                                        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-xs font-bold flex items-center gap-2">
+                                            <AlertTriangle size={16} /> {reviewError}
+                                        </div>
+                                    )}
+
+                                    {reviewInfo && (
+                                        <div className="p-4 bg-foreground/[0.02] border border-border/50 rounded-2xl space-y-2 text-xs">
+                                            <div className="flex justify-between">
+                                                <span className="text-foreground/40">Kund:</span>
+                                                <span className="font-bold text-foreground">{reviewInfo.customer_name} (Verifierad)</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-foreground/40">Behandling:</span>
+                                                <span className="font-bold text-foreground">{reviewInfo.service_name}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-3 text-center">
+                                        <label className="text-sm font-bold text-foreground block">Hur nöjd var du med ditt besök?</label>
+                                        <div className="flex justify-center gap-2">
+                                            {Array.from({ length: 5 }).map((_, i) => {
+                                                const starVal = i + 1;
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        type="button"
+                                                        onClick={() => setReviewRating(starVal)}
+                                                        className="p-1 hover:scale-110 transition-transform text-champagne-500"
+                                                    >
+                                                        <Star
+                                                            size={36}
+                                                            fill={starVal <= reviewRating ? "currentColor" : "none"}
+                                                            className={starVal <= reviewRating ? "text-champagne-500" : "text-foreground/20"}
+                                                        />
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black uppercase tracking-widest text-foreground/30 block">Dina kommentarer (valfritt)</label>
+                                        <textarea
+                                            value={reviewText}
+                                            onChange={(e) => setReviewText(e.target.value)}
+                                            placeholder="Skriv några ord om din upplevelse..."
+                                            maxLength={500}
+                                            className="w-full px-4 py-3 rounded-2xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all min-h-[100px] resize-none text-sm placeholder:text-foreground/30"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingReview}
+                                        className="w-full py-4 bg-foreground text-background rounded-2xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 text-sm"
+                                    >
+                                        {isSubmittingReview ? 'Skickar...' : 'Skicka recension'}
+                                    </button>
+                                </form>
+                            )}
                         </motion.div>
                     </div>
                 )}

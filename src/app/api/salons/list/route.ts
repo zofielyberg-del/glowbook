@@ -288,6 +288,9 @@ export async function GET(req: Request) {
                 profileImage: salon.logo_url,
                 backgroundImage: salon.banner_url,
                 tier: (salon.membership_tier || 'bas').toLowerCase(),
+                isVerified: salon.is_verified || false,
+                is_verified: salon.is_verified || false,
+                verifiedCategories: salon.verified_categories || [],
             };
         });
 

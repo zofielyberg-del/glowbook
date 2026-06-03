@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Plus, Users, Calendar as CalendarIcon, Settings, Star, TrendingUp, Scissors, CreditCard, ArrowRight, Clock, CheckCircle2, Shield, Eye, MousePointerClick, BarChart3, Lightbulb, UserCheck, Trash2 } from "lucide-react";
+import { Plus, Users, Calendar as CalendarIcon, Settings, Star, TrendingUp, Scissors, CreditCard, ArrowRight, Clock, CheckCircle2, Shield, Eye, MousePointerClick, BarChart3, Lightbulb, UserCheck, Trash2, ChevronDown, ChevronUp, Copy, Sparkles, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
@@ -14,6 +14,60 @@ import { format, getDay, startOfWeek, addDays } from "date-fns";
 import { sv } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+
+const categoryGroups: Record<string, {
+    name: string;
+    examples: string[];
+    tip: string;
+    profileTip: string;
+    welcomeMessage: string;
+}> = {
+    naglar: {
+        name: "Nagelstudio",
+        examples: ["Gelénaglar", "Förlängning", "Borttagning", "Påfyllning"],
+        tip: "Håll 60–90 min slots för påfyllning för att garantera perfekt kvalitet.",
+        profileTip: "Ladda upp en logga och berätta om dina certifieringar i nageldesign och hygien.",
+        welcomeMessage: "Vi hjälper dig att sätta upp din nagelstudio på rätt sätt för nagelterapeuter."
+    },
+    frisor: {
+        name: "Frisör & Hårvård",
+        examples: ["Klippning", "Färgning", "Slingor", "Styling"],
+        tip: "Lägg längre tider för färgbehandlingar och mer precision.",
+        profileTip: "Lägg till en fin profilbild och berätta om din specialisering (t.ex. färgning eller herrklipp).",
+        welcomeMessage: "Vi hjälper dig att strukturera din frisörsalong för optimala färg- och klippningstider."
+    },
+    skonhet: {
+        name: "Lash, Brow & Skönhet",
+        examples: ["Fransförlängning", "Brow lift", "Lash lift", "Färgning"],
+        tip: "Blocka korta pauser mellan kunder pga hög precision under behandlingarna.",
+        profileTip: "Berätta om dina utbildningar och visa upp din expertis inom fransar, bryn eller avancerad hudvård.",
+        welcomeMessage: "Vi hjälper dig att anpassa din bokningssida för skönhets- och fransbehandlingar."
+    },
+    massage: {
+        name: "Massage & Spa",
+        examples: ["Helkroppsmassage", "Ryggmassage", "Ansiktsbehandling"],
+        tip: "Lägg in 10-15 minuters återhämtningstid (clean-up slots) mellan dina bokningar.",
+        profileTip: "Skapa en inbjudande beskrivning av din lugna miljö, dina massageoljor och din terapeutiska inriktning.",
+        welcomeMessage: "Vi hjälper dig att planera dina massagebehandlingar för en harmonisk kundupplevelse."
+    },
+    general: {
+        name: "Skönhet & Hälsa",
+        examples: ["Standardbehandling", "Konsultation", "Expressbehandling"],
+        tip: "Ställ in passande återhämtningstid mellan behandlingar så att du slipper stress.",
+        profileTip: "Ladda upp en vacker logotyp och berätta för dina kunder vad som utmärker just din salong.",
+        welcomeMessage: "Låt oss snabbt sätta upp din verksamhet på rätt sätt så att du kan ta emot dina första bokningar."
+    }
+};
+
+const getCategoryGroup = (cat: string) => {
+    if (!cat) return categoryGroups.general;
+    const lower = cat.toLowerCase();
+    if (lower.includes('nagel') || lower.includes('nail')) return categoryGroups.naglar;
+    if (lower.includes('hår') || lower.includes('frisör') || lower.includes('barber') || lower.includes('hair')) return categoryGroups.frisor;
+    if (lower.includes('frans') || lower.includes('bryn') || lower.includes('hud') || lower.includes('injektion') || lower.includes('lash') || lower.includes('brow') || lower.includes('skönhet') || lower.includes('makeup') || lower.includes('piercing')) return categoryGroups.skonhet;
+    if (lower.includes('massage') || lower.includes('massör') || lower.includes('spa') || lower.includes('wellness') || lower.includes('fotvård')) return categoryGroups.massage;
+    return categoryGroups.general;
+};
 
 export default function ProviderDashboard() {
     const router = useRouter();
@@ -37,6 +91,11 @@ export default function ProviderDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [allAppointments, setAllAppointments] = useState<any[]>([]);
     const [cancellationNotice, setCancellationNotice] = useState<string | null>(null);
+
+    // Onboarding Guide States
+    const [isGuideMinimized, setIsGuideMinimized] = useState<boolean | null>(null);
+    const [savingOnboarding, setSavingOnboarding] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     // Statistics derived from actual data
     const [stats, setStats] = useState({
@@ -201,6 +260,74 @@ export default function ProviderDashboard() {
             window.removeEventListener('storage', loadDashboardData);
         };
     }, [user, authLoading, router]);
+
+    // Onboarding progress calculations
+    const step1Done = !!(user?.logo_url || user?.profileImage) && !!(user?.description);
+    const step2Done = services && services.length > 0;
+    const step3Done = Array.isArray(user?.availability) && user.availability.some((a: any) => a && a.startTime && a.duration);
+    const step4Done = !!(user?.onboardingProgress?.sharedLink || user?.onboarding_progress?.sharedLink);
+    const step5Done = allAppointments && allAppointments.length > 0;
+
+    const completedStepsCount = [step1Done, step2Done, step3Done, step4Done, step5Done].filter(Boolean).length;
+    const progressPercent = Math.round((completedStepsCount / 5) * 100);
+
+    // Auto-minimize guide when completed (100%), but let the user override
+    useEffect(() => {
+        if (!isLoading && !authLoading && isGuideMinimized === null) {
+            const completedCount = [step1Done, step2Done, step3Done, step4Done, step5Done].filter(Boolean).length;
+            setIsGuideMinimized(completedCount === 5);
+        }
+    }, [isLoading, authLoading, step1Done, step2Done, step3Done, step4Done, step5Done, isGuideMinimized]);
+
+    const handleCopyBookingLink = async () => {
+        const bookingLink = typeof window !== 'undefined' ? `${window.location.origin}/salon/${user?.slug || ''}` : '';
+        
+        try {
+            await navigator.clipboard.writeText(bookingLink);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 3000);
+        } catch (err) {
+            console.error("Failed to copy booking link to clipboard:", err);
+        }
+
+        setSavingOnboarding(true);
+
+        const currentProgress = user?.onboardingProgress || user?.onboarding_progress || {};
+        const updatedProgress = { ...currentProgress, sharedLink: true };
+
+        try {
+            const response = await fetch('/api/salons/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: user?.id,
+                    onboardingProgress: updatedProgress
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.salon) {
+                    const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        const merged = {
+                            ...parsed,
+                            onboarding_progress: updatedProgress,
+                            onboardingProgress: updatedProgress
+                        };
+                        sessionStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                        localStorage.setItem('glowbook_salon', JSON.stringify(merged));
+                        window.dispatchEvent(new Event('glowbook_update'));
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Failed to save onboarding progress to database:", err);
+        } finally {
+            setSavingOnboarding(false);
+        }
+    };
 
     const handleCreateBooking = (e: React.FormEvent) => {
         e.preventDefault();
@@ -521,6 +648,356 @@ export default function ProviderDashboard() {
                             </motion.button>
                         </div>
                     </div>
+
+                    {/* Onboarding Get Started Guide */}
+                    {isGuideMinimized !== null && (
+                        isGuideMinimized ? (
+                            <div className="bg-card border border-border shadow-md rounded-[2rem] p-6 mb-12 flex flex-col sm:flex-row justify-between items-center transition-all duration-300 gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-champagne-400/20 to-pink-400/20 border border-champagne-300/30 text-champagne-600 dark:text-champagne-400 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+                                        {progressPercent === 100 ? <CheckCircle2 size={24} className="text-emerald-500" /> : <Sparkles size={24} />}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-foreground text-base">
+                                            {progressPercent === 100 
+                                                ? `🎉 Din ${getCategoryGroup(salonCategory || user?.category).name}-verksamhet är 100% redo för bokningar!` 
+                                                : `Get Started: Din ${getCategoryGroup(salonCategory || user?.category).name}-guide (${progressPercent}% klart)`
+                                            }
+                                        </h3>
+                                        <p className="text-xs text-foreground/50 mt-0.5">
+                                            {progressPercent === 100 
+                                                ? "Du har slutfört alla grundläggande steg. Bra jobbat!" 
+                                                : "Följ din branschanpassade checklista för att komma igång snabbt."
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => setIsGuideMinimized(false)}
+                                    className="px-5 py-2.5 bg-foreground/5 hover:bg-foreground/10 text-foreground rounded-xl font-bold text-xs transition-all duration-300 flex items-center gap-1.5 shadow-sm active:scale-95"
+                                >
+                                    Visa onboarding-guide <ChevronDown size={14} />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="bg-gradient-to-br from-card/85 to-card/98 backdrop-blur-md border border-border shadow-xl rounded-[2.5rem] p-6 md:p-10 mb-12 relative overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-top-6 duration-500">
+                                {/* Glowing luxury circle background */}
+                                <div className="absolute -top-24 -right-24 w-64 h-64 bg-champagne-500/10 rounded-full blur-[100px] pointer-events-none" />
+                                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-pink-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+                                <div className="flex justify-between items-start gap-4 mb-8">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="px-3 py-1 bg-champagne-500/15 border border-champagne-500/20 text-champagne-600 dark:text-champagne-400 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1">
+                                                <Sparkles size={10} /> Get Started
+                                            </span>
+                                            <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider">
+                                                Anpassad för {getCategoryGroup(salonCategory || user?.category).name}
+                                            </span>
+                                        </div>
+                                        <h2 className="text-2xl md:text-3xl font-heading font-black text-foreground mt-2">
+                                            Kom igång med din verksamhet
+                                        </h2>
+                                        <p className="text-xs md:text-sm text-foreground/50">
+                                            Följ de 5 stegen för att optimera din Glowbook-profil och börja ta emot bokningar direkt.
+                                        </p>
+                                    </div>
+                                    <button 
+                                        onClick={() => setIsGuideMinimized(true)}
+                                        className="p-3 bg-foreground/5 hover:bg-foreground/10 text-foreground/60 hover:text-foreground rounded-full transition-all shrink-0 hover:scale-105 active:scale-95"
+                                        title="Minimera guiden"
+                                    >
+                                        <ChevronUp size={18} />
+                                    </button>
+                                </div>
+
+                                {/* Progress bar section */}
+                                <div className="space-y-3 mb-10">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="font-bold text-foreground/70">
+                                            Din setup är {progressPercent}% klar
+                                        </span>
+                                        <span className="font-bold text-champagne-500">
+                                            {completedStepsCount} av 5 steg avklarade
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-foreground/5 h-3 rounded-full overflow-hidden relative border border-foreground/[0.03] shadow-inner p-[1px]">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${progressPercent}%` }}
+                                            transition={{ duration: 0.8, ease: "easeOut" }}
+                                            className="h-full bg-gradient-to-r from-champagne-400 via-pink-400 to-champagne-400 rounded-full shadow-[0_0_8px_rgba(244,197,154,0.4)]"
+                                        />
+                                    </div>
+                                    <p className="text-[11px] text-foreground/40 italic">
+                                        {progressPercent === 100 
+                                            ? "Underbart! Du har slutfört alla steg och är redo att sköta din bokningssida." 
+                                            : "Stegen bockas av automatiskt så fort du genomför aktiviteterna."
+                                        }
+                                    </p>
+                                </div>
+
+                                {/* Two-column layout */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    {/* Left column: Checklist steps (Col-span 2) */}
+                                    <div className="lg:col-span-2 space-y-4">
+                                        {/* Step 1 */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl bg-foreground/[0.01] border border-border/40 hover:border-champagne-300 dark:hover:border-champagne-500/20 hover:bg-foreground/[0.02] transition-all duration-300 gap-4 group/step">
+                                            <div className="flex items-start gap-4">
+                                                <div className="mt-0.5 shrink-0">
+                                                    {step1Done ? (
+                                                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shadow-inner">
+                                                            <CheckCircle2 size={16} className="animate-in scale-in duration-200" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-foreground/5 border border-border text-foreground/40 flex items-center justify-center font-bold text-xs">
+                                                            1
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <h4 className={`font-bold text-sm ${step1Done ? 'text-foreground/40 line-through' : 'text-foreground'}`}>
+                                                        Skapa profil
+                                                    </h4>
+                                                    <p className="text-xs text-foreground/50 leading-relaxed max-w-md">
+                                                        Ladda upp din logotyp och berätta om din studio. {getCategoryGroup(salonCategory || user?.category).profileTip}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="shrink-0 self-end sm:self-center">
+                                                {step1Done ? (
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-full flex items-center gap-1">
+                                                        <Check size={10} /> Klart
+                                                    </span>
+                                                ) : (
+                                                    <Link
+                                                        href="/provider/settings"
+                                                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-md"
+                                                    >
+                                                        Redigera profil <ArrowRight size={12} />
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Step 2 */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl bg-foreground/[0.01] border border-border/40 hover:border-champagne-300 dark:hover:border-champagne-500/20 hover:bg-foreground/[0.02] transition-all duration-300 gap-4 group/step">
+                                            <div className="flex items-start gap-4">
+                                                <div className="mt-0.5 shrink-0">
+                                                    {step2Done ? (
+                                                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shadow-inner">
+                                                            <CheckCircle2 size={16} className="animate-in scale-in duration-200" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-foreground/5 border border-border text-foreground/40 flex items-center justify-center font-bold text-xs">
+                                                            2
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <h4 className={`font-bold text-sm ${step2Done ? 'text-foreground/40 line-through' : 'text-foreground'}`}>
+                                                        Lägg till tjänster
+                                                    </h4>
+                                                    <p className="text-xs text-foreground/50 leading-relaxed max-w-md">
+                                                        Lägg till behandlingar. För din bransch rekommenderar vi t.ex: <span className="font-medium text-foreground/70">{getCategoryGroup(salonCategory || user?.category).examples.join(', ')}</span>.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="shrink-0 self-end sm:self-center">
+                                                {step2Done ? (
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-full flex items-center gap-1">
+                                                        <Check size={10} /> Klart
+                                                    </span>
+                                                ) : (
+                                                    <Link
+                                                        href="/provider/services"
+                                                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-md"
+                                                    >
+                                                        Lägg till tjänst <ArrowRight size={12} />
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Step 3 */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl bg-foreground/[0.01] border border-border/40 hover:border-champagne-300 dark:hover:border-champagne-500/20 hover:bg-foreground/[0.02] transition-all duration-300 gap-4 group/step">
+                                            <div className="flex items-start gap-4">
+                                                <div className="mt-0.5 shrink-0">
+                                                    {step3Done ? (
+                                                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shadow-inner">
+                                                            <CheckCircle2 size={16} className="animate-in scale-in duration-200" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-foreground/5 border border-border text-foreground/40 flex items-center justify-center font-bold text-xs">
+                                                            3
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <h4 className={`font-bold text-sm ${step3Done ? 'text-foreground/40 line-through' : 'text-foreground'}`}>
+                                                        Sätt schema & tillgänglighet
+                                                    </h4>
+                                                    <p className="text-xs text-foreground/50 leading-relaxed max-w-md">
+                                                        Öppna lediga pass i kalendern så att kunder kan se när du är ledig för bokning.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="shrink-0 self-end sm:self-center">
+                                                {step3Done ? (
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-full flex items-center gap-1">
+                                                        <Check size={10} /> Klart
+                                                    </span>
+                                                ) : (
+                                                    <Link
+                                                        href="/provider/calendar"
+                                                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-md"
+                                                    >
+                                                        Sätt tillgänglighet <ArrowRight size={12} />
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Step 4 */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl bg-foreground/[0.01] border border-border/40 hover:border-champagne-300 dark:hover:border-champagne-500/20 hover:bg-foreground/[0.02] transition-all duration-300 gap-4 group/step">
+                                            <div className="flex items-start gap-4">
+                                                <div className="mt-0.5 shrink-0">
+                                                    {step4Done ? (
+                                                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shadow-inner">
+                                                            <CheckCircle2 size={16} className="animate-in scale-in duration-200" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-foreground/5 border border-border text-foreground/40 flex items-center justify-center font-bold text-xs">
+                                                            4
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <h4 className={`font-bold text-sm ${step4Done ? 'text-foreground/40 line-through' : 'text-foreground'}`}>
+                                                        Börja ta emot bokningar
+                                                    </h4>
+                                                    <p className="text-xs text-foreground/50 leading-relaxed max-w-md">
+                                                        Din unika bokningssida är redo! Kopiera länken och lägg i t.ex. din Instagram-bio för att locka kunder.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="shrink-0 self-end sm:self-center">
+                                                {step4Done ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-full flex items-center gap-1 font-bold">
+                                                            <Check size={10} /> Delad
+                                                        </span>
+                                                        <button
+                                                            onClick={handleCopyBookingLink}
+                                                            className="text-[10px] font-bold text-foreground/40 hover:text-foreground hover:underline flex items-center gap-1"
+                                                        >
+                                                            {copied ? 'Kopierad! ⚡️' : 'Kopiera igen'}
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={handleCopyBookingLink}
+                                                        disabled={savingOnboarding}
+                                                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-champagne-400 to-pink-400 text-white rounded-full font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-md shadow-pink-500/10 hover:shadow-pink-500/25"
+                                                    >
+                                                        {copied ? 'Kopierad! ⚡️' : 'Kopiera länk'} <Copy size={12} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Step 5 */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl bg-foreground/[0.01] border border-border/40 hover:border-champagne-300 dark:hover:border-champagne-500/20 hover:bg-foreground/[0.02] transition-all duration-300 gap-4 group/step">
+                                            <div className="flex items-start gap-4">
+                                                <div className="mt-0.5 shrink-0">
+                                                    {step5Done ? (
+                                                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shadow-inner">
+                                                            <CheckCircle2 size={16} className="animate-in scale-in duration-200" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-foreground/5 border border-border text-foreground/40 flex items-center justify-center font-bold text-xs">
+                                                            5
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <h4 className={`font-bold text-sm ${step5Done ? 'text-foreground/40 line-through' : 'text-foreground'}`}>
+                                                        Hantera bokningar
+                                                    </h4>
+                                                    <p className="text-xs text-foreground/50 leading-relaxed max-w-md">
+                                                        Gör din första manuella testbokning eller ta emot din första kundbokning för att slutföra onboarding.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="shrink-0 self-end sm:self-center">
+                                                {step5Done ? (
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-full flex items-center gap-1">
+                                                        <Check size={10} /> Bokning klar!
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => setIsBookingModalOpen(true)}
+                                                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-md"
+                                                    >
+                                                        Gör testbokning <ArrowRight size={12} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right column: Industry assistant panel */}
+                                    <div className="lg:col-span-1 space-y-6">
+                                        {/* Custom setup helper box */}
+                                        <div className="bg-foreground/[0.01] border border-border/80 rounded-3xl p-6 relative overflow-hidden space-y-5 flex flex-col h-full justify-between">
+                                            <div className="space-y-5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 bg-champagne-500/10 border border-champagne-500/20 text-champagne-600 dark:text-champagne-400 rounded-xl flex items-center justify-center shadow-sm">
+                                                        <Sparkles size={16} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-sm text-foreground">Smart Onboarding</h4>
+                                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">För {getCategoryGroup(salonCategory || user?.category).name}</p>
+                                                    </div>
+                                                </div>
+
+                                                <p className="text-xs text-foreground/60 leading-relaxed">
+                                                    {getCategoryGroup(salonCategory || user?.category).welcomeMessage} Vi har ställt in rätt rekommendationer och standarder för din bransch.
+                                                </p>
+
+                                                <div className="space-y-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">
+                                                        Rekommenderade Tjänster
+                                                    </span>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {getCategoryGroup(salonCategory || user?.category).examples.map((item, i) => (
+                                                            <span 
+                                                                key={i} 
+                                                                className="px-2.5 py-1 bg-foreground/5 dark:bg-white/5 border border-border text-[10px] font-bold text-foreground/70 rounded-lg hover:border-champagne-300 dark:hover:border-champagne-500 transition-colors"
+                                                            >
+                                                                {item}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Pro tip card */}
+                                            <div className="p-4 bg-gradient-to-br from-champagne-500/[0.04] to-pink-500/[0.04] border border-champagne-500/10 rounded-2xl space-y-2 mt-4 shrink-0">
+                                                <div className="flex items-center gap-1.5 text-champagne-600 dark:text-champagne-400">
+                                                    <Lightbulb size={16} />
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest">Expert-tips</span>
+                                                </div>
+                                                <p className="text-[11px] text-foreground/60 leading-relaxed font-medium">
+                                                    "{getCategoryGroup(salonCategory || user?.category).tip}"
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    )}
 
                     {/* Quick Stats & Analytics Chart */}
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">

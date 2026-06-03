@@ -21,11 +21,22 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Salon is not connected to Stripe' }, { status: 400 });
         }
 
+        // Check if the salon's connected Stripe account has the klarna_payments capability active
+        let paymentMethodTypes: ('card' | 'klarna')[] = ['card'];
+        try {
+            const stripeAccount = await stripe.accounts.retrieve(salon.stripe_account_id);
+            if (stripeAccount.capabilities?.klarna_payments === 'active') {
+                paymentMethodTypes = ['card', 'klarna'];
+            }
+        } catch (err) {
+            console.warn(`Failed to retrieve capabilities for Stripe account ${salon.stripe_account_id}, falling back to card only:`, err);
+        }
+
         // 2. Create Checkout Session on behalf of the salon (Direct Charge)
         // Note: Since Glowbook takes 0%, a direct charge is best.
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
-            payment_method_types: ['card'],
+            payment_method_types: paymentMethodTypes,
             line_items: [
                 {
                     price_data: {

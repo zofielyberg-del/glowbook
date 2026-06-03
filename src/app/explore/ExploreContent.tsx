@@ -3,7 +3,7 @@
 import Header from "@/components/layout/Header";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
-import { Star, MapPin, Clock, Search, SlidersHorizontal, Sparkles, Zap, TrendingUp, BadgeCheck, Coins, ChevronDown } from "lucide-react";
+import { Star, MapPin, Clock, Search, SlidersHorizontal, Sparkles, Zap, TrendingUp, BadgeCheck, Coins, ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
@@ -567,7 +567,7 @@ export default function ExploreContent() {
                                 <motion.div key={salon.id || i} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
                                     <Link href={`/salon/${salon.slug || salon.id || (salon.name ? salon.name.toLowerCase().trim().replace(/\s+/g, '-') : 'unknown')}`} className="group block space-y-4">
                                         <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-md relative transition-transform duration-300 group-hover:-translate-y-1 border border-black/5 dark:border-white/5 bg-card">
-                                            <img src={(salon.banner_url || salon.backgroundImage || salon.profileImage || salon.logo_url || salon.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=100').replace(/w=\d+/g, 'w=1200').replace(/q=\d+/g, 'q=100')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={salon.name} />
+                                            <img src={(salon.profileImage || salon.logo_url || salon.banner_url || salon.backgroundImage || salon.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=100').replace(/w=\d+/g, 'w=1200').replace(/q=\d+/g, 'q=100')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={salon.name} />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                                             {salon.is_verified && (
                                                 <div className="absolute top-5 right-5 bg-blue-500 text-white p-1.5 rounded-full shadow-md" title="Verifierad Salong"><BadgeCheck size={14} /></div>
@@ -592,7 +592,14 @@ export default function ExploreContent() {
                                                 
                                                 return (
                                                     <div className="flex justify-between items-center">
-                                                        <h3 className="text-xl font-bold text-foreground truncate">{salon.name}</h3>
+                                                        <h3 className="text-xl font-bold text-foreground truncate flex items-center gap-1.5">
+                                                            <span>{salon.name}</span>
+                                                            {salon.is_verified && (
+                                                                <span className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full p-[2px] shrink-0" title="Glowbook-verifierad">
+                                                                    <Check size={8} strokeWidth={4} />
+                                                                </span>
+                                                            )}
+                                                        </h3>
                                                         <div className="flex items-center gap-1.5 px-2 py-1 bg-champagne-500/10 rounded-lg text-sm font-black text-champagne-600">
                                                             <Star size={12} className={salon.rating ? "fill-current" : ""} />
                                                             <span>{salon.rating || (isNew ? 'NY' : '-')}</span>
@@ -638,14 +645,21 @@ function SalonMiniCard({ salon, currency }: { salon: any; currency: string }) {
         <Link href={`/salon/${salon.slug || salon.id || (salon.name ? salon.name.toLowerCase().trim().replace(/\s+/g, '-') : 'demo')}`} className="group block">
             <div className="bg-card rounded-2xl border border-border overflow-hidden hover:border-champagne-300 dark:hover:border-champagne-600 transition-all hover:shadow-lg">
                 <div className="aspect-[3/2] overflow-hidden relative">
-                    <img src={(salon.banner_url || salon.backgroundImage || salon.profileImage || salon.logo_url || salon.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=100').replace(/w=\d+/g, 'w=800').replace(/q=\d+/g, 'q=100')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={salon.name} />
+                    <img src={(salon.profileImage || salon.logo_url || salon.banner_url || salon.backgroundImage || salon.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=100').replace(/w=\d+/g, 'w=800').replace(/q=\d+/g, 'q=100')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={salon.name} />
                     {salon.is_verified && (
                         <div className="absolute top-3 right-3 bg-blue-500 text-white p-1 rounded-full shadow-md" title="Verifierad Salong"><BadgeCheck size={10} /></div>
                     )}
                 </div>
                 <div className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-black text-foreground truncate">{salon.name}</h4>
+                        <h4 className="text-sm font-black text-foreground truncate flex items-center gap-1">
+                            <span>{salon.name}</span>
+                            {salon.is_verified && (
+                                <span className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full p-[1.5px] shrink-0" title="Glowbook-verifierad">
+                                    <Check size={6} strokeWidth={4} />
+                                </span>
+                            )}
+                        </h4>
                         <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-champagne-500/10 rounded-md text-[10px] font-black text-champagne-600">
                             <Star size={10} className={salon.rating ? "fill-current" : ""} />
                             <span>{salon.rating || (isNew ? 'NY' : '-')}</span>

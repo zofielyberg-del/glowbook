@@ -83,6 +83,9 @@ type Provider = {
     cancellationDate?: string;
     profileImage?: string | null;
     verificationStatus?: string;
+    verifiedCategories?: string[];
+    isVerified?: boolean;
+    is_verified?: boolean;
 };
 
 export default function AdminDashboard() {
@@ -151,6 +154,9 @@ export default function AdminDashboard() {
                         description: s.description || '',
                         practitioners: s.practitioners || [],
                         verificationStatus: s.verificationStatus || 'none',
+                        verifiedCategories: s.verified_categories || s.verifiedCategories || [],
+                        isVerified: s.is_verified || s.isVerified || false,
+                        is_verified: s.is_verified || s.isVerified || false,
                     }));
 
                     setProviders(mappedProviders);
@@ -958,6 +964,12 @@ export default function AdminDashboard() {
                                                                 {req.submittedAt ? new Date(req.submittedAt).toLocaleDateString('sv-SE', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Okänt datum'}
                                                             </span>
                                                         </div>
+                                                        {req.category && (
+                                                            <p className="text-[10px] font-bold text-blue-500 mt-2 flex items-center gap-1.5 bg-blue-500/5 px-2.5 py-1 rounded-lg border border-blue-500/10 w-fit">
+                                                                <ShieldCheck size={12} className="fill-blue-500/10" />
+                                                                Söker verifiering för: <span className="underline">{req.category}</span>
+                                                            </p>
+                                                        )}
                                                         {req.categories && req.categories.length > 0 && (
                                                             <div className="flex flex-wrap gap-1 mt-2">
                                                                 {req.categories.slice(0, 3).map((cat: string, ci: number) => (
@@ -995,13 +1007,59 @@ export default function AdminDashboard() {
                                                                     setVerificationRequests(updated);
                                                                     localStorage.setItem('glowbook_verification_requests', JSON.stringify(updated));
 
-                                                                    // Update salon verification status
+                                                                    // Dynamic list refresh
+                                                                    const updatedProvs = providers.map(p => {
+                                                                        if (p.id === req.salonId || p.salon === req.salonName) {
+                                                                            return {
+                                                                                ...p,
+                                                                                verified: true,
+                                                                                is_verified: true,
+                                                                                isVerified: true,
+                                                                                verifiedCategories: Array.from(new Set([
+                                                                                    ...(Array.isArray(p.verifiedCategories) ? p.verifiedCategories : []),
+                                                                                    req.category
+                                                                                ])).filter(Boolean)
+                                                                            };
+                                                                        }
+                                                                        return p;
+                                                                    });
+                                                                    setProviders(updatedProvs);
+
+                                                                    // Find target categories for applicant
+                                                                    const targetSal = updatedProvs.find(p => p.id === req.salonId || p.salon === req.salonName);
+                                                                    const verifiedCats = targetSal ? targetSal.verifiedCategories : [req.category];
+
+                                                                    // Sync applicant salon approval to database
+                                                                    fetch('/api/salons/update', {
+                                                                        method: 'POST',
+                                                                        headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({
+                                                                            id: req.salonId,
+                                                                            isVerified: true,
+                                                                            verifiedCategories: verifiedCats
+                                                                        })
+                                                                    })
+                                                                    .then(res => res.json())
+                                                                    .then(data => {
+                                                                        if (data.success) {
+                                                                            console.log('Successfully synchronized verification status to database for salon:', req.salonName);
+                                                                        }
+                                                                    })
+                                                                    .catch(err => console.error('Failed to sync approval to database:', err));
+
+                                                                    // If the admin is also logged in as the approved provider (e.g. testing context)
                                                                     const salon = localStorage.getItem('glowbook_salon');
                                                                     if (salon) {
                                                                         const s = JSON.parse(salon);
-                                                                        s.verificationStatus = 'active';
-                                                                        s.isVerified = true;
-                                                                        localStorage.setItem('glowbook_salon', JSON.stringify(s));
+                                                                        if (s.id === req.salonId) {
+                                                                            s.verificationStatus = 'active';
+                                                                            s.isVerified = true;
+                                                                            s.is_verified = true;
+                                                                            s.verifiedCategories = verifiedCats;
+                                                                            localStorage.setItem('glowbook_salon', JSON.stringify(s));
+                                                                            sessionStorage.setItem('glowbook_salon', JSON.stringify(s));
+                                                                            window.dispatchEvent(new Event('glowbook_update'));
+                                                                        }
                                                                     }
 
                                                                     // Send notification to provider
@@ -1041,8 +1099,33 @@ export default function AdminDashboard() {
                                                                         const s = JSON.parse(salon);
                                                                         s.verificationStatus = 'none';
                                                                         s.isVerified = false;
+                                                                        s.is_verified = false;
                                                                         localStorage.setItem('glowbook_salon', JSON.stringify(s));
+
+                                                                        // Sync to server database!
+                                                                        fetch('/api/salons/update', {
+                                                                            method: 'POST',
+                                                                            headers: { 'Content-Type': 'application/json' },
+                                                                            body: JSON.stringify({
+                                                                                id: s.id,
+                                                                                isVerified: false
+                                                                            })
+                                                                        }).catch(err => console.error('Failed to sync rejection to database:', err));
                                                                     }
+
+                                                                    // Dynamic list refresh
+                                                                    const updatedProvs = providers.map(p => {
+                                                                        if (p.id === req.salonId || p.salon === req.salonName) {
+                                                                            return {
+                                                                                ...p,
+                                                                                verified: false,
+                                                                                is_verified: false,
+                                                                                isVerified: false
+                                                                            };
+                                                                        }
+                                                                        return p;
+                                                                    });
+                                                                    setProviders(updatedProvs);
 
                                                                     // Send notification to provider
                                                                     try {

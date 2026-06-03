@@ -51,19 +51,27 @@ export async function POST(req: Request) {
             data: { status: 'cancelled' }
         });
 
-        // 3. Format Date & Time for email notifications
+        // 3. Format Date & Time for email notifications (defensively locked to Sweden/Stockholm timezone to prevent UTC offsets)
         const bookingDateStr = appointment.booking_date
             ? new Date(appointment.booking_date).toLocaleDateString('sv-SE', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
-                day: 'numeric'
+                day: 'numeric',
+                timeZone: 'Europe/Stockholm'
               })
-            : appointment.start_time.toLocaleDateString('sv-SE');
+            : appointment.start_time.toLocaleDateString('sv-SE', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                timeZone: 'Europe/Stockholm'
+              });
             
         const startTimeStr = appointment.start_time.toLocaleTimeString('sv-SE', {
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            timeZone: 'Europe/Stockholm'
         });
 
         const salonName = appointment.salon?.name || 'Salongen';

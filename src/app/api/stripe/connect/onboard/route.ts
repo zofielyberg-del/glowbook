@@ -47,6 +47,7 @@ export async function POST(req: Request) {
                 capabilities: {
                     card_payments: { requested: true },
                     transfers: { requested: true },
+                    klarna_payments: { requested: true },
                 },
                 business_type: 'individual',
                 business_profile: {
@@ -68,6 +69,19 @@ export async function POST(req: Request) {
                 where: { id: salonId },
                 data: { stripe_account_id: stripeAccountId },
             });
+        } else {
+            // Update capabilities of existing Express account to ensure klarna_payments is requested
+            try {
+                await stripe.accounts.update(stripeAccountId, {
+                    capabilities: {
+                        card_payments: { requested: true },
+                        transfers: { requested: true },
+                        klarna_payments: { requested: true },
+                    }
+                });
+            } catch (updateErr) {
+                console.warn(`Failed to update capabilities for existing Stripe account ${stripeAccountId}:`, updateErr);
+            }
         }
 
         // 3. Create Account Link for onboarding

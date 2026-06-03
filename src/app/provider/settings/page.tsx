@@ -49,7 +49,9 @@ function SettingsContent() {
         profileImage: null as string | null,
         backgroundImage: null as string | null,
         isVerified: false,
+        is_verified: false,
         verificationStatus: 'none' as 'none' | 'pending' | 'active',
+        verifiedCategories: [] as string[],
         practitioners: [] as { id: string; name: string; role: string; title: string; status: string; image?: string; schedule?: any; categories?: string[] }[],
         appointments: [] as any[],
         categories: [] as string[],
@@ -67,6 +69,7 @@ function SettingsContent() {
     const [newPractitioner, setNewPractitioner] = useState({ name: '', role: '', title: '', categories: [] as string[], image: '' });
     const [scheduleBuffer, setScheduleBuffer] = useState<any>({});
     const [uploadedDiploma, setUploadedDiploma] = useState<string | null>(null);
+    const [verificationCategory, setVerificationCategory] = useState('Naglar');
     const [loyaltyState, setLoyaltyState] = useState<ProviderLoyaltyState>(getDefaultLoyaltyState());
 
     // Cancellation & UI states
@@ -74,43 +77,64 @@ function SettingsContent() {
     const [cancellationReason, setCancellationReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
     const [comparisonDuration, setComparisonDuration] = useState(1);
+    const [isConnectingStripe, setIsConnectingStripe] = useState(false);
 
     useEffect(() => {
-        const loadData = async () => {
-            const saved = sessionStorage.getItem('glowbook_salon');
+        const loadData = () => {
+            preventSave.current = true;
+            const isIgnored = (c: any) => typeof c === 'string' && ['skönhet', 'skönhetssalong'].includes(c.toLowerCase());
+            
+            const parseSalonObject = (salon: any) => {
+                let mainCategory = '';
+                let additionalCategories: string[] = [];
+
+                if (Array.isArray(salon.category)) {
+                    const [main, ...additional] = salon.category;
+                    mainCategory = isIgnored(main) ? '' : (main || '');
+                    additionalCategories = (additional || []).filter((c: any) => !isIgnored(c));
+                } else {
+                    mainCategory = isIgnored(salon.category) ? '' : (salon.category || '');
+                    additionalCategories = (salon.categories || []).filter((c: any) => !isIgnored(c));
+                }
+
+                const availability = Array.isArray(salon.availability) ? salon.availability : [];
+                const hoursSettings = availability.find((a: any) => a && a.type === 'settings');
+
+                return {
+                    ...salon,
+                    category: mainCategory,
+                    categories: additionalCategories,
+                    isVerified: salon.is_verified !== undefined ? salon.is_verified : (salon.isVerified || false),
+                    is_verified: salon.is_verified !== undefined ? salon.is_verified : (salon.isVerified || false),
+                    verifiedCategories: salon.verified_categories || salon.verifiedCategories || [],
+                    openingHoursType: hoursSettings?.openingHoursType || 'dynamic',
+                    customOpeningHours: hoursSettings?.customOpeningHours || '',
+                    stripeConnected: !!salon.stripe_account_id
+                };
+            };
+
+            const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
             if (saved) {
                 const localData = JSON.parse(saved);
+                const parsedLocal = parseSalonObject(localData);
 
                 // Fallback to local data first for instant UI
-                setSalonData(prev => ({ ...prev, ...localData }));
-                setComparisonDuration(localData.duration || 1);
-
-                // Then try to fetch fresh data from server if it has a real ID
-                if (localData.id && localData.id.length > 20) {
-                    try {
-                        const response = await fetch(`/api/salons/get?id=${localData.id}&_t=${Date.now()}`);
-                        const serverData = await response.json();
-                        if (serverData.success && serverData.salon) {
-                            const salon = serverData.salon;
-                            // If category is an array (new format), split it into primary and additional
-                            if (Array.isArray(salon.category)) {
-                                const [main, ...additional] = salon.category;
-                                setSalonData(prev => ({
-                                    ...prev,
-                                    ...salon,
-                                    category: main || '',
-                                    categories: additional || []
-                                }));
-                            } else {
-                                setSalonData(prev => ({ ...prev, ...salon }));
-                            }
-                            sessionStorage.setItem('glowbook_salon', JSON.stringify(serverData.salon));
-                        }
-                    } catch (e) {
-                        console.error('Failed to fetch salon from server:', e);
+                setSalonData(prev => {
+                    if (hasUnsavedChanges.current) {
+                        return prev;
                     }
+                    return { ...prev, ...parsedLocal };
+                });
+                setComparisonDuration(parsedLocal.duration || 1);
+
+                if (parsedLocal.category) {
+                    setVerificationCategory(parsedLocal.category);
                 }
             }
+            
+            setTimeout(() => {
+                preventSave.current = false;
+            }, 100);
 
             const savedLoyalty = localStorage.getItem('glowbook_provider_loyalty');
             if (savedLoyalty) {
@@ -208,10 +232,13 @@ function SettingsContent() {
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
+    const preventSave = useRef(true);
+    const hasUnsavedChanges = useRef(false);
     const isFirstRender = useRef(true);
     const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleSave = async (dataToSave = salonData) => {
+        if (isSaving) return;
         setIsSaving(true);
         setSaveStatus('idle');
         setErrorMessage('');
@@ -226,7 +253,12 @@ function SettingsContent() {
             ...dataToSave,
             id: salonId,
             currency: currency,
-            slug: computedSlug
+            slug: computedSlug,
+            openingHoursSettings: {
+                type: 'settings',
+                openingHoursType: (dataToSave as any).openingHoursType || 'dynamic',
+                customOpeningHours: (dataToSave as any).customOpeningHours || ''
+            }
         };
         
         // Critical fix: Never send availability from the settings tab to prevent overwriting with stale data
@@ -247,6 +279,7 @@ function SettingsContent() {
                 setErrorMessage(errData.error || errData.details || 'Kunde inte spara');
             } else {
                 setSaveStatus('success');
+                hasUnsavedChanges.current = false;
                 setTimeout(() => setSaveStatus('idle'), 3000);
             }
         } catch (error: any) {
@@ -263,18 +296,20 @@ function SettingsContent() {
         setTimeout(() => setSavedSuccess(false), 3000);
     };
 
-    // Auto-save: debounce 1.5s after salonData changes (skip first render)
+    // Auto-save: debounce 1.5s after salonData changes (skip loadData hydration)
     useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-        }
+        if (preventSave.current) return;
+        hasUnsavedChanges.current = true;
         if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
         saveTimerRef.current = setTimeout(() => {
             handleSave(salonData);
         }, 1500);
         return () => {
-            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+            if (saveTimerRef.current) {
+                clearTimeout(saveTimerRef.current);
+                // Flush the save on unmount!
+                handleSave(salonData);
+            }
         };
     }, [salonData]);
 
@@ -407,6 +442,29 @@ function SettingsContent() {
             alert('Ett nätverksfel uppstod.');
         } finally {
             setIsReactivating(false);
+        }
+    };
+
+    const handleStripeConnect = async () => {
+        if (isConnectingStripe) return;
+        setIsConnectingStripe(true);
+        try {
+            const response = await fetch('/api/stripe/connect/onboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ salonId: salonData.id })
+            });
+            const data = await response.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                alert(data.error || 'Kunde inte starta Stripe-anslutning');
+            }
+        } catch (err) {
+            console.error('Error connecting Stripe:', err);
+            alert('Ett nätverksfel uppstod');
+        } finally {
+            setIsConnectingStripe(false);
         }
     };
 
@@ -573,10 +631,49 @@ function SettingsContent() {
                                                     <option value="Makeup">Makeup</option>
                                                     <option value="Barberare">Barberare</option>
                                                     <option value="Piercing">Piercing</option>
+                                                    {/* Defensive option: If the current category in the state is a custom/legacy value (which isn't generic "skönhet" or "skönhetssalong"), render it so it select-maps correctly */}
+                                                    {salonData.category && 
+                                                     !["Fransar & Bryn", "Hårvård", "Naglar", "Massage", "Hudvård", "Estetisk Injektion", "Tatuering", "Fotvård", "Spa", "Makeup", "Barberare", "Piercing"].includes(salonData.category) && 
+                                                     !['skönhet', 'skönhetssalong'].includes(salonData.category.toLowerCase()) && (
+                                                        <option value={salonData.category}>{salonData.category}</option>
+                                                    )}
                                                 </select>
                                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-foreground/30">
                                                     <ChevronDown size={20} />
                                                 </div>
+                                            </div>
+                                            
+                                            <div className="mt-6 border-t border-border/30 pt-6">
+                                                <label className="block text-sm font-bold text-foreground mb-2">Öppettider på profil</label>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="relative">
+                                                        <select
+                                                            value={(salonData as any).openingHoursType || 'dynamic'}
+                                                            onChange={(e) => setSalonData({ ...salonData, openingHoursType: e.target.value } as any)}
+                                                            className="w-full px-5 py-4 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all shadow-sm appearance-none cursor-pointer font-bold"
+                                                        >
+                                                            <option value="dynamic">Öppet enligt tidsbokning (rekommenderas)</option>
+                                                            <option value="fixed">Fasta öppettider</option>
+                                                        </select>
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-foreground/30">
+                                                            <ChevronDown size={20} />
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {((salonData as any).openingHoursType === 'fixed') && (
+                                                        <input
+                                                            type="text"
+                                                            value={(salonData as any).customOpeningHours || ''}
+                                                            onChange={(e) => setSalonData({ ...salonData, customOpeningHours: e.target.value } as any)}
+                                                            placeholder="T.ex. Vardagar 09:00 - 18:00"
+                                                            className="w-full px-4 py-4 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all placeholder:text-foreground/30 font-bold"
+                                                        />
+                                                    )}
+                                                </div>
+                                                <p className="text-[10px] text-foreground/30 mt-2 pl-1 flex items-center gap-2">
+                                                    <Clock size={12} />
+                                                    Välj om din profil ska visa "Öppet enligt tidsbokning" (för rörliga tider) eller ange fasta öppettider.
+                                                </p>
                                             </div>
                                             
                                             <div className="mt-6">
@@ -619,7 +716,7 @@ function SettingsContent() {
                                                     })}
                                                 </div>
                                             </div>
-
+ 
                                             <p className="text-[10px] text-foreground/30 mt-4 pl-1 flex items-center gap-2">
                                                 <Info size={12} />
                                                 Huvudkategorin styr din primära placering. Ytterligare kategorier gör att du även dyker upp vid filtrering och sökning inom dessa områden.
@@ -770,6 +867,65 @@ function SettingsContent() {
                                                 <p className="text-[10px] text-foreground/20 mt-1">JPG, PNG • Max 5MB per bild</p>
                                             </label>
                                         )}
+                                    </div>
+                                </section>
+
+                                {/* Kalenderkoppling Section */}
+                                <section className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-6 relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500"></div>
+                                    
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="p-2 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 rounded-lg">
+                                            <Clock size={20} />
+                                        </div>
+                                        <h2 className="text-xl font-bold text-foreground">Koppla till din mobilkalender</h2>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <p className="text-sm text-foreground/60 leading-relaxed">
+                                            Få dina Glowbook-bokningar automatiskt synkade till din telefon! Du kan prenumerera på dina bokningar direkt i **iPhone (Apple Calendar)**, **Google Kalender** eller **Outlook**.
+                                        </p>
+
+                                        <div className="p-5 bg-foreground/[0.02] border border-border/80 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="flex-1 space-y-1">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30 block">Din personliga iCal-länk</span>
+                                                <code className="text-xs font-mono select-all bg-card border border-border/50 px-3 py-1.5 rounded-lg text-violet-500 block truncate max-w-lg">
+                                                    {salonData.id ? `https://www.glowbook.se/api/salons/ical/${salonData.id}` : 'Loggar in...'}
+                                                </code>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    disabled={!salonData.id}
+                                                    onClick={() => {
+                                                        if (salonData.id) {
+                                                            navigator.clipboard.writeText(`https://www.glowbook.se/api/salons/ical/${salonData.id}`);
+                                                            alert('Kalenderlänken kopierad till urklipp!');
+                                                        }
+                                                    }}
+                                                    className="px-4 py-2.5 bg-foreground text-background hover:bg-violet-600 hover:text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                                                >
+                                                    Kopiera länk
+                                                </button>
+                                                <a
+                                                    href={salonData.id ? `webcal://www.glowbook.se/api/salons/ical/${salonData.id}` : '#'}
+                                                    className="px-4 py-2.5 border border-violet-500/30 text-violet-500 hover:bg-violet-500/5 rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-2"
+                                                >
+                                                    Prenumerera direkt (iOS)
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-violet-500/5 border border-violet-500/10 rounded-2xl p-5 space-y-3">
+                                            <h4 className="text-xs font-bold text-violet-500 flex items-center gap-2">
+                                                <Info size={14} /> Så här gör du:
+                                            </h4>
+                                            <ul className="text-xs text-foreground/50 space-y-2 pl-4 list-decimal leading-relaxed">
+                                                <li><strong>På iPhone:</strong> Klicka på knappen "Prenumerera direkt" ovan, eller gå till din iPhones kalender-app, välj "Lägg till kalender" -&gt; "Lägg till kalenderprenumeration" och klistra in den kopierade länken.</li>
+                                                <li><strong>På Android / Google Kalender:</strong> Gå till <a href="https://calendar.google.com" target="_blank" rel="noreferrer" className="text-violet-500 hover:underline">calendar.google.com</a> på en dator. Klicka på plustecknet (+) bredvid "Andra kalendrar" i vänstermenyn och välj "Från webbadress". Klistra in din kalenderlänk där.</li>
+                                                <li>Alla nya bokningar och ändringar dyker automatiskt upp i din mobilkalender i realtid!</li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </section>
 
@@ -1383,19 +1539,20 @@ function SettingsContent() {
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col gap-4">
-                                                    <div className="px-6 py-4 bg-amber-100/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-2xl">
-                                                        <p className="text-sm font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2">
-                                                            <Clock size={16} /> Beta: Utbetalningar kommer snart
-                                                        </p>
-                                                        <p className="text-xs text-amber-600/70 mt-1">
-                                                            Vi förbereder din salong för direkta utbetalningar. Håll utkik efter en uppdatering inom kort!
-                                                        </p>
-                                                    </div>
                                                     <button
-                                                        disabled
-                                                        className="px-10 py-6 bg-foreground/10 text-foreground/20 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center gap-3 cursor-not-allowed border border-border"
+                                                        onClick={handleStripeConnect}
+                                                        disabled={isConnectingStripe}
+                                                        className="px-10 py-6 bg-foreground text-background hover:bg-champagne-600 hover:text-white dark:bg-foreground dark:text-background dark:hover:bg-champagne-600 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 border border-border"
                                                     >
-                                                        <Plus size={18} /> Stripe Anslutning Pausad
+                                                        {isConnectingStripe ? (
+                                                            <>
+                                                                <RefreshCw className="animate-spin" size={18} /> Ansluter...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Plus size={18} /> Aktivera Stripe Connect
+                                                            </>
+                                                        )}
                                                     </button>
                                                 </div>
                                             </div>
@@ -1408,13 +1565,30 @@ function SettingsContent() {
                                                     <h3 className="font-bold text-lg text-foreground">Ansluten till Stripe</h3>
                                                     <p className="text-xs text-emerald-600/70 font-medium">Din salong kan nu ta emot online-betalningar via Glowbook.</p>
                                                 </div>
-                                                <button className="px-6 py-3 bg-foreground text-background rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-champagne-600 hover:text-white transition-all">
+                                                <button
+                                                    onClick={handleStripeConnect}
+                                                    disabled={isConnectingStripe}
+                                                    className="px-6 py-3 bg-foreground text-background rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-champagne-600 hover:text-white transition-all flex items-center gap-2"
+                                                >
+                                                    {isConnectingStripe && <RefreshCw className="animate-spin" size={12} />}
                                                     Hantera hos Stripe
                                                 </button>
                                             </div>
                                         )}
                                     </div>
                                 </section>
+
+                                {salonData.stripeConnected && (
+                                    <section className="bg-blue-500/5 p-8 rounded-3xl border border-blue-500/20 flex gap-4">
+                                        <Info size={24} className="text-blue-500 shrink-0" />
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-bold text-foreground">Aktivera Klarna i Stripe</p>
+                                            <p className="text-xs text-foreground/60 leading-relaxed">
+                                                För att erbjuda dina kunder att betala med Klarna, klicka dig in på din Stripe-dashboard via knappen ovan ("Hantera hos Stripe") och aktivera <strong>Klarna</strong> under inställningarna för betalningsmetoder (Payment Methods).
+                                            </p>
+                                        </div>
+                                    </section>
+                                )}
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <section className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-4">
@@ -1939,6 +2113,25 @@ function SettingsContent() {
                                 </div>
 
                                 <div className="space-y-6">
+                                     {/* Category Dropdown Selection */}
+                                     <div className="space-y-2 text-left">
+                                         <label className="block text-[10px] font-black uppercase tracking-widest text-foreground/45">Vilken kategori avser diplomet?</label>
+                                         <div className="relative">
+                                             <select
+                                                 value={verificationCategory}
+                                                 onChange={(e) => setVerificationCategory(e.target.value)}
+                                                 className="w-full px-5 py-4 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all shadow-sm appearance-none cursor-pointer font-bold"
+                                             >
+                                                 {["Naglar", "Hudvård", "Hårvård", "Massage", "Fransar & Bryn", "Estetisk Injektion", "Tatuering", "Spa", "Makeup", "Fotvård", "Kiropraktik", "Naprapati", "Tandblekning", "Piercing", "Barberare"].map(cat => (
+                                                     <option key={cat} value={cat}>{cat}</option>
+                                                 ))}
+                                             </select>
+                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-foreground/30">
+                                                 <ChevronDown size={20} />
+                                             </div>
+                                         </div>
+                                     </div>
+
                                     <label className="block p-10 border-2 border-dashed border-border rounded-[32px] hover:border-blue-500/50 transition-all cursor-pointer group bg-foreground/[0.02]">
                                         <input
                                             type="file"
@@ -1998,6 +2191,7 @@ function SettingsContent() {
                                                     diplomaFile: uploadedDiploma,
                                                     submittedAt: new Date().toISOString(),
                                                     status: 'pending' as const,
+                                                    category: verificationCategory,
                                                     categories: salonData.practitioners?.flatMap((p: any) => p.categories || []) || []
                                                 };
                                                 localStorage.setItem('glowbook_verification_requests', JSON.stringify([...existingRequests, request]));

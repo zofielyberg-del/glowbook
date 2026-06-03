@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import SalonContent from "../salon/SalonContent";
-
-import { use } from 'react';
+import { use, Suspense } from 'react';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;
@@ -21,5 +20,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default function ShortLinkPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = use(params);
-    return <SalonContent params={{ id: slug }} />;
+    return (
+        <Suspense fallback={null}>
+            <SalonContent params={{ id: slug }} />
+        </Suspense>
+    );
 }

@@ -47,6 +47,10 @@ export async function GET(req: Request) {
                 profileImage: salon.logo_url,
                 backgroundImage: salon.banner_url,
                 galleryImages: salon.gallery_images || [],
+                isVerified: salon.is_verified || false,
+                is_verified: salon.is_verified || false,
+                verifiedCategories: salon.verified_categories || [],
+                onboardingProgress: salon.onboarding_progress || null,
                 practitioners: (salon.practitioners || []).map(p => ({
                     ...p,
                     image: p.image_url // Map database image_url to frontend image
