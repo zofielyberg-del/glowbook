@@ -78,6 +78,7 @@ function SettingsContent() {
     const [isCancelling, setIsCancelling] = useState(false);
     const [comparisonDuration, setComparisonDuration] = useState(1);
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
+    const [stripeOnboardUrl, setStripeOnboardUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const loadData = () => {
@@ -456,7 +457,11 @@ function SettingsContent() {
             });
             const data = await response.json();
             if (data.url) {
-                window.location.href = data.url;
+                if (salonData.stripeConnected) {
+                    window.open(data.url, '_blank');
+                } else {
+                    setStripeOnboardUrl(data.url);
+                }
             } else {
                 alert(data.error || 'Kunde inte starta Stripe-anslutning');
             }
@@ -1526,34 +1531,105 @@ function SettingsContent() {
                                         </div>
 
                                         {!salonData.stripeConnected ? (
-                                            <div className="p-8 bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/20 dark:to-card border border-amber-200 dark:border-amber-800/30 rounded-[32px] flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl shadow-amber-500/5">
-                                                <div className="space-y-4 text-center md:text-left flex-1">
-                                                    <div className="w-14 h-14 bg-white dark:bg-amber-900/50 rounded-2xl shadow-inner flex items-center justify-center text-amber-500 mx-auto md:mx-0">
-                                                        <Star size={28} fill="currentColor" />
+                                            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                                                {/* Left Column - Action Card */}
+                                                <div className="lg:col-span-3 bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/10 dark:to-card border border-amber-200 dark:border-amber-800/20 p-8 rounded-[32px] flex flex-col justify-between space-y-6 shadow-xl shadow-amber-500/5 relative overflow-hidden">
+                                                    <div className="space-y-4">
+                                                        <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center">
+                                                            <Star size={24} fill="currentColor" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <h3 className="text-xl font-bold text-foreground">Ta emot onlinebetalningar</h3>
+                                                            <p className="text-xs text-foreground/60 leading-relaxed">
+                                                                Genom att ansluta din salong till Stripe kan dina kunder betala med kort eller delbetalning via Klarna direkt vid bokning. Pengarna sätts in på ditt bankkonto. Glowbook tar 0% i provision.
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h3 className="text-2xl font-bold text-foreground mb-1">Gör som proffsen</h3>
-                                                        <p className="text-sm text-foreground/60 leading-relaxed max-w-md">
-                                                            Genom att ansluta ditt företag till Stripe kan dina kunder betala direkt vid bokning. Pengarna landar på ditt konto varje månad. <strong>Glowbook tar 0% provision.</strong>
-                                                        </p>
+
+                                                    <div className="pt-4 border-t border-border/30">
+                                                        {!stripeOnboardUrl ? (
+                                                            <button
+                                                                onClick={handleStripeConnect}
+                                                                disabled={isConnectingStripe}
+                                                                className="w-full py-4 bg-foreground text-background hover:bg-champagne-600 hover:text-white dark:bg-foreground dark:text-background dark:hover:bg-champagne-600 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 border border-border"
+                                                            >
+                                                                {isConnectingStripe ? (
+                                                                    <>
+                                                                        <RefreshCw className="animate-spin" size={18} /> Skapar länk...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Plus size={18} /> Initiera Stripe-anslutning
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        ) : (
+                                                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                                <a
+                                                                    href={stripeOnboardUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="w-full py-5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-lg shadow-blue-500/20 border border-blue-400/20"
+                                                                >
+                                                                    Fortsätt till registrering <ExternalLink size={16} />
+                                                                </a>
+                                                                <button
+                                                                    onClick={() => setStripeOnboardUrl(null)}
+                                                                    className="w-full text-center text-[10px] font-bold text-foreground/40 hover:text-foreground transition-colors"
+                                                                >
+                                                                    Generera ny länk
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-col gap-4">
-                                                    <button
-                                                        onClick={handleStripeConnect}
-                                                        disabled={isConnectingStripe}
-                                                        className="px-10 py-6 bg-foreground text-background hover:bg-champagne-600 hover:text-white dark:bg-foreground dark:text-background dark:hover:bg-champagne-600 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 border border-border"
-                                                    >
-                                                        {isConnectingStripe ? (
-                                                            <>
-                                                                <RefreshCw className="animate-spin" size={18} /> Ansluter...
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Plus size={18} /> Aktivera Stripe Connect
-                                                            </>
-                                                        )}
-                                                    </button>
+
+                                                {/* Right Column - Step-by-Step Guide */}
+                                                <div className="lg:col-span-2 bg-card border border-border p-8 rounded-[32px] space-y-6 flex flex-col justify-between">
+                                                    <div>
+                                                        <h4 className="text-sm font-black uppercase tracking-widest text-foreground/40 mb-5">Så här fungerar det</h4>
+                                                        <div className="space-y-5">
+                                                            <div className="flex gap-4">
+                                                                <div className="w-6 h-6 rounded-full bg-foreground/5 text-foreground/60 flex items-center justify-center text-xs font-bold shrink-0 border border-border">
+                                                                    1
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-xs font-bold text-foreground">Initiera anslutning</p>
+                                                                    <p className="text-[10px] text-foreground/50 leading-relaxed">
+                                                                        Klicka på knappen för att skapa din personliga onboarding-länk hos Stripe.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex gap-4">
+                                                                <div className="w-6 h-6 rounded-full bg-foreground/5 text-foreground/60 flex items-center justify-center text-xs font-bold shrink-0 border border-border">
+                                                                    2
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-xs font-bold text-foreground">Registrera uppgifter</p>
+                                                                    <p className="text-[10px] text-foreground/50 leading-relaxed">
+                                                                        Följ stegen hos Stripe för att ange ditt företags organisationsnummer och bankkonto för utbetalningar.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex gap-4">
+                                                                <div className="w-6 h-6 rounded-full bg-foreground/5 text-foreground/60 flex items-center justify-center text-xs font-bold shrink-0 border border-border">
+                                                                    3
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-xs font-bold text-foreground">Aktivera Klarna</p>
+                                                                    <p className="text-[10px] text-foreground/50 leading-relaxed">
+                                                                        I din Stripe-dashboard går du till Settings -> Payment Methods och slår på **Klarna**.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <p className="text-[10px] text-foreground/30 italic leading-relaxed pt-4 border-t border-border/30">
+                                                        Stripe är en global ledare inom säkra onlinebetalningar och är PCI-certifierad för högsta säkerhet.
+                                                    </p>
                                                 </div>
                                             </div>
                                         ) : (
