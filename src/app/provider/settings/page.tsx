@@ -1620,7 +1620,7 @@ function SettingsContent() {
                                                                 <div className="space-y-1">
                                                                     <p className="text-xs font-bold text-foreground">Aktivera Klarna</p>
                                                                     <p className="text-[10px] text-foreground/50 leading-relaxed">
-                                                                        I din Stripe-dashboard går du till Settings -> Payment Methods och slår på **Klarna**.
+                                                                        I din Stripe-dashboard går du till Settings &rarr; Payment Methods och slår på <strong>Klarna</strong>.
                                                                     </p>
                                                                 </div>
                                                             </div>
