@@ -878,7 +878,7 @@ function SettingsContent() {
                                     </div>
                                 </section>
 
-                                {/* Kalenderkoppling Section */}
+                                {/* Kalenderkoppling Section - Temporarily Disabled
                                 <section className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-6 relative overflow-hidden">
                                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500"></div>
                                     
@@ -936,6 +936,7 @@ function SettingsContent() {
                                         </div>
                                     </div>
                                 </section>
+                                */}
 
                                 {/* Personal Section */}
                                 <section className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-6">
