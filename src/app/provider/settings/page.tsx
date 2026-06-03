@@ -1684,7 +1684,7 @@ function SettingsContent() {
                                                     <div>
                                                         <h4 className="text-sm font-bold uppercase tracking-wider text-foreground mb-6 flex items-center gap-2 border-b border-border pb-3">
                                                             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                                                            Steg-för-steg Guide
+                                                            Hur du kopplar din salong
                                                         </h4>
                                                         <div className="space-y-6">
                                                             <div className="flex gap-4 relative">
@@ -1693,11 +1693,19 @@ function SettingsContent() {
                                                                 <div className="w-7 h-7 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center text-xs font-black shrink-0 border border-amber-500/20 shadow-sm relative z-10">
                                                                     1
                                                                 </div>
-                                                                <div className="space-y-1">
-                                                                    <p className="text-xs font-bold text-foreground">Initiera din anslutning</p>
+                                                                <div className="space-y-2">
+                                                                    <p className="text-xs font-bold text-foreground">Skapa ett Stripe-konto</p>
                                                                     <p className="text-xs text-foreground/80 leading-relaxed">
-                                                                        Klicka på knappen <strong className="text-foreground">"Initiera Stripe-anslutning"</strong>. Systemet skapar en säker, krypterad onboarding-länk för din salong.
+                                                                        Börja med att skapa och registrera ett konto direkt hos Stripe.
                                                                     </p>
+                                                                    <a 
+                                                                        href="https://dashboard.stripe.com/register" 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer" 
+                                                                        className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 font-bold hover:underline"
+                                                                    >
+                                                                        Klicka här för att skapa konto <ExternalLink size={12} />
+                                                                    </a>
                                                                 </div>
                                                             </div>
 
@@ -1708,35 +1716,24 @@ function SettingsContent() {
                                                                     2
                                                                 </div>
                                                                 <div className="space-y-1">
-                                                                    <p className="text-xs font-bold text-foreground">Fortsätt till Stripe</p>
+                                                                    <p className="text-xs font-bold text-foreground">Genomför alla obligatoriska steg</p>
                                                                     <p className="text-xs text-foreground/80 leading-relaxed">
-                                                                        Klicka på den blå knappen <strong className="text-foreground">"Fortsätt till registrering"</strong> som dyker upp för att skickas säkert till Stripe Express.
+                                                                        Fyll i dina företagsuppgifter och bankkonto.
                                                                     </p>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="flex gap-4 relative">
-                                                                {/* Visual Connector Line */}
-                                                                <div className="absolute left-3.5 top-7 bottom-0 w-0.5 bg-border/80"></div>
-                                                                <div className="w-7 h-7 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center text-xs font-black shrink-0 border border-amber-500/20 shadow-sm relative z-10">
-                                                                    3
-                                                                </div>
-                                                                <div className="space-y-1">
-                                                                    <p className="text-xs font-bold text-foreground">Registrera företagsuppgifter</p>
-                                                                    <p className="text-xs text-foreground/80 leading-relaxed">
-                                                                        Fyll i din företagstyp (t.ex. enskild firma eller AB), organisationsnummer, mobilnummer och bankkonto för utbetalningar. Verifiera dig enkelt via BankID.
+                                                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold leading-relaxed">
+                                                                        ⚠️ OBS! Det är mycket viktigt att du genomför alla steg då detta krävs enligt LAG (Känn din kund/penningtvättslagen) för att kunna ta emot betalningar.
                                                                     </p>
                                                                 </div>
                                                             </div>
 
                                                             <div className="flex gap-4">
                                                                 <div className="w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-black shrink-0 border border-emerald-500/20 shadow-sm relative z-10">
-                                                                    4
+                                                                    3
                                                                 </div>
                                                                 <div className="space-y-1">
-                                                                    <p className="text-xs font-bold text-foreground">Aktivera Klarna</p>
+                                                                    <p className="text-xs font-bold text-foreground">Koppla till Glowbook</p>
                                                                     <p className="text-xs text-foreground/80 leading-relaxed">
-                                                                        När registreringen är klar skickas du tillbaka hit. Klicka på <strong className="text-foreground">"Hantera hos Stripe"</strong> för att gå till din dashboard, och slå på <strong className="text-foreground">Klarna</strong> under betalningsmetoder.
+                                                                        När allt är färdigt hos Stripe, återgå hit och klicka på knappen <strong className="text-foreground">"Initiera Stripe-anslutning"</strong> (till vänster) för att koppla ihop betalningarna till ditt nyskapade Stripe-konto.
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -1745,7 +1742,7 @@ function SettingsContent() {
 
                                                     <div className="pt-4 border-t border-border/50 flex items-center gap-2 text-[11px] text-foreground/70">
                                                         <Shield size={14} className="text-amber-500 shrink-0" />
-                                                        <span>Krypterat med SSL och PCI-certifierat för din säkerhet.</span>
+                                                        <span>SSL-krypterat och PCI-certifierat för högsta säkerhet.</span>
                                                     </div>
                                                 </div>
                                             </div>
