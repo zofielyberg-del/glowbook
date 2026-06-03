@@ -107,6 +107,7 @@ function SettingsContent() {
     const [isDisconnectingStripe, setIsDisconnectingStripe] = useState(false);
     const [stripeOnboardUrl, setStripeOnboardUrl] = useState<string | null>(null);
     const [stripeConnectError, setStripeConnectError] = useState<string | null>(null);
+    const [showTroubleshoot, setShowTroubleshoot] = useState(false);
 
     useEffect(() => {
         const loadData = () => {
@@ -1709,17 +1710,56 @@ function SettingsContent() {
                                                                 </div>
                                                                 <p className="text-foreground/75 text-[11px] font-medium leading-relaxed">{stripeConnectError}</p>
                                                                 {stripeConnectError.includes('signed up for Connect') && (
-                                                                    <div className="pt-2">
-                                                                        <a
-                                                                            href="https://dashboard.stripe.com/connect"
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl font-bold transition-all text-[10px] uppercase tracking-wider border border-red-500/10"
-                                                                        >
-                                                                            Gå till Stripe Connect <ExternalLink size={12} />
-                                                                        </a>
-                                                                    </div>
-                                                                )}
+                                                                     <div className="pt-3 border-t border-red-500/10 space-y-3">
+                                                                         <p className="font-bold text-amber-500 flex items-center gap-1">
+                                                                             <Info size={12} /> Vad beror detta på?
+                                                                         </p>
+                                                                         <p className="text-[11px] text-foreground/80 leading-relaxed">
+                                                                             Glowbooks onlinebetalningar är under aktivering. Detta fel beror inte på ditt eget Stripe-konto, utan är en systeminställning på Glowbooks plattform.
+                                                                         </p>
+                                                                         <div className="bg-red-500/10 p-3.5 rounded-xl">
+                                                                             <p className="font-bold text-foreground text-[10px] uppercase tracking-wider mb-1">Åtgärd för dig som utförare:</p>
+                                                                             <p className="text-[11px] text-foreground/80 leading-relaxed">
+                                                                                 Kontakta Glowbook support på <span className="font-bold text-red-400">support@glowbook.se</span> så hjälper vi dig att ansluta ditt konto omgående.
+                                                                             </p>
+                                                                         </div>
+                                                                         
+                                                                         <div className="pt-2">
+                                                                             <button
+                                                                                 onClick={() => setShowTroubleshoot(!showTroubleshoot)}
+                                                                                 className="text-[10px] font-bold text-foreground/40 hover:text-foreground/70 underline flex items-center gap-1 cursor-pointer"
+                                                                             >
+                                                                                 {showTroubleshoot ? "Dölj" : "Visa"} admin-instruktioner (endast för plattformsägare)
+                                                                             </button>
+                                                                             
+                                                                             {showTroubleshoot && (
+                                                                                 <div className="mt-2 bg-blue-500/10 dark:bg-blue-500/5 p-3.5 rounded-xl space-y-1.5 border border-blue-500/20 text-blue-300 animate-in fade-in duration-200">
+                                                                                     <p className="font-bold text-foreground text-[10px] uppercase tracking-wider flex items-center gap-1">
+                                                                                         <Sparkles size={11} className="text-blue-400" /> Aktivera Connect i Live-läge:
+                                                                                     </p>
+                                                                                     <p className="text-[11px] text-foreground/85">
+                                                                                         Logga in på ert plattformskonto hos Stripe och slutför Connect-aktiveringen:
+                                                                                     </p>
+                                                                                     <ol className="list-decimal pl-4 space-y-1 text-[10px] text-foreground/80">
+                                                                                         <li>Gå till <a href="https://dashboard.stripe.com/connect" target="_blank" rel="noopener noreferrer" className="underline hover:text-white font-bold">dashboard.stripe.com/connect</a>.</li>
+                                                                                         <li>Säkerställ att "Test mode" uppe till höger är avstängt.</li>
+                                                                                         <li>Fyll i Connect-frågeformuläret för att slutföra ansökan i Live-läge.</li>
+                                                                                     </ol>
+                                                                                     <div className="pt-2">
+                                                                                         <a
+                                                                                             href="https://dashboard.stripe.com/connect"
+                                                                                             target="_blank"
+                                                                                             rel="noopener noreferrer"
+                                                                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition-all text-[9px] uppercase tracking-wider shadow-sm"
+                                                                                         >
+                                                                                             Gå till Connect <ExternalLink size={10} />
+                                                                                         </a>
+                                                                                     </div>
+                                                                                 </div>
+                                                                             )}
+                                                                         </div>
+                                                                     </div>
+                                                                 )}
                                                             </div>
                                                         )}
                                                     </div>
@@ -1782,6 +1822,16 @@ function SettingsContent() {
                                                                         När allt är färdigt hos Stripe, återgå hit och klicka på knappen <strong className="text-foreground">"Initiera Stripe-anslutning"</strong> (till vänster) för att koppla ihop betalningarna till ditt nyskapade Stripe-konto.
                                                                     </p>
                                                                 </div>
+                                                            </div>
+
+                                                            {/* Felsökningstips för utförare */}
+                                                            <div className="mt-6 p-4 bg-amber-500/[0.03] border border-amber-500/10 rounded-2xl animate-in fade-in duration-300">
+                                                                <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 mb-1 flex items-center gap-1">
+                                                                    <Info size={12} /> Stöter du på problem vid anslutningen?
+                                                                </p>
+                                                                <p className="text-[10px] text-foreground/75 leading-relaxed font-medium">
+                                                                    Om du får ett felmeddelande som nämner <code className="px-1 py-0.5 bg-foreground/5 rounded font-mono text-[9px]">Connect</code> när du klickar på anslutningsknappen, beror det på plattformens inställningar. Kontakta oss direkt på <span className="font-bold">support@glowbook.se</span> så aktiverar vi det åt dig på under en minut!
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </div>
