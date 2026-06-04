@@ -18,17 +18,25 @@ export async function POST(req: Request) {
     const body = await req.text();
     const signature = (await headers()).get('stripe-signature') as string;
 
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+    const connectSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET || '';
+
     let event;
 
     try {
-        event = stripe.webhooks.constructEvent(
-            body,
-            signature,
-            process.env.STRIPE_WEBHOOK_SECRET || ''
-        );
+        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: any) {
-        console.error(`Webhook signature verification failed: ${err.message}`);
-        return NextResponse.json({ error: 'Webhook Error' }, { status: 400 });
+        if (connectSecret) {
+            try {
+                event = stripe.webhooks.constructEvent(body, signature, connectSecret);
+            } catch (connectErr: any) {
+                console.error(`Connect Webhook signature verification failed: ${connectErr.message}`);
+                return NextResponse.json({ error: 'Webhook Error' }, { status: 400 });
+            }
+        } else {
+            console.error(`Webhook signature verification failed: ${err.message}`);
+            return NextResponse.json({ error: 'Webhook Error' }, { status: 400 });
+        }
     }
 
     const session = event.data.object as any;
