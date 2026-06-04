@@ -139,7 +139,8 @@ function SettingsContent() {
                     verifiedCategories: salon.verified_categories || salon.verifiedCategories || [],
                     openingHoursType: hoursSettings?.openingHoursType || 'dynamic',
                     customOpeningHours: hoursSettings?.customOpeningHours || '',
-                    stripeConnected: !!salon.stripe_account_id
+                    stripeConnected: !!salon.stripe_account_id,
+                    tier: (salon.tier || salon.membership_tier || 'pro').toLowerCase()
                 };
             };
 
@@ -1628,7 +1629,37 @@ function SettingsContent() {
                         {/* ===== BETALNINGAR TAB ===== */}
                         {activeTab === 'payments' && (
                             <div className="space-y-8">
-                                <section className="bg-card p-10 rounded-[40px] border border-border shadow-sm space-y-8 relative overflow-hidden">
+                                {((salonData.tier || 'bas').toLowerCase() === 'bas') ? (
+                                    <section className="bg-card p-10 rounded-[40px] border border-border shadow-sm text-center space-y-6 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12">
+                                            <Wallet size={160} strokeWidth={1} />
+                                        </div>
+                                        <div className="max-w-md mx-auto space-y-4 relative z-10 py-8">
+                                            <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-3xl flex items-center justify-center mx-auto shadow-inner border border-amber-500/10">
+                                                <Lock size={32} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase rounded-full tracking-widest border border-amber-500/20">
+                                                    Guld-funktion
+                                                </div>
+                                                <h2 className="text-2xl font-heading font-black text-foreground">Onlinebetalningar</h2>
+                                                <p className="text-sm text-foreground/75 leading-relaxed">
+                                                    Att ta emot betalningar med <strong>kort</strong> och <strong>Klarna</strong> direkt vid bokning är en exklusiv funktion för salonger med <strong>Pro</strong> eller <strong>Luxe</strong>-medlemskap.
+                                                </p>
+                                            </div>
+                                            <div className="pt-6">
+                                                <button
+                                                    onClick={() => setActiveTab('membership')}
+                                                    className="inline-flex items-center gap-2 px-8 py-4 bg-foreground text-background dark:bg-foreground dark:text-background hover:bg-champagne-600 hover:text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl transition-all shadow-lg cursor-pointer border border-border"
+                                                >
+                                                    Uppgradera medlemskap <ArrowRight size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </section>
+                                ) : (
+                                    <>
+                                        <section className="bg-card p-10 rounded-[40px] border border-border shadow-sm space-y-8 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12">
                                         <Wallet size={160} strokeWidth={1} />
                                     </div>
@@ -2036,6 +2067,8 @@ function SettingsContent() {
                                         </p>
                                     </div>
                                 </section>
+                                    </>
+                                )}
                             </div>
                         )}
 
