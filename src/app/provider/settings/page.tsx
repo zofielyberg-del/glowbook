@@ -363,8 +363,30 @@ function SettingsContent() {
             setIsSaving(false);
         }
 
-        sessionStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
-        localStorage.setItem('glowbook_salon', JSON.stringify(updatedData));
+        // Merge with existing cached data to preserve services, availability, etc.
+        const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+        let mergedData: any = { ...updatedData };
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                mergedData = {
+                    ...parsed,
+                    ...updatedData,
+                };
+            } catch (e) {
+                console.error("Error parsing saved salon data:", e);
+            }
+        } else {
+            mergedData = {
+                ...updatedData,
+                services: (dataToSave as any).services || [],
+                availability: (dataToSave as any).availability || [],
+                practitioners: (dataToSave as any).practitioners || []
+            };
+        }
+
+        sessionStorage.setItem('glowbook_salon', JSON.stringify(mergedData));
+        localStorage.setItem('glowbook_salon', JSON.stringify(mergedData));
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 3000);
     };
