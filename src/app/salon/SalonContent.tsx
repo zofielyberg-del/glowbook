@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/layout/Header";
-import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award } from "lucide-react";
+import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, Lock, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Calendar from "@/components/dashboard/Calendar";
 import clsx from "clsx";
@@ -662,6 +662,12 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 }
 
                 if (found) {
+                    const validStatuses = ['active', 'trialing', 'canceling'];
+                    if (found.subscription_status && !validStatuses.includes(found.subscription_status)) {
+                        setSalon('inactive');
+                        setStatus('ready');
+                        return;
+                    }
                     let loyaltyActive = false;
                     try {
                         const loyaltyRaw = localStorage.getItem(`glowbook_loyalty_config_${found.id}`);
@@ -689,6 +695,12 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         localSlug === normalized ||
                         localData.id === normalized
                     ) {
+                        const validStatuses = ['active', 'trialing', 'canceling'];
+                        if (localData.subscription_status && !validStatuses.includes(localData.subscription_status)) {
+                            setSalon('inactive');
+                            setStatus('ready');
+                            return;
+                        }
                         setSalon(hydrateSalon(localData));
                         setStatus('ready');
                         return;
@@ -854,6 +866,22 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             return pCats.includes(serviceCat);
         });
     }, [selectedService, salon]);
+
+    if (salon === 'inactive') {
+        return (
+            <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-6">
+                <Header />
+                <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center text-rose-500"><Lock size={32} /></div>
+                <div className="text-center space-y-2 px-6">
+                    <h2 className="text-2xl font-bold text-foreground">Salongen är tillfälligt stängd</h2>
+                    <p className="text-foreground/60 text-sm max-w-md">
+                        Den här salongen är inte tillgänglig för bokningar just nu.
+                    </p>
+                </div>
+                <Link href="/explore" className="px-8 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-sm">Utforska andra salonger</Link>
+            </div>
+        );
+    }
 
     if (salon === 'not_found') {
         return (

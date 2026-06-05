@@ -33,8 +33,8 @@ export async function POST(req: Request) {
         }
 
         // 2. Create Checkout Session on behalf of the salon (Direct Charge)
-        // Note: Since Glowbook takes 0%, a direct charge is best.
-        const session = await stripe.checkout.sessions.create({
+        // Note: Direct Charge with optional Application Fee.
+        const sessionParams: any = {
             mode: 'payment',
             payment_method_types: paymentMethodTypes,
             line_items: [
@@ -56,7 +56,18 @@ export async function POST(req: Request) {
                 appointmentId,
                 salonId,
             },
-        }, {
+        };
+
+        // If a platform fee percentage is configured, compute and apply the fee amount
+        const feePercent = parseFloat(process.env.NEXT_PUBLIC_APPLICATION_FEE_PERCENT || '0');
+        const feeAmount = Math.round(price * 100 * (feePercent / 100));
+        if (feeAmount > 0) {
+            sessionParams.payment_intent_data = {
+                application_fee_amount: feeAmount,
+            };
+        }
+
+        const session = await stripe.checkout.sessions.create(sessionParams, {
             stripeAccount: salon.stripe_account_id, // This makes it a Direct Charge
         });
 

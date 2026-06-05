@@ -16,9 +16,10 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
             // Check lock status
             const checkStatus = async () => {
                 try {
-                    const status = sessionStorage.getItem('glowbook_salon_status') || user.subscriptionStatus || 'trialing';
+                    const status = sessionStorage.getItem('glowbook_salon_status') || user.subscription_status || user.subscriptionStatus || 'trialing';
+                    const validStatuses = ['active', 'trialing', 'canceling'];
 
-                    if (status === 'past_due' || status === 'canceled') {
+                    if (!validStatuses.includes(status)) {
                         setIsLocked(true);
                     } else {
                         setIsLocked(false);

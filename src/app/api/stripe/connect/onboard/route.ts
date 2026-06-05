@@ -94,7 +94,8 @@ export async function POST(req: Request) {
                 settings: {
                     payouts: {
                         schedule: {
-                            interval: 'manual',
+                            interval: 'monthly',
+                            monthly_anchor: 25,
                         }
                     }
                 }
@@ -108,13 +109,21 @@ export async function POST(req: Request) {
                 data: { stripe_account_id: stripeAccountId },
             });
         } else {
-            // Update capabilities of existing Express account to ensure klarna_payments is requested
+            // Update capabilities and payout settings of existing Express account
             try {
                 await stripe.accounts.update(stripeAccountId, {
                     capabilities: {
                         card_payments: { requested: true },
                         transfers: { requested: true },
                         klarna_payments: { requested: true },
+                    },
+                    settings: {
+                        payouts: {
+                            schedule: {
+                                interval: 'monthly',
+                                monthly_anchor: 25,
+                            }
+                        }
                     }
                 });
             } catch (updateErr) {

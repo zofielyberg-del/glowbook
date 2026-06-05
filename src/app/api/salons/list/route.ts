@@ -14,7 +14,13 @@ export async function GET(req: Request) {
         const query = searchParams.get('q');
 
         const where: Prisma.SalonWhereInput = {
-            AND: []
+            AND: [
+                {
+                    subscription_status: {
+                        in: ['active', 'trialing', 'canceling']
+                    }
+                }
+            ]
         };
 
         // 1. Handle Query (Smart, Case-Insensitive Search with Synonyms and Deep Matching)
