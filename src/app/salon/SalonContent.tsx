@@ -487,20 +487,30 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
             // 3. Handle Payment Redirect if needed
             if (isStripePayment) {
-                const checkoutResponse = await fetch('/api/bookings/checkout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        appointmentId: bookingData.appointmentId,
-                        salonId: salon.id,
-                        serviceName: selectedService.name,
-                        price: finalTotal,
-                        customerEmail: customerInfo.email
-                    }),
-                });
-                const checkoutData = await checkoutResponse.json();
-                if (checkoutData.url) {
-                    window.location.href = checkoutData.url;
+                try {
+                    const checkoutResponse = await fetch('/api/bookings/checkout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            appointmentId: bookingData.appointmentId,
+                            salonId: salon.id,
+                            serviceName: selectedService.name,
+                            price: finalTotal,
+                            customerEmail: customerInfo.email
+                        }),
+                    });
+                    const checkoutData = await checkoutResponse.json();
+                    if (!checkoutResponse.ok || checkoutData.error) {
+                        throw new Error(checkoutData.error || 'Betalningsanslutningen misslyckades.');
+                    }
+                    if (checkoutData.url) {
+                        window.location.href = checkoutData.url;
+                        return;
+                    } else {
+                        throw new Error('Ingen betalningslänk returnerades från Stripe.');
+                    }
+                } catch (checkoutErr: any) {
+                    alert('Kunde inte genomföra betalning: ' + checkoutErr.message);
                     return;
                 }
             }
