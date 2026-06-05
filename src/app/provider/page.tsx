@@ -59,10 +59,22 @@ const categoryGroups: Record<string, {
     }
 };
 
-const getCategoryGroup = (cat: string) => {
+const getCategoryGroup = (cat: any) => {
     if (!cat) return categoryGroups.general;
-    const lower = cat.toLowerCase();
-    if (lower.includes('nagel') || lower.includes('nail')) return categoryGroups.naglar;
+    let catStr = '';
+    if (Array.isArray(cat)) {
+        catStr = cat.join(' ');
+    } else if (typeof cat === 'string') {
+        catStr = cat;
+    } else {
+        try {
+            catStr = JSON.stringify(cat);
+        } catch {
+            catStr = String(cat);
+        }
+    }
+    const lower = catStr.toLowerCase();
+    if (lower.includes('nagel') || lower.includes('nagl') || lower.includes('nail')) return categoryGroups.naglar;
     if (lower.includes('hår') || lower.includes('frisör') || lower.includes('barber') || lower.includes('hair')) return categoryGroups.frisor;
     if (lower.includes('frans') || lower.includes('bryn') || lower.includes('hud') || lower.includes('injektion') || lower.includes('lash') || lower.includes('brow') || lower.includes('skönhet') || lower.includes('makeup') || lower.includes('piercing')) return categoryGroups.skonhet;
     if (lower.includes('massage') || lower.includes('massör') || lower.includes('spa') || lower.includes('wellness') || lower.includes('fotvård')) return categoryGroups.massage;
@@ -266,7 +278,7 @@ export default function ProviderDashboard() {
     const step2Done = services && services.length > 0;
     const step3Done = Array.isArray(user?.availability) && user.availability.some((a: any) => a && a.startTime && a.duration);
     const step4Done = !!(user?.onboardingProgress?.sharedLink || user?.onboarding_progress?.sharedLink);
-    const step5Done = allAppointments && allAppointments.length > 0;
+    const step5Done = !!user?.hasAppointments || (allAppointments && allAppointments.length > 0);
 
     const completedStepsCount = [step1Done, step2Done, step3Done, step4Done, step5Done].filter(Boolean).length;
     const progressPercent = Math.round((completedStepsCount / 5) * 100);

@@ -24,13 +24,24 @@ export function useAuth() {
         const customerData = sessionStorage.getItem('glowbook_customer') || localStorage.getItem('glowbook_customer');
 
         if (adminData && (!salonDataString || !JSON.parse(salonDataString).isImpersonated)) {
-            setState({ user: JSON.parse(adminData), role: 'admin', isLoading: false });
+            const parsedAdmin = JSON.parse(adminData);
+            setState(prev => {
+                if (prev.user && prev.user.id === parsedAdmin.id && JSON.stringify(prev.user) === JSON.stringify(parsedAdmin)) {
+                    return prev;
+                }
+                return { user: parsedAdmin, role: 'admin', isLoading: false };
+            });
         } else if (salonDataString) {
             let data = JSON.parse(salonDataString);
             const role: Role = data.role === 'practitioner' ? 'practitioner' : 'salon_owner';
 
             // ⚡️ Instant render: Set the state immediately using local sessionStorage data
-            setState({ user: data, role, isLoading: false });
+            setState(prev => {
+                if (prev.user && prev.user.id === data.id && JSON.stringify(prev.user) === JSON.stringify(data)) {
+                    return prev;
+                }
+                return { user: data, role, isLoading: false };
+            });
 
             // 🔄 Background Sync: Refresh data from server without blocking the UI
             if (data.id && data.id.length > 20) {
@@ -51,7 +62,12 @@ export function useAuth() {
                             };
                             sessionStorage.setItem('glowbook_salon', JSON.stringify(refreshedData));
                             localStorage.setItem('glowbook_salon', JSON.stringify(refreshedData));
-                            setState({ user: refreshedData, role, isLoading: false });
+                            setState(prev => {
+                                if (prev.user && prev.user.id === refreshedData.id && JSON.stringify(prev.user) === JSON.stringify(refreshedData)) {
+                                    return prev;
+                                }
+                                return { user: refreshedData, role, isLoading: false };
+                            });
                         } else if (serverResult.error === 'Salon not found') {
                             sessionStorage.removeItem('glowbook_salon');
                             localStorage.removeItem('glowbook_salon');
@@ -66,7 +82,12 @@ export function useAuth() {
             const data = JSON.parse(customerData);
             
             // ⚡️ Instant render for customers
-            setState({ user: data, role: 'customer', isLoading: false });
+            setState(prev => {
+                if (prev.user && prev.user.id === data.id && JSON.stringify(prev.user) === JSON.stringify(data)) {
+                    return prev;
+                }
+                return { user: data, role: 'customer', isLoading: false };
+            });
             
             // 🔄 Background verify
             if (data.id && data.id.length > 20) {

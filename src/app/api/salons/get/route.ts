@@ -37,10 +37,15 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'Salon not found' }, { status: 404 });
         }
 
+        const totalAppointments = await prisma.appointment.count({
+            where: { salon_id: salon.id }
+        });
+
         return NextResponse.json({
             success: true,
             salon: {
                 ...salon,
+                hasAppointments: totalAppointments > 0,
                 firstName: salon.owner?.first_name || '',
                 lastName: salon.owner?.last_name || '',
                 email: salon.owner?.email || '',
