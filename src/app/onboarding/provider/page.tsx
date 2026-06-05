@@ -23,7 +23,7 @@ const DURATIONS = [
 const TIER_PRICES = {
     bas: 79,
     pro: 149,
-    luxe: 249 // Intro price, later 299
+    luxe: 349
 };
 
 export default function ProviderOnboarding() {
@@ -492,7 +492,7 @@ export default function ProviderOnboarding() {
                                         {[
                                             { id: 'bas', label: 'Bas', desc: 'För dig som precis startat', features: ['Bokningskalender', 'Standardprofil', 'Begränsad synlighet i sök', 'Endast lokalt synlig'], limit: 'Max 20 bokningar/mån' },
                                             { id: 'pro', label: 'PRO', desc: 'Väx snabbare & syns mer', features: ['Syns högre i sök', 'Syns i "Upptäck"', 'Glow-tag (Kort länk)', 'SMS-påminnelser', 'Obegränsade bokningar'], popular: true },
-                                            { id: 'luxe', label: 'LUXE', desc: 'För premium-studion', features: ['Högsta ranking (VIP)', 'Featured i din stad', 'Glow-tag (Kort länk)', 'Flera utförare (Team)', 'VIP Support'], note: '249kr nu (ord. 299kr)' }
+                                            { id: 'luxe', label: 'LUXE', desc: 'För premium-studion', features: ['Högsta ranking (VIP)', 'Featured i din stad', 'Glow-tag (Kort länk)', 'Flera utförare (Team)', 'VIP Support'], note: '349kr/mån' }
                                         ].map((tier) => {
                                             const tValue = tier.id as 'bas' | 'pro' | 'luxe';
                                             const prices = calculatePrice(tValue, formData.duration);

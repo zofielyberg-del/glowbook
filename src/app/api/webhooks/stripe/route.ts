@@ -204,8 +204,8 @@ export async function POST(req: Request) {
                     console.error('[Webhook] Failed to send welcome email:', err);
                 }
 
-                // 2. Send Receipt Email (Base Pricing: Bas 79, Pro 149, Luxe 249)
-                const priceMap: Record<string, number> = { bas: 79, pro: 149, luxe: 249 };
+                // 2. Send Receipt Email (Base Pricing: Bas 79, Pro 149, Luxe 349)
+                const priceMap: Record<string, number> = { bas: 79, pro: 149, luxe: 349 };
                 const basePrice = priceMap[tier.toLowerCase()] || 149;
 
                 try {

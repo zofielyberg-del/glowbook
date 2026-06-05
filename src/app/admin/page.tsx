@@ -627,7 +627,7 @@ export default function AdminDashboard() {
                                         label: 'MRR',
                                         val: `${providers.reduce((acc, p) => {
                                             const tier = (p.tier as string).toUpperCase();
-                                            const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 249 :
+                                            const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 349 :
                                                 tier === 'PRO' || tier === 'STANDARD' ? 149 : 79;
                                             const dur = (p as any).duration || 1;
                                             const discountFactor: Record<number, number> = { 1: 1, 3: 0.95, 6: 0.9, 12: 0.85 };
@@ -777,7 +777,7 @@ export default function AdminDashboard() {
                                     <p className="text-5xl font-extrabold text-premium-black mb-2">
                                         {providers.reduce((acc, p) => {
                                             const tier = (p.tier as string).toUpperCase();
-                                            const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 249 :
+                                            const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 349 :
                                                 tier === 'PRO' || tier === 'STANDARD' ? 149 : 79;
                                             const dur = (p as any).duration || 1;
                                             const discountFactor: Record<number, number> = { 1: 1, 3: 0.95, 6: 0.9, 12: 0.85 };
@@ -805,7 +805,7 @@ export default function AdminDashboard() {
                                         <p className="text-5xl font-extrabold text-white mb-2">
                                             {(providers.reduce((acc, p) => {
                                                 const tier = (p.tier as string).toUpperCase();
-                                                const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 249 :
+                                                const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 349 :
                                                     tier === 'PRO' || tier === 'STANDARD' ? 149 : 79;
                                                 const dur = (p as any).duration || 1;
                                                 const discountFactor: Record<number, number> = { 1: 1, 3: 0.95, 6: 0.9, 12: 0.85 };
@@ -827,7 +827,7 @@ export default function AdminDashboard() {
                                         {Math.round(
                                             providers.reduce((acc, p) => {
                                                 const tier = (p.tier as string).toUpperCase();
-                                                const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 249 :
+                                                const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 349 :
                                                     tier === 'PRO' || tier === 'STANDARD' ? 149 : 79;
                                                 const dur = (p as any).duration || 1;
                                                 const discountFactor: Record<number, number> = { 1: 1, 3: 0.95, 6: 0.9, 12: 0.85 };
@@ -848,7 +848,7 @@ export default function AdminDashboard() {
 
                                     <div className="space-y-6">
                                         {[
-                                            { tier: 'LUXE', price: 249, count: providers.filter(p => (p.tier as string).toUpperCase() === 'LUXE' || (p.tier as string).toUpperCase() === 'STUDIO' || (p.tier as string).toUpperCase() === 'DIAMOND').length, color: 'bg-premium-black' },
+                                            { tier: 'LUXE', price: 349, count: providers.filter(p => (p.tier as string).toUpperCase() === 'LUXE' || (p.tier as string).toUpperCase() === 'STUDIO' || (p.tier as string).toUpperCase() === 'DIAMOND').length, color: 'bg-premium-black' },
                                             { tier: 'PRO', price: 149, count: providers.filter(p => (p.tier as string).toUpperCase() === 'PRO' || (p.tier as string).toUpperCase() === 'STANDARD').length, color: 'bg-champagne-500' },
                                             { tier: 'BAS', price: 79, count: providers.filter(p => (p.tier as string).toUpperCase() === 'BAS' || (p.tier as string).toUpperCase() === 'START').length, color: 'bg-gray-200' }
                                         ].map((item, i) => (
@@ -876,7 +876,7 @@ export default function AdminDashboard() {
                                     <div className="space-y-4">
                                         {providers.slice(0, 5).map((p, i) => {
                                             const basePrice =
-                                                (p.tier as string).toUpperCase() === 'LUXE' || (p.tier as string).toUpperCase() === 'STUDIO' || (p.tier as string).toUpperCase() === 'DIAMOND' ? 249 :
+                                                (p.tier as string).toUpperCase() === 'LUXE' || (p.tier as string).toUpperCase() === 'STUDIO' || (p.tier as string).toUpperCase() === 'DIAMOND' ? 349 :
                                                     (p.tier as string).toUpperCase() === 'PRO' || (p.tier as string).toUpperCase() === 'STANDARD' ? 149 : 79;
                                             const dur = (p as any).duration || 1;
                                             const discountFactor: Record<number, number> = { 1: 1, 3: 0.95, 6: 0.9, 12: 0.85 };

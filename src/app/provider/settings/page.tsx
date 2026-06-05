@@ -1252,7 +1252,7 @@ function SettingsContent() {
                                         {[
                                             { key: 'bas', label: 'Bas', price: 79, perks: ['Bokningskalender', 'Standardprofil', 'Begränsad synlighet', 'Endast lokalt synlig'], limit: 'Max 20 bokn/Mån', desc: t('label_tier_start_desc') },
                                             { key: 'pro', label: 'PRO', price: 149, perks: ['Syns högre i sök', 'Syns i "Upptäck"', 'Glow-tag (Kort länk)', 'SMS-påminnelser', 'Obegränsade bokningar'], popular: true, desc: t('label_tier_pro_desc') },
-                                            { key: 'luxe', label: 'LUXE', price: 249, perks: ['Högsta ranking (VIP)', 'Featured i din stad', 'Glow-tag (Kort länk)', 'Flera utförare (Team)', 'VIP Support'], note: 'Bäst för salonger', desc: t('label_tier_studio_desc') },
+                                            { key: 'luxe', label: 'LUXE', price: 349, perks: ['Högsta ranking (VIP)', 'Featured i din stad', 'Glow-tag (Kort länk)', 'Flera utförare (Team)', 'VIP Support'], note: 'Bäst för salonger', desc: t('label_tier_studio_desc') },
                                         ].map((p: { key: string; label: string; price: number; perks: string[]; popular?: boolean; limit?: string; note?: string; desc: string }) => {
                                             const discountFactor = { 1: 1, 3: 0.95, 6: 0.9, 12: 0.85 }[comparisonDuration] || 1;
                                             const monthlyPrice = Math.round(p.price * discountFactor);
