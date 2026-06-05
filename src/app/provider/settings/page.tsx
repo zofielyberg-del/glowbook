@@ -323,8 +323,14 @@ function SettingsContent() {
             }
         };
         
-        // Critical fix: Never send availability from the settings tab to prevent overwriting with stale data
+        // Critical fix: Never send availability or services from the settings tab to prevent overwriting with stale data
         delete (updatedData as any).availability;
+        delete (updatedData as any).services;
+        
+        // Prevent deleting practitioners when saving settings on tabs other than practitioners
+        if (activeTab !== 'practitioners') {
+            delete (updatedData as any).practitioners;
+        }
 
         // Sync with server
         try {
