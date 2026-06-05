@@ -227,6 +227,14 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [selectedReward, setSelectedReward] = useState<any>(null);
     const [status, setStatus] = useState<'loading' | 'ready'>('loading');
 
+    useEffect(() => {
+        if (salon && salon.stripe_account_id) {
+            setSelectedPaymentMethod('stripe');
+        } else {
+            setSelectedPaymentMethod('onsite');
+        }
+    }, [salon]);
+
     const basePrice = useMemo(() => {
         return Number(
             (selectedService?.sale_price && (!selectedService?.sale_ends_at || new Date(selectedService.sale_ends_at) > new Date()))
@@ -1598,8 +1606,14 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                         <CreditCard size={20} />
                                                                     </div>
                                                                     <div className="flex-1">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <h5 className="font-bold text-sm">Betala nu (Kort, Klarna)</h5>
+                                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                                            <h5 className="font-bold text-sm">Betala med Stripe</h5>
+                                                                            <span className="inline-flex items-center gap-1 text-[8px] bg-[#FFB3C7] text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                                                                <svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" className="inline-block">
+                                                                                    <path d="M21.5 17a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM4.592 2v20H0V2h4.592zm11.46 0c0 4.194-1.583 8.105-4.415 11.068l-.278.283L17.702 22h-5.668l-6.893-9.4 1.779-1.332c2.858-2.14 4.535-5.378 4.637-8.924L11.562 2h4.49z" />
+                                                                                </svg>
+                                                                                Klarna
+                                                                            </span>
                                                                             <span className="text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black uppercase tracking-widest">Säker betalning</span>
                                                                         </div>
                                                                         <p className="text-[10px] text-foreground/40 font-medium">Betala direkt med kort, eller i din egen takt med Klarna.</p>
@@ -1684,8 +1698,14 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                                         )}
                                                                                     >
                                                                                         <CreditCard size={16} />
-                                                                                        <div className="text-left">
-                                                                                            <h6 className="font-bold text-xs">Betala nu (Kort, Klarna)</h6>
+                                                                                        <div className="text-left flex items-center gap-2 flex-wrap">
+                                                                                            <h6 className="font-bold text-xs">Betala med Stripe</h6>
+                                                                                            <span className="inline-flex items-center gap-1 text-[8px] bg-[#FFB3C7] text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-wider scale-90 origin-left">
+                                                                                                <svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" className="inline-block">
+                                                                                                    <path d="M21.5 17a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM4.592 2v20H0V2h4.592zm11.46 0c0 4.194-1.583 8.105-4.415 11.068l-.278.283L17.702 22h-5.668l-6.893-9.4 1.779-1.332c2.858-2.14 4.535-5.378 4.637-8.924L11.562 2h4.49z" />
+                                                                                                </svg>
+                                                                                                Klarna
+                                                                                            </span>
                                                                                         </div>
                                                                                     </div>
                                                                                 )}
@@ -1878,7 +1898,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                             <span className="text-foreground/40">Betalsätt</span>
                                             <span className="font-bold">
                                                 {selectedPaymentMethod === 'giftcard' ? 'Presentkort' : 
-                                                 selectedPaymentMethod === 'stripe' ? 'Betalat nu (Kort, Klarna)' : 'Betalas på plats'}
+                                                 selectedPaymentMethod === 'stripe' ? 'Betala med Stripe' : 'Betalas på plats'}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm border-t border-border pt-4">
