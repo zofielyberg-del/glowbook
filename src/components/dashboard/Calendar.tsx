@@ -873,34 +873,10 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                             return (
                                                                 <div
                                                                     key={si}
-                                                                    className="absolute inset-x-0 bg-pink-100/90 dark:bg-pink-950/40 border-y border-pink-300 dark:border-pink-800/60 overflow-hidden"
+                                                                    className="absolute inset-x-0 bg-pink-500/[0.03] dark:bg-pink-500/[0.05] border-y border-pink-500/10 overflow-hidden"
                                                                     style={{ top: `${segTopPx}px`, height: `${segHeightPx}px` }}
                                                                     title={`Bokad: ${seg.appointment?.clientName} — ${seg.appointment?.service}`}
-                                                                >
-                                                                    <div className="px-2 py-1.5 flex flex-col h-full relative z-[1]">
-                                                                        <div className="flex items-center justify-between mb-0.5">
-                                                                            <span className="font-black text-[9px] uppercase tracking-wider text-pink-900 dark:text-pink-200">
-                                                                                {seg.appointment?.service || 'Bokad'}
-                                                                            </span>
-                                                                            <span className="text-[8px] font-bold text-pink-600/70 dark:text-pink-400/70">
-                                                                                {seg.start}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="font-bold truncate text-[10px] text-pink-850 dark:text-pink-100">
-                                                                            {seg.appointment?.clientName || 'Kund (namn saknas)'}
-                                                                        </div>
-                                                                        {seg.appointment?.clientEmail && (
-                                                                            <div className="text-[8px] text-pink-800/80 dark:text-pink-200/80 truncate font-medium mt-0.5">
-                                                                                {seg.appointment.clientEmail}
-                                                                            </div>
-                                                                        )}
-                                                                        {seg.appointment?.clientPhone && seg.appointment.clientPhone !== '-' && (
-                                                                            <div className="text-[8px] text-pink-800/80 dark:text-pink-200/80 truncate font-medium mt-0.5">
-                                                                                📞 {seg.appointment.clientPhone}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
+                                                                />
                                                             );
                                                         }
 
@@ -981,31 +957,33 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                 setViewingAppointment(apt);
                                             }}
                                             className={clsx(
-                                                "absolute inset-x-1 rounded-lg border p-2 text-[10px] cursor-pointer hover:shadow-md transition-all z-[25] overflow-hidden flex flex-col justify-between",
-                                                "bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm"
+                                                "absolute inset-x-1 rounded-xl border p-2.5 text-[10px] cursor-pointer hover:shadow-lg transition-all z-[25] overflow-hidden flex flex-col justify-between",
+                                                "bg-pink-50/95 dark:bg-pink-950/90 border-pink-200 dark:border-pink-900/60 text-pink-900 dark:text-pink-100 shadow-sm hover:scale-[1.01] active:scale-[0.99]"
                                             )}
                                             style={getItemStyle(apt)}
                                             title={`Kund: ${apt.clientName}\nEmail: ${apt.clientEmail || '-'}\nTel: ${apt.clientPhone || '-'}\nTjänst: ${apt.service}`}
                                         >
-                                            <div className="space-y-0.5">
-                                                <div className="font-black truncate text-[9px] uppercase tracking-wider text-pink-900 dark:text-pink-200">
+                                            <div className="space-y-1">
+                                                <div className="font-extrabold truncate text-[9px] uppercase tracking-wider text-pink-600 dark:text-pink-400">
                                                     {apt.service}
                                                 </div>
-                                                <div className="font-bold truncate text-[10px] text-pink-850 dark:text-pink-100">
+                                                <div className="font-black truncate text-[11px] text-pink-950 dark:text-pink-50">
                                                     {apt.clientName}
                                                 </div>
-                                                {apt.clientEmail && (
-                                                    <div className="text-[8px] opacity-75 truncate font-medium">
-                                                        {apt.clientEmail}
-                                                    </div>
-                                                )}
-                                                {apt.clientPhone && apt.clientPhone !== '-' && (
-                                                    <div className="text-[8px] opacity-75 truncate font-medium">
-                                                        📞 {apt.clientPhone}
-                                                    </div>
-                                                )}
+                                                <div className="space-y-0.5 mt-1 border-t border-pink-200/40 dark:border-pink-800/40 pt-1">
+                                                    {apt.clientEmail && (
+                                                        <div className="text-[8px] text-pink-700/80 dark:text-pink-300/80 truncate font-medium">
+                                                            {apt.clientEmail}
+                                                        </div>
+                                                    )}
+                                                    {apt.clientPhone && apt.clientPhone !== '-' && (
+                                                        <div className="text-[8px] text-pink-700/80 dark:text-pink-300/80 truncate font-medium">
+                                                            📞 {apt.clientPhone}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="text-[8px] font-black text-pink-600/60 dark:text-pink-400/50 text-right mt-1 shrink-0">
+                                            <div className="text-[8px] font-black text-pink-600 dark:text-pink-400 text-right mt-1.5 shrink-0 self-end px-1.5 py-0.5 bg-pink-100/50 dark:bg-pink-900/40 rounded">
                                                 {apt.startTime} ({apt.duration} min)
                                             </div>
                                         </div>
