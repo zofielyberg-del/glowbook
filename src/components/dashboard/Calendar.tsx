@@ -182,6 +182,12 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
         // Fetch fresh salon details from server and update local state
         const refreshSalonData = async (salonId: string) => {
+            const lastMutation = localStorage.getItem('glowbook_last_mutation') || sessionStorage.getItem('glowbook_last_mutation');
+            const isRecentMutation = lastMutation && (Date.now() - Number(lastMutation) < 4000);
+            if (isRecentMutation) {
+                console.log('[SSE] Recent local mutation detected. Skipping server re-fetch.');
+                return;
+            }
             try {
                 const response = await fetch(`/api/salons/get?id=${salonId}&_t=${Date.now()}`);
                 const resData = await response.json();

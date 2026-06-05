@@ -45,6 +45,13 @@ export function useAuth() {
 
             // 🔄 Background Sync: Refresh data from server without blocking the UI
             if (data.id && data.id.length > 20) {
+                const lastMutation = localStorage.getItem('glowbook_last_mutation') || sessionStorage.getItem('glowbook_last_mutation');
+                const isRecentMutation = lastMutation && (Date.now() - Number(lastMutation) < 4000);
+                if (isRecentMutation) {
+                    console.log('[useAuth] Recent local mutation detected. Skipping background sync fetch.');
+                    return;
+                }
+
                 fetch(`/api/salons/get?id=${data.id}&_t=${Date.now()}`)
                     .then(res => res.json())
                     .then(serverResult => {
