@@ -156,7 +156,12 @@ function SettingsContent() {
                         localStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
                         sessionStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
                         
-                        setSalonData(prev => ({ ...prev, ...parsedFresh }));
+                        setSalonData(prev => {
+                            if (hasUnsavedChanges.current) {
+                                return prev;
+                            }
+                            return { ...prev, ...parsedFresh };
+                        });
                         setComparisonDuration(parsedFresh.duration || 1);
                         if (parsedFresh.category) {
                             setVerificationCategory(parsedFresh.category);

@@ -78,14 +78,14 @@ export async function POST(req: Request) {
                 });
 
                 // 1.1 Update Owner Profile if info changed
-                if (updatedSalon.owner_id && (salonInfo.firstName || salonInfo.lastName || salonInfo.email || salonInfo.phone !== undefined)) {
+                if (updatedSalon.owner_id && (salonInfo.firstName !== undefined || salonInfo.lastName !== undefined || salonInfo.email !== undefined || salonInfo.phone !== undefined)) {
                     await prisma.profile.update({
                         where: { id: updatedSalon.owner_id },
                         data: {
-                            first_name: salonInfo.firstName || undefined,
-                            last_name: salonInfo.lastName || undefined,
-                            email: salonInfo.email || undefined,
-                            phone: salonInfo.phone || undefined
+                            first_name: salonInfo.firstName !== undefined ? salonInfo.firstName : undefined,
+                            last_name: salonInfo.lastName !== undefined ? salonInfo.lastName : undefined,
+                            email: salonInfo.email !== undefined ? salonInfo.email : undefined,
+                            phone: salonInfo.phone !== undefined ? salonInfo.phone : undefined
                         }
                     });
                 }
@@ -100,14 +100,14 @@ export async function POST(req: Request) {
                 realSalonId = newSalon.id;
 
                 // 1.1 Update Owner Profile if info changed
-                if (newSalon.owner_id && (salonInfo.firstName || salonInfo.lastName || salonInfo.email || salonInfo.phone !== undefined)) {
+                if (newSalon.owner_id && (salonInfo.firstName !== undefined || salonInfo.lastName !== undefined || salonInfo.email !== undefined || salonInfo.phone !== undefined)) {
                     await prisma.profile.update({
                         where: { id: newSalon.owner_id },
                         data: {
-                            first_name: salonInfo.firstName || undefined,
-                            last_name: salonInfo.lastName || undefined,
-                            email: salonInfo.email || undefined,
-                            phone: salonInfo.phone || undefined
+                            first_name: salonInfo.firstName !== undefined ? salonInfo.firstName : undefined,
+                            last_name: salonInfo.lastName !== undefined ? salonInfo.lastName : undefined,
+                            email: salonInfo.email !== undefined ? salonInfo.email : undefined,
+                            phone: salonInfo.phone !== undefined ? salonInfo.phone : undefined
                         }
                     });
                 }
