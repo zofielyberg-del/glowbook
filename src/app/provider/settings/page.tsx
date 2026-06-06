@@ -1727,6 +1727,27 @@ function SettingsContent() {
                                                             <p className="text-sm text-foreground/80 leading-relaxed font-semibold text-amber-600 dark:text-amber-400">
                                                                 Pengarna sätts in säkert på ditt bankkonto. Glowbook tar 0% i provision.
                                                             </p>
+
+                                                            <div className="mt-4 p-4 bg-background/50 border border-border/60 rounded-2xl space-y-3">
+                                                                <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                                                    <Info size={14} className="text-amber-500" /> Transaktionsavgifter via Stripe:
+                                                                </p>
+                                                                <div className="grid grid-cols-2 gap-4 text-xs">
+                                                                    <div className="p-3 bg-background/40 rounded-xl border border-border/30">
+                                                                        <p className="font-semibold text-foreground/70">Kort & Apple Pay</p>
+                                                                        <p className="text-sm font-bold text-foreground mt-0.5">1,4% + 1,80 kr</p>
+                                                                        <p className="text-[10px] text-foreground/50">per lyckad transaktion</p>
+                                                                    </div>
+                                                                    <div className="p-3 bg-background/40 rounded-xl border border-border/30">
+                                                                        <p className="font-semibold text-foreground/70">Klarna (inkl. Swish)</p>
+                                                                        <p className="text-sm font-bold text-foreground mt-0.5">2,99% + 4,00 kr</p>
+                                                                        <p className="text-[10px] text-foreground/50">full utbetalning direkt</p>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-[10px] text-foreground/60 leading-relaxed">
+                                                                    Inga startavgifter eller dolda månadskostnader för betalningar. Du betalar endast när du säljer.
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                     </div>
 
