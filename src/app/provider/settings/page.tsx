@@ -1843,19 +1843,11 @@ function SettingsContent() {
                                                                 <div className="w-7 h-7 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center text-xs font-black shrink-0 border border-amber-500/20 shadow-sm relative z-10">
                                                                     1
                                                                 </div>
-                                                                <div className="space-y-2">
-                                                                    <p className="text-xs font-bold text-foreground">Skapa ett Stripe-konto</p>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-xs font-bold text-foreground">Starta anslutningen</p>
                                                                     <p className="text-xs text-foreground/80 leading-relaxed">
-                                                                        Börja med att skapa och registrera ett konto direkt hos Stripe.
+                                                                        Klicka på knappen <strong className="text-foreground">"Initiera Stripe-anslutning"</strong> till vänster. Vi skapar då automatiskt ett säkert konto åt dig hos vår betalpartner Stripe.
                                                                     </p>
-                                                                    <a 
-                                                                        href="https://dashboard.stripe.com/register" 
-                                                                        target="_blank" 
-                                                                        rel="noopener noreferrer" 
-                                                                        className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 font-bold hover:underline"
-                                                                    >
-                                                                        Klicka här för att skapa konto <ExternalLink size={12} />
-                                                                    </a>
                                                                 </div>
                                                             </div>
 
@@ -1866,12 +1858,12 @@ function SettingsContent() {
                                                                     2
                                                                 </div>
                                                                 <div className="space-y-1">
-                                                                    <p className="text-xs font-bold text-foreground">Genomför alla obligatoriska steg</p>
+                                                                    <p className="text-xs font-bold text-foreground">Fyll i uppgifter hos Stripe</p>
                                                                     <p className="text-xs text-foreground/80 leading-relaxed">
-                                                                        Fyll i dina företagsuppgifter och bankkonto.
+                                                                        Följ stegen på skärmen hos Stripe för att ange ditt person-/organisationsnummer och det bankkonto du vill få dina utbetalningar till.
                                                                     </p>
                                                                     <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold leading-relaxed">
-                                                                        ⚠️ OBS! Det är mycket viktigt att du genomför alla steg då detta krävs enligt LAG (Känn din kund/penningtvättslagen) för att kunna ta emot betalningar.
+                                                                        ⚠️ Det är viktigt att du slutför alla steg så att betalningarna kan godkännas och betalas ut till ditt konto enligt lag.
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -1881,9 +1873,9 @@ function SettingsContent() {
                                                                     3
                                                                 </div>
                                                                 <div className="space-y-1">
-                                                                    <p className="text-xs font-bold text-foreground">Koppla till Glowbook</p>
+                                                                    <p className="text-xs font-bold text-foreground">Klart att ta emot bokningar!</p>
                                                                     <p className="text-xs text-foreground/80 leading-relaxed">
-                                                                        När allt är färdigt hos Stripe, återgå hit och klicka på knappen <strong className="text-foreground">"Initiera Stripe-anslutning"</strong> (till vänster) för att koppla ihop betalningarna till ditt nyskapade Stripe-konto.
+                                                                        När du är färdig hos Stripe skickas du automatiskt tillbaka hit. Din salong är nu direkt redo att ta emot betalningar med både kort och Klarna!
                                                                     </p>
                                                                 </div>
                                                             </div>
