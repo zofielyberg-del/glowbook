@@ -69,6 +69,7 @@ export async function POST(req: Request) {
                 return `${url}/salon/${salonId}?booking_canceled=true`;
             })(),
             metadata: {
+                type: 'booking',
                 appointmentId,
                 salonId,
             },

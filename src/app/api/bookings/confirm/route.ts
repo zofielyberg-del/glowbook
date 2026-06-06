@@ -167,38 +167,41 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
         }
 
-        // 4. Send Email Notifications
-        try {
-            if (customerInfo.email) {
-                await sendCustomerBookingConfirmation(
-                    customerInfo.email,
-                    `${customerInfo.firstName} ${customerInfo.lastName}`,
-                    salonName,
-                    serviceName,
-                    date,
-                    startTime,
-                    `${price} SEK`,
-                    appointment.id
-                );
+        // 4. Send Email Notifications (Only for non-Stripe direct payments like onsite/giftcard)
+        // Stripe payments will receive confirmations via webhook after successful payment.
+        if (paymentMethod !== 'stripe') {
+            try {
+                if (customerInfo.email) {
+                    await sendCustomerBookingConfirmation(
+                        customerInfo.email,
+                        `${customerInfo.firstName} ${customerInfo.lastName}`,
+                        salonName,
+                        serviceName,
+                        date,
+                        startTime,
+                        `${price} SEK`,
+                        appointment.id
+                    );
+                }
+            } catch (customerEmailErr) {
+                console.error('Error sending customer booking email:', customerEmailErr);
             }
-        } catch (customerEmailErr) {
-            console.error('Error sending customer booking email:', customerEmailErr);
-        }
 
-        try {
-            if (providerEmail) {
-                await sendProviderBookingNotification(
-                    providerEmail,
-                    salonName,
-                    `${customerInfo.firstName} ${customerInfo.lastName}`,
-                    customerInfo.email,
-                    serviceName,
-                    date,
-                    startTime
-                );
+            try {
+                if (providerEmail) {
+                    await sendProviderBookingNotification(
+                        providerEmail,
+                        salonName,
+                        `${customerInfo.firstName} ${customerInfo.lastName}`,
+                        customerInfo.email,
+                        serviceName,
+                        date,
+                        startTime
+                    );
+                }
+            } catch (providerEmailErr) {
+                console.error('Error sending provider booking email:', providerEmailErr);
             }
-        } catch (providerEmailErr) {
-            console.error('Error sending provider booking email:', providerEmailErr);
         }
 
         // Emit real‑time update so clients refresh availability

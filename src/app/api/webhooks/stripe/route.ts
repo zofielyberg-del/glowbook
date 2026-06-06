@@ -4,7 +4,12 @@ import { headers } from 'next/headers';
 import { stripe } from '@/lib/stripe';
 import { resend } from '@/lib/resend';
 import { prisma } from '@/lib/prisma';
-import { sendProviderWelcomeEmail, sendProviderReceiptEmail } from '@/lib/email';
+import { 
+    sendProviderWelcomeEmail, 
+    sendProviderReceiptEmail,
+    sendCustomerBookingConfirmation,
+    sendProviderBookingNotification
+} from '@/lib/email';
 
 // Bullseye: Core Gift Card Generation Logic
 function generateCode(): string {
@@ -121,12 +126,86 @@ export async function POST(req: Request) {
             const points = Math.floor(amount / 10) * 5;
 
             // 1. Update Appointment Status
-            await prisma.appointment.update({
+            const appointment = await prisma.appointment.update({
                 where: { id: appointmentId },
-                data: { status: 'paid', payment_id: session.id }
+                data: { status: 'paid', payment_id: session.id },
+                include: {
+                    salon: {
+                        include: {
+                            owner: {
+                                select: { email: true }
+                            }
+                        }
+                    }
+                }
             });
 
-            // 2. Add Loyalty Points
+            // 2. Send Booking Confirmation Emails
+            if (appointment) {
+                const bookingDateStr = appointment.booking_date
+                    ? new Date(appointment.booking_date).toLocaleDateString('sv-SE', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        timeZone: 'Europe/Stockholm'
+                      })
+                    : appointment.start_time.toLocaleDateString('sv-SE', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        timeZone: 'Europe/Stockholm'
+                      });
+                    
+                const startTimeStr = appointment.start_time.toLocaleTimeString('sv-SE', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'Europe/Stockholm'
+                });
+
+                const salonName = appointment.salon?.name || 'Salongen';
+                const providerEmail = appointment.salon?.owner?.email || '';
+
+                // Send Customer Booking Confirmation
+                if (appointment.customer_email) {
+                    try {
+                        await sendCustomerBookingConfirmation(
+                            appointment.customer_email,
+                            appointment.customer_name || 'Kund',
+                            salonName,
+                            appointment.service_name || 'Behandling',
+                            bookingDateStr,
+                            startTimeStr,
+                            `${appointment.total_price || amount} SEK`,
+                            appointment.id
+                        );
+                        console.log(`[Webhook] Booking confirmation email sent to customer: ${appointment.customer_email}`);
+                    } catch (err) {
+                        console.error('[Webhook] Failed to send customer booking confirmation email:', err);
+                    }
+                }
+
+                // Send Provider Booking Notification
+                if (providerEmail) {
+                    try {
+                        await sendProviderBookingNotification(
+                            providerEmail,
+                            salonName,
+                            appointment.customer_name || 'Kund',
+                            appointment.customer_email || '',
+                            appointment.service_name || 'Behandling',
+                            bookingDateStr,
+                            startTimeStr
+                        );
+                        console.log(`[Webhook] Booking notification email sent to provider: ${providerEmail}`);
+                    } catch (err) {
+                        console.error('[Webhook] Failed to send provider booking notification email:', err);
+                    }
+                }
+            }
+
+            // 3. Add Loyalty Points
             if (customerEmail && salonId) {
                 // Find profile by email
                 const profile = await prisma.profile.findUnique({
