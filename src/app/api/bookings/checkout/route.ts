@@ -50,8 +50,24 @@ export async function POST(req: Request) {
                 },
             ],
             customer_email: customerEmail,
-            success_url: `${process.env.NEXT_PUBLIC_APP_URL}/salon/${salonId}?booking_success=true&appointment_id=${appointmentId}`,
-            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/salon/${salonId}?booking_canceled=true`,
+            success_url: (() => {
+                let url = process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se';
+                if (!url.startsWith('https://')) {
+                    url = url.replace(/^http:\/\//, 'https://');
+                    if (!url.startsWith('https://')) url = 'https://' + url;
+                }
+                if (url.includes('localhost')) url = 'https://glowbook.se';
+                return `${url}/salon/${salonId}?booking_success=true&appointment_id=${appointmentId}`;
+            })(),
+            cancel_url: (() => {
+                let url = process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se';
+                if (!url.startsWith('https://')) {
+                    url = url.replace(/^http:\/\//, 'https://');
+                    if (!url.startsWith('https://')) url = 'https://' + url;
+                }
+                if (url.includes('localhost')) url = 'https://glowbook.se';
+                return `${url}/salon/${salonId}?booking_canceled=true`;
+            })(),
             metadata: {
                 appointmentId,
                 salonId,

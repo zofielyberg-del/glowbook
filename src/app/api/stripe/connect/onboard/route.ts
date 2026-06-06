@@ -131,11 +131,22 @@ export async function POST(req: Request) {
             }
         }
 
-        // 3. Create Account Link for onboarding
+        // 3. Create Account Link for onboarding (Stripe Connect live mode requires HTTPS redirects)
+        let secureAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se';
+        if (!secureAppUrl.startsWith('https://')) {
+            secureAppUrl = secureAppUrl.replace(/^http:\/\//, 'https://');
+            if (!secureAppUrl.startsWith('https://')) {
+                secureAppUrl = 'https://' + secureAppUrl;
+            }
+        }
+        if (secureAppUrl.includes('localhost')) {
+            secureAppUrl = 'https://glowbook.se';
+        }
+
         const accountLink = await stripe.accountLinks.create({
             account: stripeAccountId,
-            refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/provider/settings?tab=payments&stripe_refresh=true`,
-            return_url: `${process.env.NEXT_PUBLIC_APP_URL}/provider/settings?tab=payments&stripe_success=true`,
+            refresh_url: `${secureAppUrl}/provider/settings?tab=payments&stripe_refresh=true`,
+            return_url: `${secureAppUrl}/provider/settings?tab=payments&stripe_success=true`,
             type: 'account_onboarding',
         });
 
