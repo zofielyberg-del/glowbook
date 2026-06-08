@@ -131,7 +131,17 @@ export async function POST(req: Request) {
             }
         }
 
-        // 3. Create Account Link for onboarding (Stripe Connect live mode requires HTTPS redirects)
+        // 3. Create Login Link if onboarding is complete, otherwise create Account Link for onboarding
+        try {
+            const stripeAccount = await stripe.accounts.retrieve(stripeAccountId);
+            if (stripeAccount.details_submitted) {
+                const loginLink = await stripe.accounts.createLoginLink(stripeAccountId);
+                return NextResponse.json({ url: loginLink.url });
+            }
+        } catch (retrieveErr) {
+            console.warn(`Failed to check details_submitted for Stripe account ${stripeAccountId}:`, retrieveErr);
+        }
+
         let secureAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se';
         if (!secureAppUrl.startsWith('https://')) {
             secureAppUrl = secureAppUrl.replace(/^http:\/\//, 'https://');
