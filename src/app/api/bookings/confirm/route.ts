@@ -196,7 +196,8 @@ export async function POST(req: Request) {
                         customerInfo.email,
                         serviceName,
                         date,
-                        startTime
+                        startTime,
+                        paymentMethod
                     );
                 }
             } catch (providerEmailErr) {

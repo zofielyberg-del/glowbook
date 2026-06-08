@@ -208,6 +208,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'onsite' | 'stripe' | 'giftcard'>('onsite');
     const [giftCardSecondaryMethod, setGiftCardSecondaryMethod] = useState<'onsite' | 'stripe'>('onsite');
     const [isBooked, setIsBooked] = useState(false);
+    const [successAppointment, setSuccessAppointment] = useState<any>(null);
     const [isBooking, setIsBooking] = useState(false);
     const [galleryLightbox, setGalleryLightbox] = useState<number | null>(null);
     const [giftCardCode, setGiftCardCode] = useState('');
@@ -306,9 +307,25 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
             // Check for success redirect from Stripe
             const params = new URLSearchParams(window.location.search);
-            if (params.get('booking_success') === 'true') {
+            const bookingSuccess = params.get('booking_success') === 'true';
+            const appointmentId = params.get('appointment_id');
+            if (bookingSuccess) {
                 setIsBooked(true);
                 setIsBookingModalOpen(true);
+                if (appointmentId) {
+                    const fetchAppointmentDetails = async () => {
+                        try {
+                            const res = await fetch(`/api/bookings/get?id=${appointmentId}`);
+                            const data = await res.json();
+                            if (data.success && data.appointment) {
+                                setSuccessAppointment(data.appointment);
+                            }
+                        } catch (e) {
+                            console.error('Error fetching success appointment details:', e);
+                        }
+                    };
+                    fetchAppointmentDetails();
+                }
             }
         };
         checkCustomerLogin();
@@ -1888,32 +1905,48 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                     <div className="space-y-4">
                                         <h2 className="text-4xl font-heading font-bold text-foreground">{t('salon_booking_confirmed')}</h2>
                                         <p className="text-foreground/40 leading-relaxed max-w-sm mx-auto">
-                                            Tack för din bokning, <strong>{customerInfo.firstName}</strong>! En bekräftelse har skickats till <strong>{customerInfo.email}</strong>.
+                                            Tack för din bokning, <strong>{customerInfo.firstName || (successAppointment?.customer_name ? successAppointment.customer_name.split(' ')[0] : '')}</strong>! En bekräftelse har skickats till <strong>{customerInfo.email || successAppointment?.customer_email}</strong>.
                                         </p>
                                     </div>
                                     <div className="p-6 bg-foreground/[0.03] rounded-3xl border border-border w-full max-w-md text-left space-y-4">
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-foreground/40">Tjänst</span>
-                                            <span className="font-bold">{selectedService?.name}</span>
+                                            <span className="font-bold">{selectedService?.name || successAppointment?.service_name}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-foreground/40">Utförare</span>
-                                            <span className="font-bold">{selectedPractitioner?.name || (salon?.practitioners?.[0]?.name) || [salon?.firstName, salon?.lastName].filter(Boolean).join(' ') || salon?.name || 'Salongen'}</span>
+                                            <span className="font-bold">
+                                                {selectedPractitioner?.name || 
+                                                 successAppointment?.practitioner?.name || 
+                                                 (salon?.practitioners?.[0]?.name) || 
+                                                 [salon?.firstName, salon?.lastName].filter(Boolean).join(' ') || 
+                                                 salon?.name || 
+                                                 'Salongen'}
+                                            </span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-foreground/40">{t('salon_date_time')}</span>
-                                            <span className="font-bold">{selectedTime?.day}, {selectedTime?.time}</span>
+                                            <span className="font-bold">
+                                                {(selectedTime?.day && selectedTime?.time) 
+                                                    ? `${selectedTime.day}, ${selectedTime.time}` 
+                                                    : successAppointment?.start_time 
+                                                        ? `${new Date(successAppointment.start_time).toLocaleDateString('sv-SE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Stockholm' }).replace(/^\w/, c => c.toUpperCase())}, ${new Date(successAppointment.start_time).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Stockholm' })}`
+                                                        : ''}
+                                            </span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-foreground/40">Betalsätt</span>
                                             <span className="font-bold">
-                                                {selectedPaymentMethod === 'giftcard' ? 'Presentkort' : 
-                                                 selectedPaymentMethod === 'stripe' ? 'Betala med Stripe' : 'Betalas på plats'}
+                                                {(selectedPaymentMethod === 'stripe' || successAppointment?.payment_method === 'stripe') ? 'Betala med Stripe' :
+                                                 (selectedPaymentMethod === 'giftcard' || successAppointment?.payment_method === 'giftcard') ? 'Presentkort' :
+                                                 'Betalas på plats'}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm border-t border-border pt-4">
                                             <span className="text-foreground/40">Totalt</span>
-                                            <span className="font-bold text-lg">{selectedService?.price || 0} {salon?.currency || 'kr'}</span>
+                                            <span className="font-bold text-lg">
+                                                {selectedService?.price || successAppointment?.total_price || 0} {salon?.currency || 'kr'}
+                                            </span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 text-[10px] text-foreground/30">

@@ -393,26 +393,30 @@ export const sendProviderBookingNotification = async (
     customerEmail: string,
     serviceName: string, 
     dateStr: string, 
-    timeStr: string
+    timeStr: string,
+    paymentMethod?: string
 ) => {
     const htmlContent = `
-        <h1>Ny Bokning</h1>
-        <p>Hej ${salonName},</p>
-        <p>Du har precis fått en ny bokning via Glowbook.</p>
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Ny Bokning</h1>
+        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hej ${salonName},</p>
+        <p style="color:#d4d4d4;margin:0 0 32px 0;font-size:15px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">Du har precis fått en ny bokning via Glowbook.</p>
         
-        <div class="card">
-            <div class="label">Kund</div>
-            <div class="value">${customerName} <span style="font-weight: normal; color: #666; font-size: 14px;">(${customerEmail})</span></div>
+        <div style="background:#111111;border:1px solid #222222;border-radius:16px;padding:28px;margin:0 0 32px;">
+            <h3 style="font-size:12px;color:#C1B363;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #222222;padding-bottom:12px;">Bokningsdetaljer</h3>
             
-            <div class="label">Behandling</div>
-            <div class="value highlight">${serviceName}</div>
-            
-            <div class="label">Tid</div>
-            <div class="value">${dateStr} kl ${timeStr}</div>
+            <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">👤</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Kund:</strong> ${customerName} <span style="font-weight: normal; color: #666; font-size: 13px;">(${customerEmail})</span></p>
+            <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💅</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Behandling:</strong> ${serviceName}</p>
+            <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">🕒</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Tid:</strong> ${dateStr} kl ${timeStr}</p>
+            <p style="color:#ffffff;font-size:15px;margin:0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💳</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Betalsätt:</strong> ${
+                paymentMethod === 'stripe' ? 'Betald online (Kort/Klarna)' :
+                paymentMethod === 'giftcard' ? 'Betald med presentkort' :
+                paymentMethod === 'onsite' ? 'Betalas på plats i salongen' :
+                'Betalas på plats i salongen'
+            }</p>
         </div>
         
-        <div style="text-align: center;">
-            <a href="https://glowbook.se/admin/calendar" class="btn">Visa i Kalendern</a>
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="https://glowbook.se/admin/calendar" style="display:inline-block;background-color:#C1B363;color:#000000;padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Visa i Kalendern</a>
         </div>
     `;
 

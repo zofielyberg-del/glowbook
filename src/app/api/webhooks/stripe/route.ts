@@ -198,7 +198,8 @@ export async function POST(req: Request) {
                             appointment.customer_email || '',
                             appointment.service_name || 'Behandling',
                             bookingDateStr,
-                            startTimeStr
+                            startTimeStr,
+                            appointment.payment_method || 'stripe'
                         );
                         console.log(`[Webhook] Booking notification email sent to provider: ${providerEmail}`);
                     } catch (err) {

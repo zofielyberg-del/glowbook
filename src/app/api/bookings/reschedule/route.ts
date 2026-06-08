@@ -117,7 +117,8 @@ export async function POST(req: Request) {
                     appointment.customer_email || '',
                     appointment.service_name || 'Behandling',
                     newDate,
-                    newStartTime
+                    newStartTime,
+                    appointment.payment_method || undefined
                 );
             } catch (emailErr) {
                 console.error('Error sending provider reschedule notification:', emailErr);
