@@ -11,6 +11,8 @@ import {
     sendProviderBookingNotification
 } from '@/lib/email';
 
+// Rebuild trigger: apply updated Vercel environment variables
+
 // Bullseye: Core Gift Card Generation Logic
 function generateCode(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
