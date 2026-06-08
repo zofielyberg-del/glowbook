@@ -408,7 +408,9 @@ export const sendProviderBookingNotification = async (
             <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💅</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Behandling:</strong> ${serviceName}</p>
             <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">🕒</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Tid:</strong> ${dateStr} kl ${timeStr}</p>
             <p style="color:#ffffff;font-size:15px;margin:0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💳</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Betalsätt:</strong> ${
-                paymentMethod === 'stripe' ? 'Betald online (Kort/Klarna)' :
+                paymentMethod === 'klarna' ? 'Betald online (Klarna)' :
+                paymentMethod === 'card' ? 'Betald online (Kort)' :
+                (paymentMethod === 'stripe' || paymentMethod === 'paid') ? 'Betald online (Kort/Klarna)' :
                 paymentMethod === 'giftcard' ? 'Betald med presentkort' :
                 paymentMethod === 'onsite' ? 'Betalas på plats i salongen' :
                 'Betalas på plats i salongen'
