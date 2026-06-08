@@ -189,11 +189,13 @@ export async function GET(req: Request) {
                                     if (apt.id === excludeAppointmentId) return false; 
                                     if (apt.practitioner_id !== p.id && apt.practitioner_id !== 'any') return false;
                                     
-                                    const aptDateStr = format(apt.start_time, 'yyyy-MM-dd');
+                                    const aptDateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(apt.start_time);
                                     if (aptDateStr !== dateStr) return false;
 
-                                    const aptStartMins = apt.start_time.getHours() * 60 + apt.start_time.getMinutes();
-                                    const aptEndMins = apt.end_time ? apt.end_time.getHours() * 60 + apt.end_time.getMinutes() : aptStartMins + 30;
+                                    const startParts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hour12: false }).format(apt.start_time).split(':').map(Number);
+                                    const aptStartMins = startParts[0] * 60 + startParts[1];
+                                    const duration = apt.end_time ? Math.round((new Date(apt.end_time).getTime() - new Date(apt.start_time).getTime()) / 60000) : 30;
+                                    const aptEndMins = aptStartMins + duration;
 
                                     return (startMins < aptEndMins && endMins > aptStartMins);
                                 });
@@ -212,11 +214,13 @@ export async function GET(req: Request) {
                             // Standard Salon Logic (Fallback for BAS/PRO, OR Luxe if no practitioners have schedules)
                             const hasAptOverlap = salon.appointments.some(apt => {
                                 if (apt.id === excludeAppointmentId) return false;
-                                const aptDateStr = format(apt.start_time, 'yyyy-MM-dd');
+                                const aptDateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(apt.start_time);
                                 if (aptDateStr !== dateStr) return false;
 
-                                const aptStartMins = apt.start_time.getHours() * 60 + apt.start_time.getMinutes();
-                                const aptEndMins = apt.end_time ? apt.end_time.getHours() * 60 + apt.end_time.getMinutes() : aptStartMins + 30;
+                                const startParts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hour12: false }).format(apt.start_time).split(':').map(Number);
+                                const aptStartMins = startParts[0] * 60 + startParts[1];
+                                const duration = apt.end_time ? Math.round((new Date(apt.end_time).getTime() - new Date(apt.start_time).getTime()) / 60000) : 30;
+                                const aptEndMins = aptStartMins + duration;
 
                                 return (startMins < aptEndMins && endMins > aptStartMins);
                             });

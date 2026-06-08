@@ -70,7 +70,7 @@ export default function ReschedulePage({ params }: { params: Promise<{ id: strin
 
     const handleSelectSlot = (date: string, time: string) => {
         const days = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
-        const dateObj = new Date(date);
+        const dateObj = new Date(`${date}T12:00:00`);
         const dayName = days[dateObj.getDay()];
         const dayIndex = (dateObj.getDay() + 6) % 7;
 

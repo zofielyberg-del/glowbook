@@ -952,7 +952,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
     const onSelectSlot = (date: string, time: string, practitionerId?: string) => {
         const days = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
-        const dateObj = new Date(date);
+        const dateObj = new Date(`${date}T12:00:00`);
         const dayName = days[dateObj.getDay()];
         // Mon=0, Tue=1, ..., Sun=6
         const dayIndex = (dateObj.getDay() + 6) % 7;

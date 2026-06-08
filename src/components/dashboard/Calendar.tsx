@@ -148,9 +148,9 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                             } else if (apt.duration_minutes) {
                                 duration = apt.duration_minutes;
                             }
-                            
-                            const day = sDate.getDay();
-                            const dayIndex = day === 0 ? 6 : day - 1;
+                            const stockholmDay = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Stockholm', weekday: 'short' }).format(sDate);
+                            const dayMap: { [key: string]: number } = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+                            const dayIndex = dayMap[stockholmDay] ?? 0;
                             
                             return {
                                 id: apt.id,
@@ -161,7 +161,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                 startTime: startTime,
                                 duration: duration,
                                 dayIndex: dayIndex,
-                                date: format(sDate, 'yyyy-MM-dd'),
+                                date: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(sDate),
                                 status: apt.status || 'confirmed',
                                 start_time: apt.start_time,
                                 end_time: apt.end_time,
@@ -499,12 +499,12 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         e.stopPropagation();
         // If clicking in customer booking mode, select the slot
         if (onSelectSlot && hideAppointments) {
-            const day = columnDate || weekDays[frame.dayIndex];
-            if (day) {
-                const todayStr = format(new Date(), 'yyyy-MM-dd');
-                const dayStr = format(day, 'yyyy-MM-dd');
+            const stockholmFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' });
+            const dayStr = (frame as any).date || (columnDate ? stockholmFormatter.format(columnDate) : null) || (weekDays[frame.dayIndex] ? stockholmFormatter.format(weekDays[frame.dayIndex]) : null);
+            if (dayStr) {
+                const todayStr = stockholmFormatter.format(new Date());
                 if (dayStr < todayStr) return; // Prevent selection of past dates
-                onSelectSlot(format(day, 'yyyy-MM-dd'), frame.startTime, (frame as any).practitionerId);
+                onSelectSlot(dayStr, frame.startTime, (frame as any).practitionerId);
             }
             return;
         }
@@ -747,28 +747,21 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
             {/* Calendar Grid */}
             <div className="flex-1 overflow-auto no-scrollbar scroll-smooth">
-                <div className="flex min-w-[600px] md:min-w-[800px] relative">
-                    {/* Time Column with Sticky Header */}
-                    <div className="w-12 md:w-16 flex-shrink-0 border-r border-border bg-background transition-colors flex flex-col sticky left-0 z-30">
-                        <div className="h-[68px] border-b border-border sticky top-0 z-20 bg-background" />
-                        <div className="relative bg-background">
-                            {hours.map(hour => (
-                                <div key={hour} className="h-16 flex items-start justify-center text-[10px] font-bold text-foreground/20 pt-1 border-b border-border/10">
-                                    {String(hour).padStart(2, '0')}:00
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Days Columns */}
-                    <div className="flex-1 grid grid-cols-7 divide-x divide-border transition-colors">
-                        {weekDays.map((day, dayIndex) => (
-                            <div key={day.toString()} className="relative">
-                                {/* Day Header */}
-                                <div className={clsx(
-                                    "text-center py-2 border-b border-border sticky top-0 z-10 transition-colors h-[68px]",
-                                    format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? "bg-foreground/5" : "bg-card"
-                                )}>
+                <div className="flex flex-col min-w-[600px] md:min-w-[800px] relative">
+                    {/* Sticky Header Row */}
+                    <div className="flex sticky top-0 z-[40] bg-background border-b border-border">
+                        {/* Time Column Header Placeholder */}
+                        <div className="w-12 md:w-16 flex-shrink-0 border-r border-border bg-background h-[68px] sticky left-0 z-[50]" />
+                        {/* Days Headers Grid */}
+                        <div className="flex-1 grid grid-cols-7 divide-x divide-border bg-background">
+                            {weekDays.map((day, dayIndex) => (
+                                <div
+                                    key={day.toString()}
+                                    className={clsx(
+                                        "text-center py-2 transition-colors h-[68px] flex flex-col justify-center",
+                                        format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? "bg-foreground/5" : "bg-card"
+                                    )}
+                                >
                                     <div className="text-xs font-medium text-foreground/40 uppercase">
                                         {format(day, 'EEE', { locale })}
                                     </div>
@@ -779,9 +772,33 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                         {format(day, 'd')}
                                     </div>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
 
-                                {/* Day Slots */}
-                                <div className="relative h-[832px]"> {/* 13 hours * 64px */}
+                    {/* Grid Body */}
+                    <div className="flex relative">
+                        {/* Time Column Hours */}
+                        <div className="w-12 md:w-16 flex-shrink-0 border-r border-border bg-background transition-colors flex flex-col sticky left-0 z-30">
+                            <div className="h-[68px]" />
+                            <div className="relative bg-background">
+                                {hours.map(hour => (
+                                    <div key={hour} className="h-16 flex items-start justify-center text-[10px] font-bold text-foreground/20 pt-1 border-b border-border/10">
+                                        {String(hour).padStart(2, '0')}:00
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Days Columns Body */}
+                        <div className="flex-1 grid grid-cols-7 divide-x divide-border transition-colors">
+                            {weekDays.map((day, dayIndex) => (
+                                <div key={day.toString()} className="relative">
+                                    {/* Spacer to match Header Row height */}
+                                    <div className="h-[68px]" />
+
+                                    {/* Day Slots */}
+                                    <div className="relative h-[832px]"> {/* 13 hours * 64px */}
                                     {/* Grid Lines — clickable to add new slot */}
                                     {hours.map((hour, i) => (
                                         <div
@@ -1000,6 +1017,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                     </div>
                 </div>
             </div>
+        </div>
 
             {/* Editing Panel (Luxurious Center Modal with Backdrop Blur) */}
             <AnimatePresence>

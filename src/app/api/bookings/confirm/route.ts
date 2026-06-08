@@ -3,6 +3,32 @@ import { prisma } from '@/lib/prisma';
 import { sendCustomerBookingConfirmation, sendProviderBookingNotification } from '@/lib/email';
 import { emitAvailabilityUpdate } from '@/lib/realtime';
 
+function getStockholmDate(dateStr: string, timeStr: string): Date {
+    const targetStr = `${dateStr}T${timeStr}:00`;
+    let utcDate = new Date(`${dateStr}T${timeStr}:00Z`);
+    for (let i = 0; i < 3; i++) {
+        const formatter = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: 'Europe/Stockholm',
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false
+        });
+        const parts = formatter.formatToParts(utcDate);
+        const y = parts.find(p => p.type === 'year')?.value;
+        const mo = parts.find(p => p.type === 'month')?.value;
+        const d = parts.find(p => p.type === 'day')?.value;
+        const h = parts.find(p => p.type === 'hour')?.value;
+        const mi = parts.find(p => p.type === 'minute')?.value;
+        const s = parts.find(p => p.type === 'second')?.value;
+        
+        const currentStockholmStr = `${y}-${mo}-${d}T${h}:${mi}:${s}`;
+        const diffMs = new Date(`${targetStr}Z`).getTime() - new Date(`${currentStockholmStr}Z`).getTime();
+        if (diffMs === 0) break;
+        utcDate = new Date(utcDate.getTime() + diffMs);
+    }
+    return utcDate;
+}
+
 export async function POST(req: Request) {
     try {
         const {
@@ -24,9 +50,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing required booking data' }, { status: 400 });
         }
 
-        // Parse date and time correctly. Prefer exact UTC timestamps if provided to avoid server timezone drift.
-        const startDateTime = start_time ? new Date(start_time) : new Date(`${date}T${startTime}`);
-        const endDateTime = end_time ? new Date(end_time) : new Date(startDateTime.getTime() + duration * 60000);
+        // Parse date and time correctly, locked to Europe/Stockholm timezone to prevent browser/server offsets.
+        const startDateTime = getStockholmDate(date, startTime);
+        const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
         // Check if startDateTime is in the past
         const now = new Date();
