@@ -1937,7 +1937,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-foreground/40">Betalsätt</span>
                                             <span className="font-bold">
-                                                {(selectedPaymentMethod === 'stripe' || successAppointment?.payment_method === 'stripe') ? 'Betala med Stripe' :
+                                                {(selectedPaymentMethod === 'stripe' || successAppointment?.payment_method === 'stripe') ? 'Betald online (Kort/Klarna)' :
+                                                 (successAppointment?.payment_method === 'klarna') ? 'Betald online (Klarna)' :
+                                                 (successAppointment?.payment_method === 'card') ? 'Betald online (Kort)' :
                                                  (selectedPaymentMethod === 'giftcard' || successAppointment?.payment_method === 'giftcard') ? 'Presentkort' :
                                                  'Betalas på plats'}
                                             </span>

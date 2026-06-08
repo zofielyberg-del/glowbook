@@ -71,7 +71,7 @@ export async function GET(
                 `Tjänst: ${apt.service_name || 'Ej angivet'}`,
                 `E-post: ${apt.customer_email || 'Ej angivet'}`,
                 `Telefon: ${apt.customer_phone || 'Ej angivet'}`,
-                `Betalsätt: ${apt.payment_method === 'stripe' ? 'Betala med Stripe' : apt.payment_method === 'giftcard' ? 'Presentkort' : 'Betalas på plats'}`,
+                `Betalsätt: ${(apt.payment_method === 'stripe' || apt.payment_method === 'card' || apt.payment_method === 'klarna') ? 'Betald online' : apt.payment_method === 'giftcard' ? 'Presentkort' : 'Betalas på plats'}`,
                 `Boknings-ID: ${apt.id}`,
                 `Bokat via Glowbook.se`
             ].join('\\n');

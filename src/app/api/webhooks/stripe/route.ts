@@ -127,10 +127,37 @@ export async function POST(req: Request) {
             const amount = session.amount_total / 100; // in SEK
             const points = Math.floor(amount / 10) * 5;
 
-            // 1. Update Appointment Status
+            // 1. Retrieve the actual payment method from Stripe PaymentIntent
+            let paymentMethod = 'stripe';
+            if (session.payment_intent && salonId) {
+                try {
+                    const salon = await prisma.salon.findUnique({
+                        where: { id: salonId },
+                        select: { stripe_account_id: true }
+                    });
+                    if (salon?.stripe_account_id) {
+                        const paymentIntent = await stripe.paymentIntents.retrieve(
+                            session.payment_intent as string,
+                            { expand: ['payment_method'] },
+                            { stripeAccount: salon.stripe_account_id }
+                        );
+                        if (paymentIntent.payment_method && typeof paymentIntent.payment_method !== 'string') {
+                            paymentMethod = paymentIntent.payment_method.type; // e.g. 'card', 'klarna'
+                        }
+                    }
+                } catch (retrieveErr) {
+                    console.error('[Webhook] Failed to retrieve PaymentIntent:', retrieveErr);
+                }
+            }
+
+            // 2. Update Appointment Status
             const appointment = await prisma.appointment.update({
                 where: { id: appointmentId },
-                data: { status: 'paid', payment_id: session.id },
+                data: { 
+                    status: 'paid', 
+                    payment_id: session.id,
+                    payment_method: paymentMethod
+                },
                 include: {
                     salon: {
                         include: {
