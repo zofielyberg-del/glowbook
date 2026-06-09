@@ -234,7 +234,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         } else {
             setSelectedPaymentMethod('onsite');
         }
-    }, [salon]);
+    }, [salon?.id, salon?.stripe_account_id]);
 
     const basePrice = useMemo(() => {
         return Number(
@@ -533,6 +533,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             }
 
             // 4. Success state for non-redirect payments
+            if (bookingData.appointment) {
+                setSuccessAppointment(bookingData.appointment);
+            }
             setIsBooked(true);
 
             // Add the new appointment to the local salon.appointments state for immediate local update
@@ -1937,11 +1940,17 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-foreground/40">Betalsätt</span>
                                             <span className="font-bold">
-                                                {(selectedPaymentMethod === 'stripe' || successAppointment?.payment_method === 'stripe') ? 'Betald online (Kort/Klarna)' :
-                                                 (successAppointment?.payment_method === 'klarna') ? 'Betald online (Klarna)' :
-                                                 (successAppointment?.payment_method === 'card') ? 'Betald online (Kort)' :
-                                                 (selectedPaymentMethod === 'giftcard' || successAppointment?.payment_method === 'giftcard') ? 'Presentkort' :
-                                                 'Betalas på plats'}
+                                                {successAppointment?.payment_method ? (
+                                                     (successAppointment.payment_method === 'stripe' || successAppointment.payment_method === 'paid') ? 'Betald online (Kort/Klarna)' :
+                                                     successAppointment.payment_method === 'klarna' ? 'Betald online (Klarna)' :
+                                                     successAppointment.payment_method === 'card' ? 'Betald online (Kort)' :
+                                                     successAppointment.payment_method === 'giftcard' ? 'Presentkort' :
+                                                     'Betalas på plats'
+                                                 ) : (
+                                                     selectedPaymentMethod === 'stripe' ? 'Betald online (Kort/Klarna)' :
+                                                     selectedPaymentMethod === 'giftcard' ? 'Presentkort' :
+                                                     'Betalas på plats'
+                                                 )}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm border-t border-border pt-4">

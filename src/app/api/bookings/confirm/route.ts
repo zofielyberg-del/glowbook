@@ -238,7 +238,8 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             success: true,
-            appointmentId: appointment.id
+            appointmentId: appointment.id,
+            appointment
         });
 
     } catch (error) {
