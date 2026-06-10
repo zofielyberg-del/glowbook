@@ -1919,12 +1919,22 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-foreground/40">Utförare</span>
                                             <span className="font-bold">
-                                                {selectedPractitioner?.name || 
-                                                 successAppointment?.practitioner?.name || 
-                                                 (salon?.practitioners?.[0]?.name) || 
-                                                 [salon?.firstName, salon?.lastName].filter(Boolean).join(' ') || 
-                                                 salon?.name || 
-                                                 'Salongen'}
+                                                {(() => {
+                                                    if (successAppointment?.practitioner_id === 'any' || selectedPractitioner?.id === 'any') {
+                                                        return 'Vem som helst';
+                                                    }
+                                                    if (successAppointment?.practitioner_id === 'owner') {
+                                                        return salon?.firstName || salon?.name || 'Salongen';
+                                                    }
+                                                    const candidate = selectedPractitioner?.name || 
+                                                                      successAppointment?.practitioner?.name || 
+                                                                      (salon?.practitioners?.[0]?.name) || 
+                                                                      salon?.firstName;
+                                                    if (candidate) {
+                                                        return candidate.split(' ')[0];
+                                                    }
+                                                    return salon?.name || 'Salongen';
+                                                })()}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
