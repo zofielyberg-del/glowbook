@@ -28,10 +28,13 @@ export default function ExploreContent() {
     const [sortBy, setSortBy] = useState<'recommended' | 'price' | 'rating'>('recommended');
     const [locationLoading, setLocationLoading] = useState(false);
     const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-    const [cityInputQuery, setCityInputQuery] = useState('');
+    const [locationInput, setLocationInput] = useState(municipality);
     const [isCityFocused, setIsCityFocused] = useState(false);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
-    const [committedSearchTerm, setCommittedSearchTerm] = useState(query);
+
+    useEffect(() => {
+        setLocationInput(citySearch);
+    }, [citySearch]);
 
     // All municipalities for autocomplete
     const allMunicipalities = useMemo(() => {
@@ -53,6 +56,7 @@ export default function ExploreContent() {
     const handleNearMe = () => {
         if (citySearch === 'Nära mig') {
             setCitySearch('');
+            setLocationInput('');
             setUserCoords(null);
             return;
         }
@@ -67,6 +71,7 @@ export default function ExploreContent() {
             (pos) => {
                 setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                 setCitySearch('Nära mig');
+                setLocationInput('Nära mig');
                 setLocationLoading(false);
             },
             (err) => {
@@ -221,7 +226,7 @@ export default function ExploreContent() {
             }
 
             // Keyword / Category / URL filter
-            const activeQuery = (committedSearchTerm || '').toLowerCase().trim();
+            const activeQuery = (searchTerm || '').toLowerCase().trim();
             const matchesQuery = !activeQuery || activeQuery === 'nya' ||
                 s.name.toLowerCase().includes(activeQuery) ||
                 (s.description || '').toLowerCase().includes(activeQuery) ||
@@ -288,7 +293,7 @@ export default function ExploreContent() {
             
             return (a.name || '').localeCompare(b.name || '');
         });
-    }, [salons, committedSearchTerm, category, priceFilter, ratingFilter, showAvailableOnly, citySearch, sortBy, t]);
+    }, [salons, searchTerm, category, priceFilter, ratingFilter, showAvailableOnly, citySearch, sortBy, t]);
 
     const topInCity = useMemo(() => filteredSalons.filter(s => (s.rating || 0) >= 4.5).slice(0, 6), [filteredSalons]);
     const quickTimes = useMemo(() => filteredSalons.filter(s => s.tier === 'luxe' || s.tier === 'pro').slice(0, 4), [filteredSalons]);
@@ -298,18 +303,18 @@ export default function ExploreContent() {
         return filteredSalons.filter(s => s.joined && new Date(s.joined) >= thirtyDaysAgo).slice(0, 4);
     }, [filteredSalons]);
 
-    const hasActiveFilters = committedSearchTerm || priceFilter || ratingFilter || showAvailableOnly || citySearch;
+    const hasActiveFilters = searchTerm || priceFilter || ratingFilter || showAvailableOnly || citySearch;
 
     const detectedCategory = useMemo(() => {
         if (category) return category;
-        if (!committedSearchTerm || committedSearchTerm === 'Nya') return '';
+        if (!searchTerm || searchTerm === 'Nya') return '';
         const suggestions = getSuggestionsForLanguage(language);
         const match = suggestions.find(s =>
-            s.keyword.toLowerCase() === committedSearchTerm.toLowerCase() ||
-            s.keyword.toLowerCase().includes(committedSearchTerm.toLowerCase())
+            s.keyword.toLowerCase() === searchTerm.toLowerCase() ||
+            s.keyword.toLowerCase().includes(searchTerm.toLowerCase())
         );
         return match?.category || '';
-    }, [committedSearchTerm, category, language]);
+    }, [searchTerm, category, language]);
 
     const pageTitle = detectedCategory
         ? `${t('discover')} ${detectedCategory}`
@@ -343,7 +348,7 @@ export default function ExploreContent() {
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-center">
-                            <div className="flex flex-col md:flex-row items-center gap-3 bg-white dark:bg-[#121212] p-2 rounded-[28px] shadow-xl border border-black/5 dark:border-white/10 w-full lg:w-auto">
+                            <div className="flex flex-col md:flex-row items-center gap-3 bg-white dark:bg-[#121212] p-2 rounded-[28px] shadow-xl border border-black/5 dark:border-white/10 w-full lg:w-auto transition-all duration-300 focus-within:border-champagne-500/85 focus-within:ring-2 focus-within:ring-champagne-500/20">
                                 <div className="relative flex items-center px-4 py-2 flex-1 min-w-[280px]">
                                     <Search className="text-champagne-600 shrink-0" size={24} />
                                     <input
@@ -352,7 +357,6 @@ export default function ExploreContent() {
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
-                                                setCommittedSearchTerm(searchTerm);
                                                 setIsSearchFocused(false);
                                                 (e.target as HTMLInputElement).blur();
                                             }
@@ -363,29 +367,54 @@ export default function ExploreContent() {
                                         className="w-full pl-4 pr-2 py-3 bg-transparent border-none outline-none text-sm font-bold text-foreground placeholder:text-foreground/20"
                                     />
                                     <AnimatePresence>
-                                        {searchSuggestions.length > 0 && (
+                                        {isSearchFocused && (
                                             <motion.div
                                                 initial={{ opacity: 0, y: 6 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0, y: 6 }}
-                                                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden"
+                                                className="absolute top-full left-0 right-0 mt-2 backdrop-blur-md bg-white/95 dark:bg-[#121212]/95 rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden"
                                             >
-                                                <div className="p-1.5 space-y-0.5">
-                                                    {searchSuggestions.map((s) => (
-                                                        <button
-                                                            key={s.id}
-                                                            onMouseDown={(e) => {
-                                                                e.preventDefault();
-                                                                setSearchTerm(s.keyword);
-                                                                setCommittedSearchTerm(s.keyword);
-                                                                setIsSearchFocused(false);
-                                                            }}
-                                                            className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl hover:bg-foreground/5 transition-all group"
-                                                        >
-                                                            <span className="text-sm font-bold text-foreground">{s.keyword}</span>
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-foreground/25 group-hover:text-champagne-600 transition-colors">{s.category}</span>
-                                                        </button>
-                                                    ))}
+                                                <div className="p-1.5 space-y-0.5 max-h-[300px] overflow-y-auto font-body">
+                                                    {(!searchTerm || searchTerm.length < 2) ? (
+                                                        <>
+                                                            <div className="px-4 py-2 text-[9px] font-black uppercase tracking-widest text-foreground/30">Populära kategorier</div>
+                                                            {[
+                                                                { name: 'Naglar', category: 'Naglar' },
+                                                                { name: 'Frisör & Hårvård', category: 'Hårvård' },
+                                                                { name: 'Lash, Brow & Skönhet', category: 'Fransar & Bryn' },
+                                                                { name: 'Massage & Spa', category: 'Massage' },
+                                                                { name: 'Hudvård', category: 'Hudvård' }
+                                                            ].map((cat) => (
+                                                                <button
+                                                                    key={cat.name}
+                                                                    onMouseDown={(e) => {
+                                                                        e.preventDefault();
+                                                                        setSearchTerm(cat.name);
+                                                                        setIsSearchFocused(false);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl hover:bg-foreground/5 text-left transition-all"
+                                                                >
+                                                                    <span className="text-sm font-bold text-foreground">{cat.name}</span>
+                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/25">Kategori</span>
+                                                                </button>
+                                                            ))}
+                                                        </>
+                                                    ) : (
+                                                        searchSuggestions.map((s) => (
+                                                            <button
+                                                                key={s.id}
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    setSearchTerm(s.keyword);
+                                                                    setIsSearchFocused(false);
+                                                                }}
+                                                                className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl hover:bg-foreground/5 transition-all group"
+                                                            >
+                                                                <span className="text-sm font-bold text-foreground">{s.keyword}</span>
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/25 group-hover:text-champagne-600 transition-colors">{s.category}</span>
+                                                            </button>
+                                                        ))
+                                                    )}
                                                 </div>
                                             </motion.div>
                                         )}
@@ -394,69 +423,121 @@ export default function ExploreContent() {
 
                                 <div className="hidden md:block h-8 w-[1px] bg-black/5 dark:bg-white/5 mx-1" />
 
-                                <div className="relative w-full md:w-56">
-                                    <div className="relative">
-                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-champagne-600 shrink-0" size={18} />
-                                        <input
-                                            type="text"
-                                            value={cityInputQuery}
-                                            onChange={(e) => {
-                                                setCityInputQuery(e.target.value);
-                                                if (!e.target.value) setCitySearch('');
+                                <div className="relative flex items-center px-4 py-2 w-full md:w-64">
+                                    <MapPin className="text-champagne-600 shrink-0" size={20} />
+                                    <input
+                                        type="text"
+                                        value={locationInput}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setLocationInput(val);
+                                            setCitySearch(val);
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                setIsCityFocused(false);
+                                                (e.target as HTMLInputElement).blur();
+                                            }
+                                        }}
+                                        onFocus={() => setIsCityFocused(true)}
+                                        onBlur={() => setTimeout(() => setIsCityFocused(false), 200)}
+                                        placeholder={t('all_cities')}
+                                        className="w-full pl-3 pr-8 py-3 bg-transparent border-none outline-none text-sm font-bold text-foreground placeholder:text-foreground/20 uppercase tracking-wider"
+                                    />
+                                    {locationInput && (
+                                        <button
+                                            onClick={() => {
+                                                setLocationInput('');
+                                                setCitySearch('');
+                                                setUserCoords(null);
                                             }}
-                                            onFocus={() => setIsCityFocused(true)}
-                                            onBlur={() => setTimeout(() => setIsCityFocused(false), 200)}
-                                            placeholder={citySearch || t('all_cities')}
-                                            className={clsx(
-                                                "w-full pl-11 pr-10 py-4 rounded-[22px] text-xs font-black outline-none border-2 transition-all uppercase tracking-widest",
-                                                citySearch
-                                                    ? "bg-white text-black border-champagne-500 shadow-lg shadow-champagne-500/10"
-                                                    : "bg-foreground/5 dark:bg-white/10 text-foreground border-transparent focus:border-champagne-500"
-                                            )}
-                                        />
-                                        {citySearch && !cityInputQuery && (
-                                            <button
-                                                onClick={() => { setCitySearch(''); setCityInputQuery(''); }}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground transition-colors text-xs font-bold"
-                                            >
-                                                ✕
-                                            </button>
-                                        )}
-                                    </div>
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-rose-500 transition-colors text-sm font-bold"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
                                     <AnimatePresence>
-                                        {isCityFocused && cityInputQuery.trim().length >= 2 && (() => {
-                                            const q = cityInputQuery.toLowerCase().trim();
-                                            const matches = allMunicipalities
-                                                .filter(item => item.municipality.toLowerCase().includes(q))
-                                                .slice(0, 8);
-                                            if (matches.length === 0) return null;
-                                            return (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 6 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: 6 }}
-                                                    className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden"
-                                                >
-                                                    <div className="p-1.5 space-y-0.5">
-                                                        {matches.map((item) => (
+                                        {isCityFocused && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 6 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 6 }}
+                                                className="absolute top-full left-0 right-0 mt-2 backdrop-blur-md bg-white/95 dark:bg-[#121212]/95 rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden"
+                                            >
+                                                <div className="p-1.5 space-y-0.5 max-h-[300px] overflow-y-auto font-body">
+                                                    {(!locationInput || locationInput.length < 2) ? (
+                                                        <>
                                                             <button
-                                                                key={`${item.country.code}-${item.municipality}`}
                                                                 onMouseDown={(e) => {
                                                                     e.preventDefault();
-                                                                    setCitySearch(item.municipality);
-                                                                    setCityInputQuery('');
+                                                                    handleNearMe();
                                                                     setIsCityFocused(false);
                                                                 }}
-                                                                className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl hover:bg-foreground/5 transition-all group"
+                                                                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-foreground/5 text-left transition-all"
                                                             >
-                                                                <span className="text-sm font-bold text-foreground">{item.municipality}</span>
-                                                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/25 group-hover:text-champagne-600 transition-colors">{item.country.name}</span>
+                                                                <MapPin size={14} className="text-champagne-600" />
+                                                                <span className="text-sm font-bold text-foreground">Använd min position</span>
                                                             </button>
-                                                        ))}
-                                                    </div>
-                                                </motion.div>
-                                            );
-                                        })()}
+                                                            <button
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    setCitySearch('');
+                                                                    setLocationInput('');
+                                                                    setIsCityFocused(false);
+                                                                }}
+                                                                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-foreground/5 text-left transition-all"
+                                                            >
+                                                                <span className="text-sm font-bold text-foreground">🇸🇪 Hela Sverige</span>
+                                                            </button>
+                                                            <div className="px-4 py-2 text-[9px] font-black uppercase tracking-widest text-foreground/30 border-t border-foreground/5 mt-1.5 pt-1.5">Populära städer</div>
+                                                            {['Stockholm', 'Göteborg', 'Malmö', 'Uppsala', 'Västerås', 'Örebro'].map((city) => (
+                                                                <button
+                                                                    key={city}
+                                                                    onMouseDown={(e) => {
+                                                                        e.preventDefault();
+                                                                        setCitySearch(city);
+                                                                        setLocationInput(city);
+                                                                        setIsCityFocused(false);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-between px-4 py-2 rounded-xl hover:bg-foreground/5 text-left transition-all"
+                                                                >
+                                                                    <span className="text-sm font-bold text-foreground">{city}</span>
+                                                                </button>
+                                                            ))}
+                                                        </>
+                                                    ) : (
+                                                        (() => {
+                                                            const q = locationInput.toLowerCase().trim();
+                                                            const matches = allMunicipalities
+                                                                .filter(item => item.municipality.toLowerCase().includes(q))
+                                                                .slice(0, 8);
+                                                            if (matches.length === 0) {
+                                                                return (
+                                                                    <div className="px-4 py-3 text-xs text-foreground/40 text-center">
+                                                                        Inga städer hittades
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return matches.map((item) => (
+                                                                <button
+                                                                    key={`${item.country.code}-${item.municipality}`}
+                                                                    onMouseDown={(e) => {
+                                                                        e.preventDefault();
+                                                                        setCitySearch(item.municipality);
+                                                                        setLocationInput(item.municipality);
+                                                                        setIsCityFocused(false);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl hover:bg-foreground/5 transition-all group"
+                                                                >
+                                                                    <span className="text-sm font-bold text-foreground">{item.municipality}</span>
+                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/25 group-hover:text-champagne-600 transition-colors">{item.country.name}</span>
+                                                                </button>
+                                                            ));
+                                                        })()
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        )}
                                     </AnimatePresence>
                                 </div>
                             </div>
@@ -470,9 +551,8 @@ export default function ExploreContent() {
                                 { label: t('explore_filter_top_rating'), active: ratingFilter === 4.8, onClick: () => setRatingFilter(ratingFilter === 4.8 ? null : 4.8), icon: Star },
                                 { label: `${t('explore_filter_under_price')} ${currency}`, active: priceFilter === 500, onClick: () => setPriceFilter(priceFilter === 500 ? null : 500), icon: Coins },
                                 {
-                                    label: t('explore_filter_new'), active: committedSearchTerm === 'Nya', onClick: () => {
-                                        const next = committedSearchTerm === 'Nya' ? '' : 'Nya';
-                                        setCommittedSearchTerm(next);
+                                    label: t('explore_filter_new'), active: searchTerm === 'Nya', onClick: () => {
+                                        const next = searchTerm === 'Nya' ? '' : 'Nya';
                                         setSearchTerm(next);
                                     }, icon: Sparkles
                                 },
@@ -503,8 +583,8 @@ export default function ExploreContent() {
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         onClick={() => {
                                             setSearchTerm('');
-                                            setCommittedSearchTerm('');
                                             setCitySearch('');
+                                            setLocationInput('');
                                             setPriceFilter(null);
                                             setRatingFilter(null);
                                             setShowAvailableOnly(false);

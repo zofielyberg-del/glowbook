@@ -226,7 +226,7 @@ export default function ProviderDashboard() {
                     const serviceName = a.service_name || a.service;
                     if (serviceName) serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
                     
-                    if (a.status === 'completed') {
+                    if (a.status === 'completed' || a.status === 'paid') {
                         // Compute day index from the appointment date (works for both local and DB appointments)
                         let aptDateStr = a.date || '';
                         if (!aptDateStr && a.start_time) {
@@ -475,7 +475,7 @@ export default function ProviderDashboard() {
             try { aptDateStr = format(new Date(apt.booking_date), 'yyyy-MM-dd'); } catch {}
         }
         const dayIdx = weekDates.indexOf(aptDateStr);
-        if (dayIdx !== -1) {
+        if (dayIdx !== -1 && apt.status !== 'completed' && apt.status !== 'paid') {
             setDailyRevenue(prev => {
                 const next = [...prev];
                 next[dayIdx] += Number(apt.price || apt.total_price || 0);
@@ -532,7 +532,7 @@ export default function ProviderDashboard() {
     };
 
     const totalRevenue = allAppointments
-        .filter((apt: any) => apt.status === 'completed')
+        .filter((apt: any) => apt.status === 'completed' || apt.status === 'paid')
         .reduce((sum: number, apt: any) => sum + Number(apt.price || apt.total_price || 0), 0);
 
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -1016,7 +1016,7 @@ export default function ProviderDashboard() {
                         {/* Stats Column */}
                         <div className="lg:col-span-1 grid grid-cols-1 gap-4">
                             {[
-                                { label: t('dash_stat_bookings'), value: String(allAppointments.filter(a => a.status === 'confirmed').length), icon: CalendarIcon, color: 'text-blue-500' },
+                                { label: t('dash_stat_bookings'), value: String(UPCOMING_TODAY.length), icon: CalendarIcon, color: 'text-blue-500' },
                                 { label: t('dash_stat_customers'), value: String(stats.newCustomers), icon: Users, color: 'text-purple-500' },
                                 { label: t('dash_stat_revenue'), value: `${totalRevenue} ${currency}`, icon: TrendingUp, color: 'text-green-500' },
                             ].map((stat, i) => (
