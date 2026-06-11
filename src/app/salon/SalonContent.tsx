@@ -1147,7 +1147,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                 <>
                                     <h2 className="text-2xl font-heading font-bold text-foreground">{t('salon_about')}</h2>
                                     <p className="text-foreground/60 leading-relaxed whitespace-pre-wrap">
-                                        "{salon.description}"
+                                        {salon.description}
                                     </p>
                                 </>
                             )}

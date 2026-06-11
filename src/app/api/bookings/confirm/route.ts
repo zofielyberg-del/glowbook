@@ -102,23 +102,40 @@ export async function POST(req: Request) {
         // 2. Create or update customer profile
         let profileId: string | undefined;
         try {
-            const profile = await prisma.profile.upsert({
+            const existingProfile = await prisma.profile.findUnique({
                 where: { email: customerInfo.email },
-                update: {
-                    first_name: customerInfo.firstName,
-                    last_name: customerInfo.lastName,
-                    phone: customerInfo.phone
-                },
-                create: {
-                    email: customerInfo.email,
-                    first_name: customerInfo.firstName,
-                    last_name: customerInfo.lastName,
-                    phone: customerInfo.phone,
-                    role: 'customer'
-                },
-                select: { id: true }
+                select: { id: true, role: true }
             });
-            profileId = profile?.id;
+
+            if (existingProfile) {
+                // If they are a provider, owner, admin, etc. do NOT update their profile name/phone with booking inputs
+                if (existingProfile.role === 'customer' || !existingProfile.role) {
+                    const profile = await prisma.profile.update({
+                        where: { id: existingProfile.id },
+                        data: {
+                            first_name: customerInfo.firstName,
+                            last_name: customerInfo.lastName,
+                            phone: customerInfo.phone
+                        },
+                        select: { id: true }
+                    });
+                    profileId = profile?.id;
+                } else {
+                    profileId = existingProfile.id;
+                }
+            } else {
+                const profile = await prisma.profile.create({
+                    data: {
+                        email: customerInfo.email,
+                        first_name: customerInfo.firstName,
+                        last_name: customerInfo.lastName,
+                        phone: customerInfo.phone,
+                        role: 'customer'
+                    },
+                    select: { id: true }
+                });
+                profileId = profile?.id;
+            }
         } catch (profileError) {
             console.error('Error syncing customer profile:', profileError);
         }
