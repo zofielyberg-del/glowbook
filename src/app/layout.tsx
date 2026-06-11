@@ -21,6 +21,11 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Glowbook | Premium Booking Made Simple",
   description: "Booking made easier. A premium experience for providers and customers.",
+  appleWebApp: {
+    capable: true,
+    title: "Glowbook",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport = {

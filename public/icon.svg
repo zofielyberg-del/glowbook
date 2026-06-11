@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" shape-rendering="geometricPrecision">
+  <defs>
+    <!-- Premium Animated Diagonal Gold Shimmer Gradient -->
+    <linearGradient id="gold-shimmer-grad" x1="-150%" y1="-150%" x2="150%" y2="150%">
+      <stop offset="0%" stop-color="#C5A059" />
+      <stop offset="42%" stop-color="#C5A059" />
+      <stop offset="50%" stop-color="#FFF5D6" />
+      <stop offset="58%" stop-color="#C5A059" />
+      <stop offset="100%" stop-color="#C5A059" />
+      <animate attributeName="x1" from="-150%" to="150%" dur="8s" repeatCount="indefinite" />
+      <animate attributeName="x2" from="-50%" to="250%" dur="8s" repeatCount="indefinite" />
+      <animate attributeName="y1" from="-150%" to="150%" dur="8s" repeatCount="indefinite" />
+      <animate attributeName="y2" from="-50%" to="250%" dur="8s" repeatCount="indefinite" />
+    </linearGradient>
+  </defs>
+
+  <style>
+    .book-page {
+      fill: #ffffff;
+      stroke: #1a1a1a;
+    }
+    @media (prefers-color-scheme: dark) {
+      .book-page {
+        fill: #ffffff;
+        stroke: #C5A059;
+      }
+    }
+  </style>
+
+  <!-- Clean Vector 6-Page Open Book with Elegant Turning Page and Gold Shimmer Spine -->
+  <g transform="translate(0, -9)">
+    <!-- LEFT SIDE: Static Pages -->
+    <!-- Page 1: Outer Left -->
+    <path d="M 230 110 C 130 70, 70 90, 40 140 L 40 360 C 70 310, 130 290, 230 330 Z" 
+          class="book-page" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Page 2: Middle Left -->
+    <path d="M 230 135 C 140 100, 90 120, 60 170 L 60 390 C 90 340, 140 320, 230 360 Z" 
+          class="book-page" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- RIGHT SIDE: Static Pages -->
+    <!-- Page 5: Middle Right -->
+    <path d="M 282 135 C 372 100, 422 120, 452 170 L 452 390 C 422 340, 372 320, 282 360 Z" 
+          class="book-page" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Page 6: Outer Right -->
+    <path d="M 282 110 C 382 70, 442 90, 472 140 L 472 360 C 442 310, 382 290, 282 330 Z" 
+          class="book-page" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- DYNAMIC TURNING PAGE: Page 3/4 (Elegant Page Turning loop) -->
+    <path class="book-page" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <animate 
+        attributeName="d" 
+        dur="15s" 
+        repeatCount="indefinite"
+        values="
+          M 282 160 C 362 130, 402 150, 432 200 L 432 420 C 402 370, 362 350, 282 390 Z;
+          M 282 160 C 362 130, 402 150, 432 200 L 432 420 C 402 370, 362 350, 282 390 Z;
+          M 256 160 C 256 130, 256 150, 256 200 L 256 420 C 256 370, 256 350, 256 390 Z;
+          M 230 160 C 150 130, 110 150, 80 200 L 80 420 C 110 370, 150 350, 230 390 Z;
+          M 230 160 C 150 130, 110 150, 80 200 L 80 420 C 110 370, 150 350, 230 390 Z;
+          M 230 160 C 150 130, 110 150, 80 200 L 80 420 C 110 370, 150 350, 230 390 Z;
+          M 256 160 C 256 130, 256 150, 256 200 L 256 420 C 256 370, 256 350, 256 390 Z;
+          M 282 160 C 362 130, 402 150, 432 200 L 432 420 C 402 370, 362 350, 282 390 Z;
+          M 282 160 C 362 130, 402 150, 432 200 L 432 420 C 402 370, 362 350, 282 390 Z"
+        keyTimes="
+          0;
+          0.06;
+          0.09;
+          0.12;
+          0.50;
+          0.56;
+          0.59;
+          0.62;
+          1"
+      />
+    </path>
+
+    <!-- CENTER PILLAR: Glowbook Gold Spine Ribbon with Animated Gold Shimmer -->
+    <rect x="238" y="90" width="36" height="340" rx="18" fill="url(#gold-shimmer-grad)" />
+  </g>
+</svg>
