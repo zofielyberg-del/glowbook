@@ -8,6 +8,7 @@ import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval } from "date
 import { sv, nb, da, fi, is } from "date-fns/locale";
 import { useLanguage } from "@/context/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { toStockholmDate } from "@/lib/date";
 
 type TimeFrame = {
     id: string;
@@ -71,7 +72,7 @@ type FrameSegment = {
 
 export default function Calendar({ onSelectSlot, onCancelAppointment, availability: propAvailability, appointments: propAppointments, hideAppointments = false }: CalendarProps) {
     const { language, t } = useLanguage();
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(() => toStockholmDate());
     const [internalAvailability, setInternalAvailability] = useState<TimeFrame[]>([]);
     const [internalAppointments, setInternalAppointments] = useState<Appointment[]>([]);
     const [editingFrame, setEditingFrame] = useState<EditingFrame | null>(null);
@@ -502,7 +503,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             const stockholmFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' });
             const dayStr = (frame as any).date || (columnDate ? stockholmFormatter.format(columnDate) : null) || (weekDays[frame.dayIndex] ? stockholmFormatter.format(weekDays[frame.dayIndex]) : null);
             if (dayStr) {
-                const todayStr = stockholmFormatter.format(new Date());
+                const todayStr = stockholmFormatter.format(toStockholmDate());
                 if (dayStr < todayStr) return; // Prevent selection of past dates
                 onSelectSlot(dayStr, frame.startTime, (frame as any).practitionerId);
             }
@@ -710,17 +711,17 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={prevWeek} 
-                        disabled={hideAppointments && startOfWeek(currentDate, { weekStartsOn: 1 }) <= startOfWeek(new Date(), { weekStartsOn: 1 })}
+                        disabled={hideAppointments && startOfWeek(currentDate, { weekStartsOn: 1 }) <= startOfWeek(toStockholmDate(), { weekStartsOn: 1 })}
                         className={clsx(
                             "p-2 rounded-lg text-foreground/50 transition-colors",
-                            hideAppointments && startOfWeek(currentDate, { weekStartsOn: 1 }) <= startOfWeek(new Date(), { weekStartsOn: 1 })
+                            hideAppointments && startOfWeek(currentDate, { weekStartsOn: 1 }) <= startOfWeek(toStockholmDate(), { weekStartsOn: 1 })
                                 ? "opacity-30 cursor-not-allowed"
                                 : "hover:bg-foreground/5"
                         )}
                     >
                         <ChevronLeft size={20} />
                     </button>
-                    <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 text-sm font-medium bg-foreground/10 text-foreground rounded-lg hover:bg-foreground/20 transition-colors border border-border">
+                    <button onClick={() => setCurrentDate(toStockholmDate())} className="px-3 py-1 text-sm font-medium bg-foreground/10 text-foreground rounded-lg hover:bg-foreground/20 transition-colors border border-border">
                         {t('cal_today')}
                     </button>
                     <button onClick={nextWeek} className="p-2 hover:bg-foreground/5 rounded-lg text-foreground/50 transition-colors"><ChevronRight size={20} /></button>
@@ -759,7 +760,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                     key={day.toString()}
                                     className={clsx(
                                         "text-center py-2 transition-colors h-[68px] flex flex-col justify-center",
-                                        format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? "bg-foreground/5" : "bg-card"
+                                        format(day, 'yyyy-MM-dd') === format(toStockholmDate(), 'yyyy-MM-dd') ? "bg-foreground/5" : "bg-card"
                                     )}
                                 >
                                     <div className="text-xs font-medium text-foreground/40 uppercase">
@@ -767,7 +768,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                     </div>
                                     <div className={clsx(
                                         "text-lg font-bold w-8 h-8 flex items-center justify-center mx-auto rounded-full mt-1 transition-all",
-                                        format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? "bg-[#111] dark:bg-white text-white dark:text-[#111]" : "text-foreground"
+                                        format(day, 'yyyy-MM-dd') === format(toStockholmDate(), 'yyyy-MM-dd') ? "bg-[#111] dark:bg-white text-white dark:text-[#111]" : "text-foreground"
                                     )}>
                                         {format(day, 'd')}
                                     </div>
@@ -821,7 +822,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                         </div>
                                     ))}
 
-                                    {format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && (
+                                    {format(day, 'yyyy-MM-dd') === format(toStockholmDate(), 'yyyy-MM-dd') && (
                                         <div className="absolute inset-0 bg-blue-500/[0.03] pointer-events-none" />
                                     )}
 
@@ -836,7 +837,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                         if ((frame as any).week && (frame as any).week !== weekStartStr) return false;
 
                                         if (hideAppointments) {
-                                            const todayStr = format(new Date(), 'yyyy-MM-dd');
+                                            const todayStr = format(toStockholmDate(), 'yyyy-MM-dd');
                                             const dayStr = format(day, 'yyyy-MM-dd');
                                             if (dayStr < todayStr) return false;
                                             
@@ -844,7 +845,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                             if (dayStr === todayStr) {
                                                 const [frameHour, frameMin] = frame.startTime.split(':').map(Number);
                                                 const frameMins = frameHour * 60 + frameMin;
-                                                const now = new Date();
+                                                const now = toStockholmDate();
                                                 const currentMins = now.getHours() * 60 + now.getMinutes();
                                                 if (frameMins < currentMins + 15) return false;
                                             }

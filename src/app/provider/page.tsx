@@ -14,6 +14,8 @@ import { format, getDay, startOfWeek, addDays } from "date-fns";
 import { sv } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { toStockholmDate, getStockholmDate } from "@/lib/date";
+
 
 const categoryGroups: Record<string, {
     name: string;
@@ -94,7 +96,7 @@ export default function ProviderDashboard() {
         clientName: '',
         service: '',
         startTime: '10:00',
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: format(toStockholmDate(), 'yyyy-MM-dd'),
         duration: 60
     });
     const [services, setServices] = useState<any[]>([]);
@@ -219,7 +221,7 @@ export default function ProviderDashboard() {
                 const revenueByDay = [0, 0, 0, 0, 0, 0, 0];
 
                 // Build a set of the last 7 days (Mon-Sun of the current week)
-                const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+                const weekStart = startOfWeek(toStockholmDate(), { weekStartsOn: 1 });
                 const weekDates = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
 
                 confirmedApts.forEach((a: any) => {
@@ -230,10 +232,10 @@ export default function ProviderDashboard() {
                         // Compute day index from the appointment date (works for both local and DB appointments)
                         let aptDateStr = a.date || '';
                         if (!aptDateStr && a.start_time) {
-                            try { aptDateStr = format(new Date(a.start_time), 'yyyy-MM-dd'); } catch {}
+                            try { aptDateStr = format(toStockholmDate(new Date(a.start_time)), 'yyyy-MM-dd'); } catch {}
                         }
                         if (!aptDateStr && a.booking_date) {
-                            try { aptDateStr = format(new Date(a.booking_date), 'yyyy-MM-dd'); } catch {}
+                            try { aptDateStr = format(toStockholmDate(new Date(a.booking_date)), 'yyyy-MM-dd'); } catch {}
                         }
                         const dayIdx = weekDates.indexOf(aptDateStr);
                         if (dayIdx !== -1) {
@@ -242,7 +244,7 @@ export default function ProviderDashboard() {
                         }
                     }
 
-                    const aptTime = a.startTime || (a.start_time ? format(new Date(a.start_time), 'HH:mm') : '');
+                    const aptTime = a.startTime || (a.start_time ? format(toStockholmDate(new Date(a.start_time)), 'HH:mm') : '');
                     if (aptTime) timeCounts[aptTime] = (timeCounts[aptTime] || 0) + 1;
                 });
 
@@ -345,7 +347,7 @@ export default function ProviderDashboard() {
         e.preventDefault();
 
         if (modalMode === 'share') {
-            const dateObj = new Date(bookingData.date);
+            const dateObj = toStockholmDate(new Date(`${bookingData.date}T12:00:00`));
             const dayIndex = (dateObj.getDay() + 6) % 7; // Convert to Mon-Sun (0-6)
             const url = `${window.location.origin}/salon?id=${salonName.toLowerCase().replace(/\s+/g, '-')}&booking=now&service=${encodeURIComponent(bookingData.service)}&day=${dayIndex}&time=${bookingData.startTime}`;
             setGeneratedLink(url);
@@ -356,9 +358,9 @@ export default function ProviderDashboard() {
         const data = saved ? JSON.parse(saved) : {};
         const appointments = data.appointments || [];
 
-        const localStart = new Date(`${bookingData.date}T${bookingData.startTime}:00`);
-        const start_time = localStart.toISOString();
-        const end_time = new Date(localStart.getTime() + (bookingData.duration || 60) * 60000).toISOString();
+        const startUtc = getStockholmDate(bookingData.date, bookingData.startTime);
+        const start_time = startUtc.toISOString();
+        const end_time = new Date(startUtc.getTime() + (bookingData.duration || 60) * 60000).toISOString();
 
         const newApt = {
             id: Date.now().toString(),
@@ -377,7 +379,7 @@ export default function ProviderDashboard() {
         sessionStorage.setItem('glowbook_salon', JSON.stringify(updated));
         window.dispatchEvent(new Event('glowbook_update'));
         setIsBookingModalOpen(false);
-        setBookingData({ clientName: '', service: '', startTime: '10:00', date: format(new Date(), 'yyyy-MM-dd'), duration: 60 });
+        setBookingData({ clientName: '', service: '', startTime: '10:00', date: format(toStockholmDate(), 'yyyy-MM-dd'), duration: 60 });
     };
 
     const handleCancelAppointment = async (aptId: string) => {
@@ -465,14 +467,14 @@ export default function ProviderDashboard() {
         setAllAppointments(updatedAppointments);
 
         // Update revenue chart for the current week
-        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+        const weekStart = startOfWeek(toStockholmDate(), { weekStartsOn: 1 });
         const weekDates = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
         let aptDateStr = apt.date || '';
         if (!aptDateStr && apt.start_time) {
-            try { aptDateStr = format(new Date(apt.start_time), 'yyyy-MM-dd'); } catch {}
+            try { aptDateStr = format(toStockholmDate(new Date(apt.start_time)), 'yyyy-MM-dd'); } catch {}
         }
         if (!aptDateStr && apt.booking_date) {
-            try { aptDateStr = format(new Date(apt.booking_date), 'yyyy-MM-dd'); } catch {}
+            try { aptDateStr = format(toStockholmDate(new Date(apt.booking_date)), 'yyyy-MM-dd'); } catch {}
         }
         const dayIdx = weekDates.indexOf(aptDateStr);
         if (dayIdx !== -1 && apt.status !== 'completed' && apt.status !== 'paid') {
@@ -535,7 +537,7 @@ export default function ProviderDashboard() {
         .filter((apt: any) => apt.status === 'completed' || apt.status === 'paid')
         .reduce((sum: number, apt: any) => sum + Number(apt.price || apt.total_price || 0), 0);
 
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const todayStr = format(toStockholmDate(), 'yyyy-MM-dd');
 
     const UPCOMING_TODAY = allAppointments
         .filter((apt: any) => {
@@ -543,15 +545,15 @@ export default function ProviderDashboard() {
             if (apt.date) {
                 aptDateStr = apt.date;
             } else if (apt.start_time) {
-                aptDateStr = format(new Date(apt.start_time), 'yyyy-MM-dd');
+                aptDateStr = format(toStockholmDate(new Date(apt.start_time)), 'yyyy-MM-dd');
             } else if (apt.booking_date) {
-                aptDateStr = format(new Date(apt.booking_date), 'yyyy-MM-dd');
+                aptDateStr = format(toStockholmDate(new Date(apt.booking_date)), 'yyyy-MM-dd');
             }
             return apt.status !== 'cancelled' && aptDateStr === todayStr;
         })
         .sort((a: any, b: any) => {
-            const timeA = a.startTime || (a.start_time ? format(new Date(a.start_time), 'HH:mm') : '');
-            const timeB = b.startTime || (b.start_time ? format(new Date(b.start_time), 'HH:mm') : '');
+            const timeA = a.startTime || (a.start_time ? format(toStockholmDate(new Date(a.start_time)), 'HH:mm') : '');
+            const timeB = b.startTime || (b.start_time ? format(toStockholmDate(new Date(b.start_time)), 'HH:mm') : '');
             return timeA.localeCompare(timeB);
         });
 
@@ -1256,7 +1258,7 @@ export default function ProviderDashboard() {
                                         <Clock size={20} className="text-champagne-500" /> Kommande idag
                                     </h3>
                                     <div className="text-xs font-bold text-foreground/30 uppercase tracking-widest capitalize">
-                                        {format(new Date(), 'EEEE, d MMM', { locale: sv })}
+                                        {format(toStockholmDate(), 'EEEE, d MMM', { locale: sv })}
                                     </div>
                                 </div>
 
