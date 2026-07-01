@@ -74,13 +74,11 @@ export default function ExploreContent() {
                 setUserCoords({ lat, lng });
                 
                 try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=sv`);
+                    const response = await fetch(`/api/geocoding/reverse?lat=${lat}&lng=${lng}`);
                     const data = await response.json();
-                    const address = data.address || {};
-                    const detected = address.municipality || address.city || address.town || address.village || address.suburb || address.county;
                     
-                    if (detected) {
-                        const cleanLoc = detected.replace(/\s+kommun/gi, '').trim();
+                    if (data.success && data.detected) {
+                        const cleanLoc = data.detected.replace(/\s+kommun/gi, '').trim();
                         const allMunicipalities = NORDIC_COUNTRIES.flatMap(c => c.municipalities);
                         const matched = allMunicipalities.find(m => 
                             m.toLowerCase() === cleanLoc.toLowerCase() || 
