@@ -130,7 +130,7 @@ export default function SearchPage() {
                     <div className="relative group max-w-3xl mx-auto">
                         <div className="absolute -inset-1 bg-gradient-to-r from-champagne-500 to-champagne-700 rounded-[40px] blur opacity-10 group-focus-within:opacity-30 transition duration-1000"></div>
                         <div className="relative bg-white dark:bg-[#121212] rounded-[28px] shadow-2xl border border-black/5 dark:border-white/5 p-2 flex flex-col md:flex-row items-center gap-2">
-                            <div className="flex-[2] flex items-center px-6 min-w-0 w-full overflow-hidden relative">
+                            <div className="flex-[2] flex items-center px-6 min-w-0 w-full relative">
                                 <Search className="text-champagne-600 shrink-0" size={28} strokeWidth={2.5} />
                                 <input
                                     type="text"
