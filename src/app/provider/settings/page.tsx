@@ -245,7 +245,10 @@ function SettingsContent() {
         }
     }, [salonData.country, language, setLanguage, setCurrency]);
 
+    const [isImageUploading, setIsImageUploading] = useState(false);
+
     const handleImageUpload = (type: 'profile' | 'background' | 'gallery', file: File) => {
+        setIsImageUploading(true);
         const reader = new FileReader();
         reader.onloadend = () => {
             const img = new Image();
@@ -270,19 +273,50 @@ function SettingsContent() {
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
                 
-                const base64String = canvas.toDataURL('image/jpeg', 0.7);
-                
-                if (type === 'gallery') {
-                    setSalonData(prev => ({
-                        ...prev,
-                        galleryImages: [...(prev.galleryImages || []), base64String]
-                    }));
-                } else {
-                    setSalonData(prev => ({
-                        ...prev,
-                        [type === 'profile' ? 'profileImage' : 'backgroundImage']: base64String
-                    }));
-                }
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        setIsImageUploading(false);
+                        alert('Kunde inte komprimera bilden.');
+                        return;
+                    }
+
+                    try {
+                        const compressedFile = new File([blob], `${type}-${Date.now()}.jpg`, { type: 'image/jpeg' });
+                        const formData = new FormData();
+                        formData.append('file', compressedFile);
+
+                        const response = await fetch('/api/blob/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Uppladdningen misslyckades.');
+                        }
+
+                        const data = await response.json();
+                        if (data.success && data.url) {
+                            if (type === 'gallery') {
+                                setSalonData(prev => ({
+                                    ...prev,
+                                    galleryImages: [...(prev.galleryImages || []), data.url]
+                                }));
+                            } else {
+                                setSalonData(prev => ({
+                                    ...prev,
+                                    [type === 'profile' ? 'profileImage' : 'backgroundImage']: data.url
+                                }));
+                            }
+                        } else {
+                            throw new Error(data.error || 'Okänt fel vid uppladdning');
+                        }
+                    } catch (err: any) {
+                        console.error('Image upload error:', err);
+                        alert(`Det gick inte att ladda upp bilden: ${err.message}`);
+                    } finally {
+                        setIsImageUploading(false);
+                    }
+                }, 'image/jpeg', 0.7);
             };
             img.src = reader.result as string;
         };
@@ -900,6 +934,12 @@ function SettingsContent() {
                                                     <span className="text-sm font-medium">Profilbild</span>
                                                 </div>
                                             )}
+                                            {isImageUploading && (
+                                                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white z-20 space-y-2">
+                                                    <div className="w-8 h-8 border-4 border-champagne-500 border-t-transparent rounded-full animate-spin" />
+                                                    <span className="text-[10px] font-bold tracking-widest uppercase text-champagne-300">Laddar upp...</span>
+                                                </div>
+                                            )}
                                             <label className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                                                 <input type="file" className="sr-only" onChange={(e) => {
                                                     const file = e.target.files?.[0];
@@ -919,6 +959,12 @@ function SettingsContent() {
                                                 <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-2">
                                                     <ImageIcon size={32} />
                                                     <span className="text-sm font-medium">Bakgrundsbild (1200x400)</span>
+                                                </div>
+                                            )}
+                                            {isImageUploading && (
+                                                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white z-20 space-y-2">
+                                                    <div className="w-8 h-8 border-4 border-champagne-500 border-t-transparent rounded-full animate-spin" />
+                                                    <span className="text-[10px] font-bold tracking-widest uppercase text-champagne-300">Laddar upp...</span>
                                                 </div>
                                             )}
                                             <label className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
@@ -976,6 +1022,12 @@ function SettingsContent() {
                                                         </div>
                                                     </div>
                                                 ))}
+                                                {isImageUploading && (
+                                                    <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-border bg-foreground/5 flex flex-col items-center justify-center gap-2">
+                                                        <div className="w-6 h-6 border-3 border-champagne-500 border-t-transparent rounded-full animate-spin" />
+                                                        <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-wider">Laddar...</span>
+                                                    </div>
+                                                )}
                                                 <label className="aspect-[4/3] rounded-xl border-2 border-dashed border-border hover:border-champagne-500 cursor-pointer flex flex-col items-center justify-center gap-2 text-foreground/30 hover:text-champagne-600 hover:bg-champagne-500/5 transition-all">
                                                     <input
                                                         type="file"
@@ -994,7 +1046,7 @@ function SettingsContent() {
                                                 </label>
                                             </div>
                                         ) : (
-                                            <label className="block w-full py-12 rounded-2xl border-2 border-dashed border-border hover:border-champagne-500 cursor-pointer text-center transition-all hover:bg-champagne-500/5 group">
+                                            <label className="block w-full py-12 rounded-2xl border-2 border-dashed border-border hover:border-champagne-500 cursor-pointer text-center transition-all hover:bg-champagne-500/5 group relative">
                                                 <input
                                                     type="file"
                                                     accept="image/*"
@@ -1007,9 +1059,18 @@ function SettingsContent() {
                                                         }
                                                     }}
                                                 />
-                                                <ImageIcon size={32} className="mx-auto text-foreground/20 group-hover:text-champagne-500 transition-colors mb-3" />
-                                                <p className="text-sm font-medium text-foreground/30 group-hover:text-champagne-600 transition-colors">Dra och släpp bilder eller klicka för att ladda upp</p>
-                                                <p className="text-[10px] text-foreground/20 mt-1">JPG, PNG • Max 5MB per bild</p>
+                                                {isImageUploading ? (
+                                                    <div className="flex flex-col items-center justify-center gap-2 py-4">
+                                                        <div className="w-8 h-8 border-4 border-champagne-500 border-t-transparent rounded-full animate-spin" />
+                                                        <span className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Laddar upp bilder...</span>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <ImageIcon size={32} className="mx-auto text-foreground/20 group-hover:text-champagne-500 transition-colors mb-3" />
+                                                        <p className="text-sm font-medium text-foreground/30 group-hover:text-champagne-600 transition-colors">Dra och släpp bilder eller klicka för att ladda upp</p>
+                                                        <p className="text-[10px] text-foreground/20 mt-1">JPG, PNG • Max 5MB per bild</p>
+                                                    </>
+                                                )}
                                             </label>
                                         )}
                                     </div>
