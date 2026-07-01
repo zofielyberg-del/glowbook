@@ -236,8 +236,8 @@ export async function GET(req: Request) {
         }
 
         // 2. Handle Municipality/City/Location (Case-Insensitive)
-        const ignoredLocations = ['Hela Sverige', 'Alla städer', 'Sverige'];
-        if (municipality && !ignoredLocations.includes(municipality)) {
+        const ignoredLocations = ['Hela Sverige', 'Alla städer', 'Sverige', 'Nära mig', 'Nära mig...'];
+        if (municipality && !ignoredLocations.includes(municipality) && !municipality.startsWith('Nära mig')) {
             (where.AND as any[]).push({
                 OR: [
                     { city: { contains: municipality, mode: 'insensitive' as const } },

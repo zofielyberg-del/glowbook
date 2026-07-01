@@ -57,7 +57,11 @@ export function useAuth() {
                     .then(serverResult => {
                         if (serverResult.success) {
                             const currentSaved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
-                            const currentData = currentSaved ? JSON.parse(currentSaved) : data;
+                            if (!currentSaved) {
+                                console.log('[useAuth] User logged out during sync. Aborting state update.');
+                                return;
+                            }
+                            const currentData = JSON.parse(currentSaved);
                             const lastMutation = localStorage.getItem('glowbook_last_mutation') || sessionStorage.getItem('glowbook_last_mutation');
                             const isRecentMutation = lastMutation && (Date.now() - Number(lastMutation) < 4000);
                             const refreshedData = { 

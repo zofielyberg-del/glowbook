@@ -3,7 +3,7 @@
 import Header from "@/components/layout/Header";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
-import { Star, MapPin, Clock, Search, SlidersHorizontal, Sparkles, Zap, TrendingUp, BadgeCheck, Coins, ChevronDown, Check } from "lucide-react";
+import { Star, MapPin, Clock, Search, SlidersHorizontal, Sparkles, Zap, TrendingUp, BadgeCheck, Coins, ChevronDown, Check, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
@@ -54,7 +54,7 @@ export default function ExploreContent() {
     }, [searchTerm, language, isSearchFocused]);
 
     const handleNearMe = () => {
-        if (citySearch === 'Nära mig') {
+        if (citySearch === 'Nära mig' || (citySearch && citySearch.startsWith('Nära mig'))) {
             setCitySearch('');
             setLocationInput('');
             setUserCoords(null);
@@ -68,11 +68,45 @@ export default function ExploreContent() {
 
         setLocationLoading(true);
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                setCitySearch('Nära mig');
-                setLocationInput('Nära mig');
-                setLocationLoading(false);
+            async (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                setUserCoords({ lat, lng });
+                
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=sv`, {
+                        headers: { 'Accept-Language': 'sv' }
+                    });
+                    const data = await response.json();
+                    const address = data.address || {};
+                    const detected = address.municipality || address.city || address.town || address.village || address.suburb || address.county;
+                    
+                    if (detected) {
+                        const cleanLoc = detected.replace(/\s+kommun/gi, '').trim();
+                        const allMunicipalities = NORDIC_COUNTRIES.flatMap(c => c.municipalities);
+                        const matched = allMunicipalities.find(m => 
+                            m.toLowerCase() === cleanLoc.toLowerCase() || 
+                            cleanLoc.toLowerCase().includes(m.toLowerCase())
+                        );
+                        
+                        if (matched) {
+                            setCitySearch(matched);
+                            setLocationInput(matched);
+                        } else {
+                            setCitySearch(cleanLoc);
+                            setLocationInput(cleanLoc);
+                        }
+                    } else {
+                        setCitySearch('Nära mig');
+                        setLocationInput('Nära mig');
+                    }
+                } catch (e) {
+                    console.error('Reverse geocoding failed:', e);
+                    setCitySearch('Nära mig');
+                    setLocationInput('Nära mig');
+                } finally {
+                    setLocationLoading(false);
+                }
             },
             (err) => {
                 setLocationLoading(false);
@@ -487,7 +521,8 @@ export default function ExploreContent() {
                                                                 }}
                                                                 className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-foreground/5 text-left transition-all"
                                                             >
-                                                                <span className="text-sm font-bold text-foreground">🇸🇪 Hela Sverige</span>
+                                                                <Globe size={14} className="text-champagne-600" />
+                                                                <span className="text-sm font-bold text-foreground">Hela Sverige</span>
                                                             </button>
                                                             <div className="px-4 py-2 text-[9px] font-black uppercase tracking-widest text-foreground/30 border-t border-foreground/5 mt-1.5 pt-1.5">Populära städer</div>
                                                             {['Stockholm', 'Göteborg', 'Malmö', 'Uppsala', 'Västerås', 'Örebro'].map((city) => (
@@ -667,10 +702,10 @@ export default function ExploreContent() {
                     </div>
 
                     {isLoading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                             {Array.from({ length: 6 }).map((_, i) => (
                                 <div key={i} className="space-y-4 animate-pulse">
-                                    <div className="aspect-[4/5] rounded-3xl bg-foreground/10" />
+                                    <div className="aspect-square rounded-3xl bg-foreground/10" />
                                     <div className="px-1 space-y-2">
                                         <div className="h-5 rounded-lg bg-foreground/10 w-3/4" />
                                         <div className="h-3 rounded-lg bg-foreground/5 w-1/2" />
@@ -679,11 +714,11 @@ export default function ExploreContent() {
                             ))}
                         </div>
                     ) : (
-                        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                        <motion.div layout className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                             {filteredSalons.map((salon, i) => (
                                 <motion.div key={salon.id || i} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
                                     <Link href={`/salon/${salon.slug || salon.id || (salon.name ? salon.name.toLowerCase().trim().replace(/\s+/g, '-') : 'unknown')}`} className="group block space-y-4">
-                                        <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-md relative transition-transform duration-300 group-hover:-translate-y-1 border border-black/5 dark:border-white/5 bg-card">
+                                        <div className="aspect-square rounded-3xl overflow-hidden shadow-md relative transition-transform duration-300 group-hover:-translate-y-1 border border-black/5 dark:border-white/5 bg-card">
                                             <img src={(salon.profileImage || salon.logo_url || salon.banner_url || salon.backgroundImage || salon.image || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=100').replace(/w=\d+/g, 'w=1200').replace(/q=\d+/g, 'q=100')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={salon.name} />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                                             {salon.is_verified && (

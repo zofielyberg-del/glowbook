@@ -41,6 +41,13 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
                             const response = await fetch(`/api/salons/get?id=${localData.id}&_t=${Date.now()}`);
                             const data = await response.json();
                             if (data.success && data.salon) {
+                                // Check if user has logged out in the meantime
+                                const stillSaved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+                                if (!stillSaved) {
+                                    console.log('[DashboardGuard] User logged out during sync. Aborting.');
+                                    return;
+                                }
+                                
                                 // Merge category arrays properly if needed
                                 let salon = data.salon;
                                 if (Array.isArray(salon.category)) {

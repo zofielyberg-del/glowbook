@@ -204,6 +204,9 @@ export default function ProfilePage() {
 
     const handleLogout = () => {
         sessionStorage.clear();
+        localStorage.removeItem('glowbook_customer');
+        localStorage.removeItem('glowbook_salon');
+        localStorage.removeItem('glowbook_admin');
         window.dispatchEvent(new Event('glowbook_update'));
         router.push('/auth/login');
     };
