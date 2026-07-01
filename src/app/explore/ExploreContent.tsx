@@ -773,7 +773,7 @@ export default function ExploreContent() {
                                 <h3 className="text-xl font-bold text-foreground">{t('no_salons_found')}</h3>
                                 <p className="text-foreground/40 text-sm">{t('no_salons_desc')}</p>
                             </div>
-                            <Link href="/search" className="inline-block px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-sm hover:opacity-80 transition-all">{t('new_search_link')}</Link>
+                            <Link href="/explore" className="inline-block px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-sm hover:opacity-80 transition-all">{t('new_search_link')}</Link>
                         </div>
                     )}
 

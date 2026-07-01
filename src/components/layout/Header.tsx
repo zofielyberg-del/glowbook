@@ -82,14 +82,12 @@ export default function Header() {
                             </>
                         ) : isProvider ? (
                             <>
-                                <NavItem href="/search" icon={Search} label={t('nav_search')} />
                                 <NavItem href="/explore" icon={Compass} label={t('discover')} />
                                 <NavItem href="/provider" icon={User} label="Översikt" />
                                 <NavItem href="/provider/settings?tab=inbox" icon={MessageSquare} label={t('nav_inbox')} />
                             </>
                         ) : (
                             <>
-                                <NavItem href="/search" icon={Search} label={t('nav_search')} />
                                 <NavItem href="/explore" icon={Compass} label={t('discover')} />
                                 <NavItem href="/profile" icon={User} label={t('my_pages')} />
                                 <NavItem href="/support" icon={HelpCircle} label={t('nav_support')} />
@@ -97,7 +95,6 @@ export default function Header() {
                         )
                     ) : (
                         <>
-                            <NavItem href="/search" icon={Search} label={t('nav_search')} />
                             <NavItem href="/explore" icon={Compass} label={t('discover')} />
                             <NavItem href="/guides" icon={BookOpen} label={t('nav_guides')} />
                             <NavItem href="/rewards" icon={Star} label={t('nav_rewards')} />
@@ -239,18 +236,15 @@ export default function Header() {
                                         ] : isProvider ? [
                                             { href: "/provider", icon: User, label: 'Översikt' },
                                             { href: "/explore", icon: Compass, label: t('discover') },
-                                            { href: "/search", icon: Search, label: t('nav_search') },
                                             { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
                                             { href: "/provider/settings", icon: Settings, label: t('nav_settings') },
                                         ] : [
                                             { href: "/profile", icon: User, label: t('my_pages') },
                                             { href: "/explore", icon: Compass, label: t('discover') },
-                                            { href: "/search", icon: Search, label: t('nav_search') },
                                             { href: "/support", icon: HelpCircle, label: t('nav_support') },
                                         ]
                                     ) : [
                                         { href: "/explore", icon: Compass, label: t('discover') },
-                                        { href: "/search", icon: Search, label: t('nav_search') },
                                         { href: "/guides", icon: BookOpen, label: t('nav_guides') },
                                         { href: "/rewards", icon: Star, label: t('nav_rewards') },
                                         { href: "/giftcards", icon: Ticket, label: t('nav_giftcards') },
