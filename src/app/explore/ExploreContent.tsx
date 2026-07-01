@@ -74,9 +74,7 @@ export default function ExploreContent() {
                 setUserCoords({ lat, lng });
                 
                 try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=sv`, {
-                        headers: { 'Accept-Language': 'sv' }
-                    });
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=sv`);
                     const data = await response.json();
                     const address = data.address || {};
                     const detected = address.municipality || address.city || address.town || address.village || address.suburb || address.county;
