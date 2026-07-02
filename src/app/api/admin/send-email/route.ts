@@ -52,6 +52,18 @@ export async function POST(request: Request) {
         }
       }
 
+      // Send a copy to the support email for archiving
+      try {
+        await resend.emails.send({
+          from: 'Glowbook <support@glowbook.se>',
+          to: 'support@glowbook.se',
+          subject: `[Kopia av utskick] ${subject}`,
+          html
+        });
+      } catch (err) {
+        console.error('[Admin Bulk Email] Failed to send archive copy:', err);
+      }
+
       return NextResponse.json({ success: true, sentCount: emails.length });
     }
 
@@ -84,6 +96,18 @@ export async function POST(request: Request) {
         } catch (err) {
           console.error(`[Admin Bulk Email] Failed to send to ${email}:`, err);
         }
+      }
+
+      // Send a copy to the support email for archiving
+      try {
+        await resend.emails.send({
+          from: 'Glowbook <support@glowbook.se>',
+          to: 'support@glowbook.se',
+          subject: `[Kopia av utskick] ${subject}`,
+          html
+        });
+      } catch (err) {
+        console.error('[Admin Bulk Email] Failed to send archive copy:', err);
       }
 
       return NextResponse.json({ success: true, sentCount: emails.length });
