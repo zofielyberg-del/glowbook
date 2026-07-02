@@ -94,6 +94,7 @@ export default function AdminDashboard() {
     const [loginEmail, setLoginEmail] = useState('');
     const [adminPassword, setAdminPassword] = useState('');
     const [activeTab, setActiveTab] = useState<'overview' | 'messages' | 'emails' | 'providers' | 'payments' | 'verification' | 'users'>('overview');
+    const [recipientType, setRecipientType] = useState<'single' | 'all_providers' | 'all_customers'>('single');
     const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
     const [viewingDiploma, setViewingDiploma] = useState<string | null>(null);
     const [providers, setProviders] = useState<Provider[]>([]);
@@ -1302,14 +1303,41 @@ export default function AdminDashboard() {
 
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-widest text-foreground/40">Mottagare (E-post)</label>
-                                        <input
-                                            type="email"
-                                            placeholder="exempel@mail.com"
-                                            id="admin-email-to"
-                                            className="w-full px-6 py-4 rounded-2xl bg-foreground/5 border border-border focus:border-champagne-500 focus:ring-4 focus:ring-champagne-500/10 outline-none transition-all font-medium text-foreground"
-                                        />
+                                        <label className="text-xs font-bold uppercase tracking-widest text-foreground/40">Mottagare Typ</label>
+                                        <select
+                                            value={recipientType}
+                                            onChange={(e) => setRecipientType(e.target.value as any)}
+                                            className="w-full px-6 py-4 rounded-2xl bg-foreground/5 border border-border focus:border-champagne-500 outline-none transition-all font-medium text-foreground cursor-pointer"
+                                        >
+                                            <option value="single">Enskild e-postadress</option>
+                                            <option value="all_providers">Alla utförare & salonger (Utskick)</option>
+                                            <option value="all_customers">Alla kunder (Utskick)</option>
+                                        </select>
                                     </div>
+
+                                    {recipientType === 'single' && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-widest text-foreground/40">Mottagare (E-post)</label>
+                                            <input
+                                                type="email"
+                                                placeholder="exempel@mail.com"
+                                                id="admin-email-to"
+                                                className="w-full px-6 py-4 rounded-2xl bg-foreground/5 border border-border focus:border-champagne-500 focus:ring-4 focus:ring-champagne-500/10 outline-none transition-all font-medium text-foreground"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {recipientType === 'all_providers' && (
+                                        <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl text-xs leading-relaxed font-medium">
+                                            ⚠️ Detta kommer att skicka ett separat, individuellt meddelande till alla salonger och utförare i databasen.
+                                        </div>
+                                    )}
+
+                                    {recipientType === 'all_customers' && (
+                                        <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl text-xs leading-relaxed font-medium">
+                                            ⚠️ Detta kommer att skicka ett separat, individuellt meddelande till alla registrerade kunder i databasen.
+                                        </div>
+                                    )}
 
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-foreground/40">Ämne</label>
@@ -1334,13 +1362,23 @@ export default function AdminDashboard() {
                                     <button
                                         id="admin-email-send-btn"
                                         onClick={async () => {
-                                            const toInput = document.getElementById('admin-email-to') as HTMLInputElement;
+                                            const toInput = document.getElementById('admin-email-to') as HTMLInputElement | null;
                                             const subjectInput = document.getElementById('admin-email-subject') as HTMLInputElement;
                                             const messageInput = document.getElementById('admin-email-message') as HTMLTextAreaElement;
                                             const btn = document.getElementById('admin-email-send-btn') as HTMLButtonElement;
 
-                                            if (!toInput?.value || !subjectInput?.value || !messageInput?.value) {
+                                            const finalTo = recipientType === 'all_providers'
+                                                ? 'ALL_PROVIDERS'
+                                                : recipientType === 'all_customers'
+                                                    ? 'ALL_CUSTOMERS'
+                                                    : toInput?.value;
+
+                                            if (!finalTo || !subjectInput?.value || !messageInput?.value) {
                                                 alert('Vänligen fyll i alla fält.');
+                                                return;
+                                            }
+
+                                            if (recipientType !== 'single' && !confirm('Är du helt säker på att du vill göra detta utskick? Detta kommer att skicka mejl till alla mottagare i den valda gruppen.')) {
                                                 return;
                                             }
 
@@ -1353,7 +1391,7 @@ export default function AdminDashboard() {
                                                     method: 'POST',
                                                     headers: { 'Content-Type': 'application/json' },
                                                     body: JSON.stringify({
-                                                        to: toInput.value,
+                                                        to: finalTo,
                                                         subject: subjectInput.value,
                                                         message: messageInput.value
                                                     })
@@ -1364,10 +1402,13 @@ export default function AdminDashboard() {
                                                 btn.innerText = originalText;
 
                                                 if (data.success) {
-                                                    toInput.value = '';
+                                                    if (toInput) toInput.value = '';
                                                     subjectInput.value = '';
                                                     messageInput.value = '';
-                                                    alert('Mejlet har skickats framgångsrikt!');
+                                                    alert(recipientType !== 'single' 
+                                                        ? `Utskicket slutfördes! Totalt skickat till ${data.sentCount || 'alla'} mottagare.` 
+                                                        : 'Mejlet har skickats framgångsrikt!'
+                                                    );
                                                 } else {
                                                     alert('Kunde inte skicka mejl: ' + (data.error || 'Okänt fel'));
                                                 }
