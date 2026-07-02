@@ -23,11 +23,11 @@ export async function GET(req: Request) {
                 }
             });
 
-            // Find and update Glowbook (their own salon if it exists in DB)
+            // Find and update Luxe By Essi (their own salon)
             const glowbookUpdate = await prisma.salon.updateMany({
                 where: {
                     name: {
-                        contains: 'Glowbook',
+                        contains: 'Essi',
                         mode: 'insensitive'
                     }
                 },
