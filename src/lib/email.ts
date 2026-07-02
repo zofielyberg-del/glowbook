@@ -185,7 +185,8 @@ export const sendCustomerBookingConfirmation = async (
     dateStr: string, 
     timeStr: string,
     priceStr: string,
-    appointmentId?: string
+    appointmentId?: string,
+    messageTemplates?: { directions?: string; policy?: string; preparation?: string }
 ) => {
     const htmlContent = `
         <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Bokningsbekräftelse</h1>
@@ -200,6 +201,33 @@ export const sendCustomerBookingConfirmation = async (
             <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">📍</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Plats:</strong> ${salonName}</p>
             <p style="color:#ffffff;font-size:15px;margin:0 0 0 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💅</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Behandling:</strong> ${serviceName}</p>
         </div>
+
+        ${messageTemplates?.directions || messageTemplates?.preparation || messageTemplates?.policy ? `
+        <div style="background:#111111;border:1px solid #222222;border-radius:16px;padding:28px;margin:0 0 32px;">
+            <h3 style="font-size:12px;color:#C1B363;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #222222;padding-bottom:12px;">Viktig information</h3>
+            
+            ${messageTemplates.preparation ? `
+            <div style="margin-bottom: 20px;">
+                <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffffff; margin: 0 0 6px 0; font-family:Arial,Helvetica,sans-serif;">Inför besöket</h4>
+                <p style="color: #aaaaaa; font-size: 14px; margin: 0; line-height: 1.5; font-family:Arial,Helvetica,sans-serif;">${messageTemplates.preparation}</p>
+            </div>
+            ` : ''}
+            
+            ${messageTemplates.directions ? `
+            <div style="margin-bottom: 20px;">
+                <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffffff; margin: 0 0 6px 0; font-family:Arial,Helvetica,sans-serif;">Vägbeskrivning</h4>
+                <p style="color: #aaaaaa; font-size: 14px; margin: 0; line-height: 1.5; font-family:Arial,Helvetica,sans-serif;">${messageTemplates.directions}</p>
+            </div>
+            ` : ''}
+            
+            ${messageTemplates.policy ? `
+            <div style="margin-bottom: 0;">
+                <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffffff; margin: 0 0 6px 0; font-family:Arial,Helvetica,sans-serif;">Bokningspolicy</h4>
+                <p style="color: #aaaaaa; font-size: 14px; margin: 0; line-height: 1.5; font-family:Arial,Helvetica,sans-serif;">${messageTemplates.policy}</p>
+            </div>
+            ` : ''}
+        </div>
+        ` : ''}
         
         <p style="color:#d4d4d4;margin:0 0 24px 0;font-size:15px;font-family:Arial,Helvetica,sans-serif;">Vi ser fram emot att välkomna dig ✨</p>
         

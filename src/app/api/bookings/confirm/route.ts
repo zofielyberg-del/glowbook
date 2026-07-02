@@ -119,11 +119,14 @@ export async function POST(req: Request) {
         // Fetch Salon details to get owner email and salon name
         let salonName = 'Salongen';
         let providerEmail = '';
+        let messageTemplates: any = null;
         if (sid) {
             try {
                 const salonDetails = await prisma.salon.findUnique({
                     where: { id: sid },
-                    include: {
+                    select: {
+                        name: true,
+                        message_templates: true,
                         owner: {
                             select: { email: true }
                         }
@@ -132,6 +135,11 @@ export async function POST(req: Request) {
                 if (salonDetails) {
                     salonName = salonDetails.name;
                     providerEmail = salonDetails.owner?.email || '';
+                    if (salonDetails.message_templates) {
+                        messageTemplates = typeof salonDetails.message_templates === 'string'
+                            ? JSON.parse(salonDetails.message_templates)
+                            : salonDetails.message_templates;
+                    }
                 }
             } catch (salonFetchError) {
                 console.error('Error fetching salon details for email notification:', salonFetchError);
@@ -199,7 +207,8 @@ export async function POST(req: Request) {
                         date,
                         startTime,
                         `${price} SEK`,
-                        appointment.id
+                        appointment.id,
+                        messageTemplates
                     );
                 }
             } catch (customerEmailErr) {

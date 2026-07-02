@@ -61,6 +61,11 @@ function SettingsContent() {
         stripeConnected: false,
         subscription_status: 'none' as string,
         cancellation_window_hours: 24,
+        messageTemplates: {
+            directions: '',
+            policy: '',
+            preparation: ''
+        } as { directions: string; policy: string; preparation: string }
     });
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
     const [isSubmittingVerification, setIsSubmittingVerification] = useState(false);
@@ -130,6 +135,12 @@ function SettingsContent() {
                 const availability = Array.isArray(salon.availability) ? salon.availability : [];
                 const hoursSettings = availability.find((a: any) => a && a.type === 'settings');
 
+                const defaultTemplates = { directions: '', policy: '', preparation: '' };
+                const rawTemplates = salon.message_templates || salon.messageTemplates;
+                const parsedTemplates = rawTemplates
+                    ? (typeof rawTemplates === 'string' ? JSON.parse(rawTemplates) : rawTemplates)
+                    : defaultTemplates;
+
                 return {
                     ...salon,
                     category: mainCategory,
@@ -140,7 +151,12 @@ function SettingsContent() {
                     openingHoursType: hoursSettings?.openingHoursType || 'dynamic',
                     customOpeningHours: hoursSettings?.customOpeningHours || '',
                     stripeConnected: !!salon.stripe_account_id,
-                    tier: (salon.tier || salon.membership_tier || 'pro').toLowerCase()
+                    tier: (salon.tier || salon.membership_tier || 'pro').toLowerCase(),
+                    messageTemplates: {
+                        directions: parsedTemplates.directions || '',
+                        policy: parsedTemplates.policy || '',
+                        preparation: parsedTemplates.preparation || ''
+                    }
                 };
             };
 
@@ -2421,6 +2437,16 @@ function SettingsContent() {
                                                 <label className="block text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">{tpl.label}</label>
                                                 <div className="relative group">
                                                     <textarea
+                                                        value={salonData.messageTemplates?.[tpl.id as keyof typeof salonData.messageTemplates] || ''}
+                                                        onChange={(e) => {
+                                                            setSalonData(prev => ({
+                                                                ...prev,
+                                                                messageTemplates: {
+                                                                    ...prev.messageTemplates,
+                                                                    [tpl.id]: e.target.value
+                                                                }
+                                                            }));
+                                                        }}
                                                         placeholder={tpl.placeholder}
                                                         className="w-full p-5 rounded-2xl border border-border bg-background text-sm outline-none focus:border-champagne-500 transition-all min-h-[120px] resize-none pr-12 transition-colors"
                                                     />
@@ -2439,13 +2465,11 @@ function SettingsContent() {
                                         </div>
 
                                         <button
-                                            onClick={() => {
-                                                setSavedSuccess(true);
-                                                setTimeout(() => setSavedSuccess(false), 2000);
-                                            }}
-                                            className="w-full py-5 bg-[#111] dark:bg-white text-white dark:text-[#111] rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-champagne-600 hover:text-white transition-all shadow-xl active:scale-95 font-body"
+                                            onClick={() => handleSave(salonData)}
+                                            disabled={isSaving}
+                                            className="w-full py-5 bg-[#111] dark:bg-white text-white dark:text-[#111] rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-champagne-600 hover:text-white transition-all shadow-xl active:scale-95 font-body disabled:opacity-50"
                                         >
-                                            {t('templates_save_btn')}
+                                            {isSaving ? 'Sparar...' : t('templates_save_btn')}
                                         </button>
                                     </div>
                                 </section>

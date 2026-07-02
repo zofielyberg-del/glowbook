@@ -56,6 +56,7 @@ model Salon {
   verification_requested Boolean?        @default(false)
   verified_categories Json?
   onboarding_progress Json?
+  message_templates   Json?
   created_at          DateTime?          @default(now())
   appointments        Appointment[]
   loyalty_balances    LoyaltyBalance[]

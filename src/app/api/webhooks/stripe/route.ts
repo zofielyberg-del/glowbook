@@ -8,7 +8,8 @@ import {
     sendProviderWelcomeEmail, 
     sendProviderReceiptEmail,
     sendCustomerBookingConfirmation,
-    sendProviderBookingNotification
+    sendProviderBookingNotification,
+    sendCancellationEmail
 } from '@/lib/email';
 
 // Rebuild trigger: apply updated Vercel environment variables
@@ -160,7 +161,9 @@ export async function POST(req: Request) {
                 },
                 include: {
                     salon: {
-                        include: {
+                        select: {
+                            name: true,
+                            message_templates: true,
                             owner: {
                                 select: { email: true }
                             }
@@ -196,6 +199,13 @@ export async function POST(req: Request) {
                 const salonName = appointment.salon?.name || 'Salongen';
                 const providerEmail = appointment.salon?.owner?.email || '';
 
+                let messageTemplates: any = null;
+                if (appointment.salon?.message_templates) {
+                    messageTemplates = typeof appointment.salon.message_templates === 'string'
+                        ? JSON.parse(appointment.salon.message_templates)
+                        : appointment.salon.message_templates;
+                }
+
                 // Send Customer Booking Confirmation
                 if (appointment.customer_email) {
                     try {
@@ -207,7 +217,8 @@ export async function POST(req: Request) {
                             bookingDateStr,
                             startTimeStr,
                             `${appointment.total_price || amount} SEK`,
-                            appointment.id
+                            appointment.id,
+                            messageTemplates
                         );
                         console.log(`[Webhook] Booking confirmation email sent to customer: ${appointment.customer_email}`);
                     } catch (err) {
@@ -370,12 +381,27 @@ export async function POST(req: Request) {
 
     if (event.type === 'customer.subscription.deleted') {
         const subscriptionId = session.id;
-        const salons = await prisma.salon.findMany({ where: { stripe_subscription_id: subscriptionId as string } });
+        const salons = await prisma.salon.findMany({
+            where: { stripe_subscription_id: subscriptionId as string },
+            include: { owner: true }
+        });
         for (const salon of salons) {
             await prisma.salon.update({
                 where: { id: salon.id },
                 data: { subscription_status: 'canceled', membership_tier: 'bas' }
             });
+            if (salon.owner?.email) {
+                try {
+                    await sendCancellationEmail(
+                        salon.owner.email,
+                        salon.owner.first_name || salon.name,
+                        salon.name
+                    );
+                    console.log(`[Webhook] Sent farewell email to ${salon.owner.email} for salon ${salon.name}`);
+                } catch (emailErr) {
+                    console.error('[Webhook] Failed to send cancellation email via webhook:', emailErr);
+                }
+            }
         }
     }
 

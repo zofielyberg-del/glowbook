@@ -67,7 +67,8 @@ export async function POST(req: Request) {
                 verification_requested: salonInfo.verification_requested !== undefined ? salonInfo.verification_requested : (existing ? existing.verification_requested : false),
                 verified_categories: salonInfo.verifiedCategories !== undefined ? salonInfo.verifiedCategories : (existing ? existing.verified_categories : []),
                 onboarding_progress: salonInfo.onboardingProgress !== undefined ? salonInfo.onboardingProgress : (existing ? existing.onboarding_progress : null),
-                stripe_account_id: salonInfo.stripe_account_id !== undefined ? salonInfo.stripe_account_id : (existing ? existing.stripe_account_id : null)
+                stripe_account_id: salonInfo.stripe_account_id !== undefined ? salonInfo.stripe_account_id : (existing ? existing.stripe_account_id : null),
+                message_templates: salonInfo.messageTemplates || (existing ? existing.message_templates : null)
             };
 
             if (existing) {
