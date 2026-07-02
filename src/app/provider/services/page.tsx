@@ -128,6 +128,8 @@ export default function ServicesPage() {
         practitionerIds: [] as string[]
     });
     const [salonTier, setSalonTier] = useState('bas');
+    const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
+    const [customCategoryName, setCustomCategoryName] = useState('');
 
     const ALL_SERVICE_CATEGORIES = [
         'Nagelterapeut',
@@ -147,7 +149,9 @@ export default function ServicesPage() {
     ];
 
     const getAvailableCategories = () => {
-        return ALL_SERVICE_CATEGORIES;
+        const usedCategories = (services || []).map(s => s.category).filter(Boolean) as string[];
+        const combined = Array.from(new Set([...usedCategories, ...ALL_SERVICE_CATEGORIES]));
+        return combined;
     };
 
     const [isSaving, setIsSaving] = useState(false);
@@ -262,6 +266,10 @@ export default function ServicesPage() {
             ? newService.practitionerIds
             : ['owner'];
 
+        const serviceCategory = showCustomCategoryInput
+            ? customCategoryName.trim()
+            : (newService.category || category || 'Övrigt');
+
         const serviceData = {
             id: editingService ? editingService.id : Date.now().toString(),
             name: newService.name,
@@ -270,7 +278,7 @@ export default function ServicesPage() {
             sale_ends_at: newService.saleEndsAt || null,
             duration: Number(newService.duration),
             description: newService.description,
-            category: newService.category || category,
+            category: serviceCategory,
             practitionerIds: finalPractitioners
         };
 
@@ -289,16 +297,20 @@ export default function ServicesPage() {
         setNewService({ name: '', price: '', salePrice: '', saleEndsAt: '', duration: '', description: '', category: '', practitionerIds: [] });
         setDiscountValue('');
         setDiscountType('amount');
+        setShowCustomCategoryInput(false);
+        setCustomCategoryName('');
     };
 
     const handleEditClick = (s: any) => {
+        const serviceCategory = s.category || category;
+        const isCustom = !ALL_SERVICE_CATEGORIES.includes(serviceCategory);
         setEditingService({
             id: s.id,
             name: s.name,
             price: s.price.toString(),
             duration: s.duration.toString(),
             description: s.description || '',
-            category: s.category || category
+            category: serviceCategory
         });
         setNewService({
             name: s.name,
@@ -307,9 +319,16 @@ export default function ServicesPage() {
             saleEndsAt: s.sale_ends_at || '',
             duration: s.duration.toString(),
             description: s.description || '',
-            category: s.category || category,
+            category: serviceCategory,
             practitionerIds: s.practitionerIds || []
         });
+        if (isCustom) {
+            setShowCustomCategoryInput(true);
+            setCustomCategoryName(serviceCategory);
+        } else {
+            setShowCustomCategoryInput(false);
+            setCustomCategoryName('');
+        }
         setDiscountType('amount');
         setDiscountValue(s.sale_price ? s.sale_price.toString() : '');
         setIsModalOpen(true);
@@ -453,6 +472,8 @@ export default function ServicesPage() {
                                     setEditingService(null);
                                     setDiscountValue('');
                                     setDiscountType('price');
+                                    setShowCustomCategoryInput(false);
+                                    setCustomCategoryName('');
                                 }}
                             />
                             <motion.div
@@ -480,6 +501,8 @@ export default function ServicesPage() {
                                                 setNewService({ name: '', price: '', salePrice: '', saleEndsAt: '', duration: '', description: '', category: '', practitionerIds: [] });
                                                 setDiscountValue('');
                                                 setDiscountType('price');
+                                                setShowCustomCategoryInput(false);
+                                                setCustomCategoryName('');
                                             }}
                                             className="p-2 text-foreground/20 hover:text-foreground transition-colors"
                                         >
@@ -551,14 +574,37 @@ export default function ServicesPage() {
                                                 <label className="block text-sm font-bold text-foreground mb-2">Kategori *</label>
                                                 <select
                                                     required
-                                                    value={newService.category || category}
-                                                    onChange={(e) => setNewService({ ...newService, category: e.target.value })}
+                                                    value={showCustomCategoryInput ? 'NEW_CUSTOM_CATEGORY' : (newService.category || category)}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (val === 'NEW_CUSTOM_CATEGORY') {
+                                                            setShowCustomCategoryInput(true);
+                                                            setNewService({ ...newService, category: '' });
+                                                        } else {
+                                                            setShowCustomCategoryInput(false);
+                                                            setNewService({ ...newService, category: val });
+                                                        }
+                                                    }}
                                                     className="w-full px-4 py-3 rounded-xl border border-border focus:border-champagne-500 outline-none transition-all text-foreground appearance-none cursor-pointer bg-background"
                                                 >
                                                     {getAvailableCategories().map(cat => (
                                                         <option key={cat} value={cat}>{cat}</option>
                                                     ))}
+                                                    <option value="NEW_CUSTOM_CATEGORY">+ Skapa egen kategori...</option>
                                                 </select>
+                                                
+                                                {showCustomCategoryInput && (
+                                                    <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                        <input
+                                                            required
+                                                            type="text"
+                                                            placeholder="Skriv din egna kategori (t.ex. Damklippning)"
+                                                            value={customCategoryName}
+                                                            onChange={(e) => setCustomCategoryName(e.target.value)}
+                                                            className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:border-champagne-500 outline-none transition-all placeholder:text-foreground/20"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-4">
