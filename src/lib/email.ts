@@ -11,18 +11,12 @@ const FROM_EMAIL = 'support@glowbook.se';
  */
 export const getHtmlWrapper = (content: string) => `
 <!DOCTYPE html>
-<html lang="sv" style="background:#000000;" bgcolor="#000000">
+<html lang="sv" style="background:#f9fafb;" bgcolor="#f9fafb">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="dark">
-    <meta name="supported-color-schemes" content="dark">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700;900&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-      :root {
-        color-scheme: dark;
-        supported-color-schemes: dark;
-      }
       body, table, td, div, p, a {
         -webkit-text-size-adjust: 100%;
         -ms-text-size-adjust: 100%;
@@ -31,49 +25,94 @@ export const getHtmlWrapper = (content: string) => `
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
-        background-color: #000000 !important;
+        background-color: #f9fafb !important;
       }
-      @media (prefers-color-scheme: light) {
-        body, table, td {
-          background-color: #000000 !important;
-        }
+      /* Force override of inline styles for light mode display */
+      h1, h2, h3, h4, h5, h6, strong, b, span, p, td, div {
+        color: #374151 !important;
+      }
+      h1, h2, h3, h4 {
+        color: #111827 !important;
+      }
+      /* Keep the gold color for accent words or buttons */
+      [style*="color:#C1B363"],
+      [style*="color: #C1B363"],
+      [style*="color:#b45309"],
+      [style*="color: #b45309"] {
+        color: #b45309 !important;
+      }
+      /* Handle dark boxes in booking confirmations */
+      div[style*="background:#111111"],
+      div[style*="background-color:#111111"],
+      div[style*="background: #000000"],
+      div[style*="background-color: #000000"],
+      td[style*="background:#111111"],
+      td[style*="background-color:#111111"] {
+        background-color: #f9fafb !important;
+        background: #f9fafb !important;
+        border-color: #e5e7eb !important;
+      }
+      /* Adjust border colors */
+      [style*="border-bottom:1px solid #222222"],
+      [style*="border-top:1px solid #222222"],
+      [style*="border-bottom: 1px solid #222222"],
+      [style*="border-top: 1px solid #222222"] {
+        border-color: #e5e7eb !important;
+      }
+      /* Restore button text to white */
+      a[style*="background-color:#C1B363"],
+      a[style*="background-color: #C1B363"],
+      a[style*="background-color:#b45309"] {
+        background-color: #b45309 !important;
+        color: #ffffff !important;
+      }
+      /* Restore logo color specifically so it doesn't get overwritten */
+      a span[style*="color:#111827"] {
+        color: #111827 !important;
+      }
+      a span[style*="color:#b45309"] {
+        color: #b45309 !important;
       }
     </style>
   </head>
-  <body style="margin:0;padding:0;background-color:#000000;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
-    <div style="background-color:#000000;width:100%;">
+  <body style="margin:0;padding:0;background-color:#f9fafb;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
+    <div style="background-color:#f9fafb;width:100%;">
       <!-- Forced background color wrapper -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="background-color:#000000;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f9fafb" style="background-color:#f9fafb;">
         <tr>
-          <td align="center" style="padding:48px 20px;background-color:#000000;">
-            <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="max-width:600px;width:100%;background-color:#000000;">
-              
-              <!-- LOGO HEADER -->
+          <td align="center" style="padding:48px 20px;background-color:#f9fafb;">
+            <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:24px;border:1px solid #e5e7eb;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);overflow:hidden;">
               <tr>
-                <td align="center" style="padding:0 0 40px 0;background-color:#000000;">
-                  <a href="https://www.glowbook.se" style="text-decoration:none;">
-                    <span style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:900;color:#fdfdfd;letter-spacing:-2px;">Glow</span><span style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:400;color:#C5B358;letter-spacing:-2px;">book</span>
-                  </a>
+                <td style="padding:40px 30px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <!-- LOGO HEADER -->
+                    <tr>
+                      <td align="center" style="padding:0 0 32px 0;">
+                        <a href="https://www.glowbook.se" style="text-decoration:none;">
+                          <span style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:900;color:#111827;letter-spacing:-2px;">Glow</span><span style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:400;color:#b45309;letter-spacing:-2px;">book</span>
+                        </a>
+                      </td>
+                    </tr>
+
+                    <!-- CONTENT CARD -->
+                    <tr>
+                      <td>
+                        <div style="color:#374151;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+                          ${content}
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- FOOTER -->
+                    <tr>
+                      <td align="center" style="padding:40px 20px 0 20px;color:#9ca3af;font-size:12px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;border-top:1px solid #f3f4f6;margin-top:32px;">
+                        &copy; ${new Date().getFullYear()} Glowbook AB<br>
+                        <a href="https://www.glowbook.se" style="color:#b45309;text-decoration:none;font-weight:bold;">www.glowbook.se</a>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
-
-              <!-- CONTENT CARD -->
-              <tr>
-                <td style="padding:0;background-color:#000000;">
-                  <div style="color:#d4d4d4;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
-                    ${content}
-                  </div>
-                </td>
-              </tr>
-
-              <!-- FOOTER -->
-              <tr>
-                <td align="center" style="padding:48px 20px 0 20px;color:#666666;font-size:12px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;background-color:#000000;">
-                  &copy; ${new Date().getFullYear()} Glowbook AB<br>
-                  <a href="https://www.glowbook.se" style="color:#C1B363;text-decoration:none;">www.glowbook.se</a>
-                </td>
-              </tr>
-
             </table>
           </td>
         </tr>

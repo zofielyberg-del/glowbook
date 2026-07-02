@@ -15,14 +15,7 @@ export async function POST(request: Request) {
     }
 
     const htmlContent = `
-      <div style="margin-bottom:40px;">
-        <p style="font-size:15px;color:#d4d4d4;line-height:1.7;white-space:pre-wrap;margin:0;font-family:Arial,Helvetica,sans-serif;">${message}</p>
-      </div>
-
-      <p style="font-size:13px;color:#888888;margin-top:40px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
-        Med vänliga hälsningar,<br>
-        <strong style="color:#ffffff;">Glowbook-teamet</strong>
-      </p>
+      <div style="white-space:pre-wrap; font-family:Arial,Helvetica,sans-serif; font-size:15px; line-height:1.7;">${message}</div>
     `;
 
     const html = getHtmlWrapper(htmlContent);
