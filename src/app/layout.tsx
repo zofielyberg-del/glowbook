@@ -26,6 +26,28 @@ export const metadata: Metadata = {
     title: "Glowbook",
     statusBarStyle: "default",
   },
+  openGraph: {
+    title: "Glowbook | Premium Booking Made Simple",
+    description: "Booking made easier. A premium experience for providers and customers.",
+    url: "https://glowbook.se",
+    siteName: "Glowbook",
+    images: [
+      {
+        url: "https://glowbook.se/glowbook_og_banner.png",
+        width: 1200,
+        height: 630,
+        alt: "Glowbook",
+      },
+    ],
+    locale: "sv-SE",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Glowbook | Premium Booking Made Simple",
+    description: "Booking made easier. A premium experience for providers and customers.",
+    images: ["https://glowbook.se/glowbook_og_banner.png"],
+  },
 };
 
 export const viewport = {

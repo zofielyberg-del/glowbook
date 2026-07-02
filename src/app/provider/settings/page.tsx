@@ -270,8 +270,8 @@ function SettingsContent() {
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = type === 'background' ? 1200 : 800;
-                const MAX_HEIGHT = type === 'background' ? 600 : 800;
+                const MAX_WIDTH = type === 'background' ? 1920 : type === 'gallery' ? 1200 : 1000;
+                const MAX_HEIGHT = type === 'background' ? 1080 : type === 'gallery' ? 1200 : 1000;
                 let width = img.width;
                 let height = img.height;
 
@@ -332,7 +332,7 @@ function SettingsContent() {
                     } finally {
                         setIsImageUploading(false);
                     }
-                }, 'image/jpeg', 0.7);
+                }, 'image/jpeg', 0.85);
             };
             img.src = reader.result as string;
         };
