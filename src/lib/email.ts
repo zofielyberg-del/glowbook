@@ -78,10 +78,10 @@ export const getHtmlWrapper = (content: string) => `
       
       /* Logo colors */
       .logo-glow {
-        color: #111827 !important;
+        color: #000000 !important;
       }
       .logo-book {
-        color: #b45309 !important;
+        color: #C5B358 !important;
       }
 
       /* Dark mode overrides */
@@ -99,7 +99,7 @@ export const getHtmlWrapper = (content: string) => `
           color: #ffffff !important;
         }
         .logo-book {
-          color: #d97706 !important; /* brighter gold in dark mode */
+          color: #C5B358 !important;
         }
         
         /* Dark mode boxes styling */
@@ -137,7 +137,7 @@ export const getHtmlWrapper = (content: string) => `
                     <tr>
                       <td align="center" style="padding:0 0 32px 0;">
                         <a href="https://www.glowbook.se" style="text-decoration:none;">
-                          <span class="logo-glow" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:900;letter-spacing:-2px;color:#111827;">Glow</span><span class="logo-book" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:400;letter-spacing:-2px;color:#b45309;">book</span>
+                          <span class="logo-glow" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:900;letter-spacing:-2px;color:#000000;">Glow</span><span class="logo-book" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:400;letter-spacing:-2px;color:#C5B358;">book</span>
                         </a>
                       </td>
                     </tr>
@@ -155,7 +155,7 @@ export const getHtmlWrapper = (content: string) => `
                     <tr>
                       <td align="center" style="padding:40px 20px 0 20px;font-size:12px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;border-top:1px solid #e5e7eb;margin-top:32px;border-color:#e5e7eb;">
                         &copy; ${new Date().getFullYear()} Glowbook AB<br>
-                        <a href="https://www.glowbook.se" style="color:#b45309;text-decoration:none;font-weight:bold;">www.glowbook.se</a>
+                        <a href="https://www.glowbook.se" style="color:#C5B358;text-decoration:none;font-weight:bold;">www.glowbook.se</a>
                       </td>
                     </tr>
 
