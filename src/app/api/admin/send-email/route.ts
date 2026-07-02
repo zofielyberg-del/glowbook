@@ -14,8 +14,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Saknar obligatoriska fält (to, subject, message)' }, { status: 400 });
     }
 
+    const formattedMessage = message.replace(/\r\n/g, '\n').replace(/\n/g, '<br />');
     const htmlContent = `
-      <div style="white-space:pre-wrap; font-family:Arial,Helvetica,sans-serif; font-size:15px; line-height:1.7;">${message}</div>
+      <div style="font-family:Arial,Helvetica,sans-serif; font-size:15px; line-height:1.7;">${formattedMessage}</div>
     `;
 
     const html = getHtmlWrapper(htmlContent);
