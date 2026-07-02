@@ -11,12 +11,18 @@ const FROM_EMAIL = 'support@glowbook.se';
  */
 export const getHtmlWrapper = (content: string) => `
 <!DOCTYPE html>
-<html lang="sv" style="background:#f9fafb;" bgcolor="#f9fafb">
+<html lang="sv">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700;900&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
+      :root {
+        color-scheme: light dark;
+        supported-color-schemes: light dark;
+      }
       body, table, td, div, p, a {
         -webkit-text-size-adjust: 100%;
         -ms-text-size-adjust: 100%;
@@ -25,15 +31,17 @@ export const getHtmlWrapper = (content: string) => `
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
-        background-color: #f9fafb !important;
+        background-color: transparent !important;
       }
-      /* Force override of inline styles for light mode display */
+      
+      /* Default light theme overrides */
       h1, h2, h3, h4, h5, h6, strong, b, span, p, td, div {
-        color: #374151 !important;
+        color: #374151;
       }
       h1, h2, h3, h4 {
-        color: #111827 !important;
+        color: #111827;
       }
+      
       /* Keep the gold color for accent words or buttons */
       [style*="color:#C1B363"],
       [style*="color: #C1B363"],
@@ -41,7 +49,8 @@ export const getHtmlWrapper = (content: string) => `
       [style*="color: #b45309"] {
         color: #b45309 !important;
       }
-      /* Handle dark boxes in booking confirmations */
+      
+      /* Handle boxes inside content (booking details, etc) */
       div[style*="background:#111111"],
       div[style*="background-color:#111111"],
       div[style*="background: #000000"],
@@ -52,13 +61,13 @@ export const getHtmlWrapper = (content: string) => `
         background: #f9fafb !important;
         border-color: #e5e7eb !important;
       }
-      /* Adjust border colors */
       [style*="border-bottom:1px solid #222222"],
       [style*="border-top:1px solid #222222"],
       [style*="border-bottom: 1px solid #222222"],
       [style*="border-top: 1px solid #222222"] {
         border-color: #e5e7eb !important;
       }
+      
       /* Restore button text to white */
       a[style*="background-color:#C1B363"],
       a[style*="background-color: #C1B363"],
@@ -66,30 +75,69 @@ export const getHtmlWrapper = (content: string) => `
         background-color: #b45309 !important;
         color: #ffffff !important;
       }
-      /* Restore logo color specifically so it doesn't get overwritten */
-      a span[style*="color:#111827"] {
+      
+      /* Logo colors */
+      .logo-glow {
         color: #111827 !important;
       }
-      a span[style*="color:#b45309"] {
+      .logo-book {
         color: #b45309 !important;
+      }
+
+      /* Dark mode overrides */
+      @media (prefers-color-scheme: dark) {
+        h1, h2, h3, h4, h5, h6, strong, b, span, p, td, div {
+          color: #d4d4d4 !important;
+        }
+        h1, h2, h3, h4 {
+          color: #ffffff !important;
+        }
+        .email-container {
+          border-color: #374151 !important;
+        }
+        .logo-glow {
+          color: #ffffff !important;
+        }
+        .logo-book {
+          color: #d97706 !important; /* brighter gold in dark mode */
+        }
+        
+        /* Dark mode boxes styling */
+        div[style*="background:#111111"],
+        div[style*="background-color:#111111"],
+        div[style*="background: #000000"],
+        div[style*="background-color: #000000"],
+        td[style*="background:#111111"],
+        td[style*="background-color:#111111"] {
+          background-color: #1f2937 !important;
+          background: #1f2937 !important;
+          border-color: #374151 !important;
+        }
+        [style*="border-bottom:1px solid #222222"],
+        [style*="border-top:1px solid #222222"],
+        [style*="border-bottom: 1px solid #222222"],
+        [style*="border-top: 1px solid #222222"] {
+          border-color: #374151 !important;
+        }
       }
     </style>
   </head>
-  <body style="margin:0;padding:0;background-color:#f9fafb;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
-    <div style="background-color:#f9fafb;width:100%;">
-      <!-- Forced background color wrapper -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f9fafb" style="background-color:#f9fafb;">
+  <body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
+    <div style="width:100%; padding: 32px 0;">
+      <table align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%;">
         <tr>
-          <td align="center" style="padding:48px 20px;background-color:#f9fafb;">
-            <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:24px;border:1px solid #e5e7eb;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);overflow:hidden;">
+          <td align="center" style="padding:0 16px;">
+            <!-- EMAIL CONTAINER WITH BORDER (FRAME) -->
+            <table class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e5e7eb; border-radius: 24px; overflow: hidden;">
               <tr>
-                <td style="padding:40px 30px;">
+                <td style="padding: 40px 24px;">
                   <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    
                     <!-- LOGO HEADER -->
                     <tr>
                       <td align="center" style="padding:0 0 32px 0;">
                         <a href="https://www.glowbook.se" style="text-decoration:none;">
-                          <span style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:900;color:#111827;letter-spacing:-2px;">Glow</span><span style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:400;color:#b45309;letter-spacing:-2px;">book</span>
+                          <span class="logo-glow" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:900;letter-spacing:-2px;color:#111827;">Glow</span><span class="logo-book" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:400;letter-spacing:-2px;color:#b45309;">book</span>
                         </a>
                       </td>
                     </tr>
@@ -97,7 +145,7 @@ export const getHtmlWrapper = (content: string) => `
                     <!-- CONTENT CARD -->
                     <tr>
                       <td>
-                        <div style="color:#374151;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+                        <div style="font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
                           ${content}
                         </div>
                       </td>
@@ -105,11 +153,12 @@ export const getHtmlWrapper = (content: string) => `
 
                     <!-- FOOTER -->
                     <tr>
-                      <td align="center" style="padding:40px 20px 0 20px;color:#9ca3af;font-size:12px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;border-top:1px solid #f3f4f6;margin-top:32px;">
+                      <td align="center" style="padding:40px 20px 0 20px;font-size:12px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;border-top:1px solid #e5e7eb;margin-top:32px;border-color:#e5e7eb;">
                         &copy; ${new Date().getFullYear()} Glowbook AB<br>
                         <a href="https://www.glowbook.se" style="color:#b45309;text-decoration:none;font-weight:bold;">www.glowbook.se</a>
                       </td>
                     </tr>
+
                   </table>
                 </td>
               </tr>
