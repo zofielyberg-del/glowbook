@@ -112,7 +112,7 @@ export default function Header() {
                                 localStorage.removeItem('glowbook_salon');
                                 sessionStorage.removeItem('glowbook_salon');
                                 window.dispatchEvent(new Event('glowbook_update'));
-                                window.location.href = '/admin';
+                                window.location.href = '/';
                             }}
                             className="hidden md:flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-colors animate-pulse"
                         >
