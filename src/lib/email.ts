@@ -79,9 +79,11 @@ export const getHtmlWrapper = (content: string) => `
       /* Logo colors */
       .logo-glow {
         color: #000000 !important;
+        font-weight: 300 !important;
       }
       .logo-book {
         color: #C5B358 !important;
+        font-weight: 300 !important;
       }
 
       /* Dark mode overrides */
@@ -137,7 +139,7 @@ export const getHtmlWrapper = (content: string) => `
                     <tr>
                       <td align="center" style="padding:0 0 32px 0;">
                         <a href="https://www.glowbook.se" style="text-decoration:none;">
-                          <span class="logo-glow" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:900;letter-spacing:-2px;color:#000000;">Glow</span><span class="logo-book" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:400;letter-spacing:-2px;color:#C5B358;">book</span>
+                          <span class="logo-glow" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:300;color:#000000;">Glow</span><span class="logo-book" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:300;color:#C5B358;">book</span>
                         </a>
                       </td>
                     </tr>
