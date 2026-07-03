@@ -176,9 +176,9 @@ export default function RewardsInfoPage() {
                 {/* Member Levels */}
                 <section className="px-6 mb-24">
                     <div className="max-w-4xl mx-auto space-y-8">
-                        <div className="text-center">
+                        <div className="text-center max-w-2xl mx-auto space-y-2">
                             <h2 className="text-2xl font-heading font-bold text-foreground">Medlemsnivåer</h2>
-                            <p className="text-foreground/40 dark:text-white/40 text-sm mt-2">Din status växer med varje bokning</p>
+                            <p className="text-foreground/45 dark:text-white/45 text-sm">Din status visas i din profil och fungerar som ett bevis på din lojalitet. Poängen används som rabatt (likt ett stämpelkort) hos de specifika salonger du har besökt sedan tidigare, förutsatt att de har poängsystemet aktiverat.</p>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             {MEMBER_LEVELS.map((level, i) => (

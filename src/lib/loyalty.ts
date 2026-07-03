@@ -32,7 +32,7 @@ export const MEMBER_LEVELS: MemberLevelInfo[] = [
         color: '#CD7F32',
         gradient: 'from-[#CD7F32] to-[#A0522D]',
         badgeEmoji: '',
-        perks: ['Grundmedlemskap', 'Poängintjäning vid bokning'],
+        perks: ['Grundmedlemskap', 'Tjäna lojalitetspoäng', 'Poänghistorik i profil'],
     },
     {
         key: 'silver',
@@ -41,7 +41,7 @@ export const MEMBER_LEVELS: MemberLevelInfo[] = [
         color: '#C0C0C0',
         gradient: 'from-[#C0C0C0] to-[#808080]',
         badgeEmoji: '',
-        perks: ['Silver badge', 'Tidigare bokningstillgång ibland', 'Statusvisning i profil'],
+        perks: ['Silver badge i profil', 'Status visas för salongen', 'Lös in poäng mot rabatt'],
     },
     {
         key: 'gold',
@@ -50,7 +50,7 @@ export const MEMBER_LEVELS: MemberLevelInfo[] = [
         color: '#D4AF37',
         gradient: 'from-[#D4AF37] to-[#B8860B]',
         badgeEmoji: '',
-        perks: ['Gold badge', 'Prioriterad bokningsvisning', 'Exklusiva kampanjer', 'Premiumstatus'],
+        perks: ['Gold badge i profil', 'Fler rabattalternativ', 'Premiumstatus i portalen'],
     },
     {
         key: 'diamond',
@@ -59,7 +59,7 @@ export const MEMBER_LEVELS: MemberLevelInfo[] = [
         color: '#B9F2FF',
         gradient: 'from-[#B9F2FF] to-[#7DF9FF]',
         badgeEmoji: '',
-        perks: ['Diamond badge', 'VIP-status', 'Tidiga släpp av tider', 'Exklusiv portalupplevelse'],
+        perks: ['Diamond badge i profil', 'VIP-lojalitetsstatus', 'Maximala rabattförmåner'],
     },
 ];
 
