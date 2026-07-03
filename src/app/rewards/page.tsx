@@ -127,13 +127,13 @@ export default function RewardsInfoPage() {
                                     step: '1',
                                     icon: ShoppingBag,
                                     title: 'Boka & betala',
-                                    desc: 'Du tjänar poäng automatiskt varje gång du genomför och betalar en bokning.',
+                                    desc: 'Du tjänar poäng automatiskt varje gång du genomför och betalar en bokning som inloggad kund.',
                                 },
                                 {
                                     step: '2',
                                     icon: Star,
                                     title: 'Samla poäng',
-                                    desc: 'Poängen sparas och din medlemsnivå växer. Ju mer du bokar, desto fler belöningar.',
+                                    desc: 'Poängen sparas på ditt kundkonto och din medlemsnivå växer. Du behöver vara registrerad för att spara dina poäng.',
                                 },
                                 {
                                     step: '3',
