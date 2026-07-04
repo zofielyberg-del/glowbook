@@ -323,28 +323,48 @@ export default function AdminDashboard() {
     };
 
     // Delete provider permanently
-    const handleDeleteProvider = (providerId: string) => {
-        const provider = providers.find(p => p.id === providerId);
-        const updated = providers.filter(p => p.id !== providerId);
-        setProviders(updated);
-        localStorage.setItem('glowbook_providers', JSON.stringify(updated));
+    const handleDeleteProvider = async (providerId: string) => {
+        try {
+            const provider = providers.find(p => p.id === providerId);
+            
+            const response = await fetch('/api/admin/data', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ salonId: providerId })
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Ett fel uppstod vid borttagning av salongen.');
+            }
 
-        // If this is the active salon, also clear it
-        if (provider) {
-            const activeSalonRaw = localStorage.getItem('glowbook_salon');
-            if (activeSalonRaw) {
-                const salon = JSON.parse(activeSalonRaw);
-                if (salon.email === provider.email) {
-                    localStorage.removeItem('glowbook_salon');
+            const updated = providers.filter(p => p.id !== providerId);
+            setProviders(updated);
+            localStorage.setItem('glowbook_providers', JSON.stringify(updated));
+
+            // Also remove from allUsers list in UI if there was an owner profile linked
+            if (provider?.email) {
+                setAllUsers(prev => prev.filter(u => u.email !== provider.email));
+            }
+
+            // If this is the active salon, also clear it
+            if (provider) {
+                const activeSalonRaw = localStorage.getItem('glowbook_salon');
+                if (activeSalonRaw) {
+                    const salon = JSON.parse(activeSalonRaw);
+                    if (salon.email === provider.email) {
+                        localStorage.removeItem('glowbook_salon');
+                    }
                 }
             }
-        }
 
-        window.dispatchEvent(new Event('glowbook_update'));
-        setShowDeleteModal(false);
-        setDeleteConfirmId(null);
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
+            window.dispatchEvent(new Event('glowbook_update'));
+            setShowDeleteModal(false);
+            setDeleteConfirmId(null);
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 3000);
+        } catch (err: any) {
+            alert(err.message || 'Kunde inte ta bort salongen.');
+        }
     };
 
     // Impersonate (login as provider)

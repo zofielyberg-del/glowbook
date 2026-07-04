@@ -50,15 +50,37 @@ export async function PATCH(req: Request) {
     }
 }
 
-// Delete a user
+// Delete a user or salon
 export async function DELETE(req: Request) {
     try {
-        const { userId } = await req.json();
-        if (!userId) {
-            return NextResponse.json({ error: 'userId required' }, { status: 400 });
+        const { userId, salonId } = await req.json();
+        
+        if (userId) {
+            // Delete all salons owned by the user first to avoid database orphaning
+            const salons = await prisma.salon.findMany({ where: { owner_id: userId } });
+            for (const s of salons) {
+                await prisma.salon.delete({ where: { id: s.id } });
+            }
+            await prisma.profile.delete({ where: { id: userId } });
+            return NextResponse.json({ success: true });
         }
-        await prisma.profile.delete({ where: { id: userId } });
-        return NextResponse.json({ success: true });
+        
+        if (salonId) {
+            // Find if there is an owner profile linked to this salon
+            const salon = await prisma.salon.findUnique({
+                where: { id: salonId },
+                select: { owner_id: true }
+            });
+            // Delete the salon
+            await prisma.salon.delete({ where: { id: salonId } });
+            // If it had an owner, delete the owner's profile too
+            if (salon?.owner_id) {
+                await prisma.profile.delete({ where: { id: salon.owner_id } });
+            }
+            return NextResponse.json({ success: true });
+        }
+
+        return NextResponse.json({ error: 'userId or salonId required' }, { status: 400 });
     } catch (error: any) {
         console.error('Admin DELETE Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
