@@ -52,7 +52,7 @@ export async function POST(req: Request) {
                         country: country || 'Sweden',
                         municipality: municipality || '',
                         city: municipality || '',
-                        subscription_status: 'trialing',
+                        subscription_status: 'unpaid',
                         membership_tier: 'bas',
                         practitioners: {
                             create: {
