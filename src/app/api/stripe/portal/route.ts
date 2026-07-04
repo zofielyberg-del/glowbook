@@ -15,6 +15,7 @@ export async function POST(req: Request) {
             select: { 
                 stripe_customer_id: true,
                 membership_tier: true,
+                duration: true,
                 name: true
             }
         });
@@ -37,16 +38,23 @@ export async function POST(req: Request) {
 
         // 2. If no Stripe Customer exists, redirect to Checkout Session for their tier (Initial payment)
         const tier = (salon.membership_tier || 'bas').toUpperCase();
+        const duration = salon.duration || 1;
         
-        const getPriceId = (t: string) => {
+        const getPriceId = (t: string, d: number) => {
+            // Try specific duration first: STRIPE_PRICE_PRO_3
+            const durationPrice = process.env[`STRIPE_PRICE_${t}_${d}`];
+            if (durationPrice) return durationPrice;
+
             const basePrice = process.env[`STRIPE_PRICE_${t}`];
             if (basePrice) return basePrice;
+
             const legacyPrice = process.env[`STRIPE_PRICE_ID_${t}`];
             if (legacyPrice) return legacyPrice;
+
             return '';
         };
 
-        const priceId = getPriceId(tier);
+        const priceId = getPriceId(tier, duration);
 
         if (!priceId) {
             return NextResponse.json({ 
@@ -69,7 +77,7 @@ export async function POST(req: Request) {
                 metadata: {
                     salonId,
                     tier: tier.toLowerCase(),
-                    duration: '1',
+                    duration: String(duration),
                 },
             },
             success_url: `${returnUrl}?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -77,7 +85,7 @@ export async function POST(req: Request) {
             metadata: {
                 salonId,
                 tier: tier.toLowerCase(),
-                duration: '1',
+                duration: String(duration),
             },
         });
 
