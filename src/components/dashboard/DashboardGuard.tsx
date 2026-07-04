@@ -10,6 +10,35 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
     const { user, isSalonOwner, isLoading } = useAuth();
     const [isLocked, setIsLocked] = useState(false);
     const [checking, setChecking] = useState(true);
+    const [loadingPortal, setLoadingPortal] = useState(false);
+
+    const handleManageMembership = async () => {
+        if (loadingPortal) return;
+        setLoadingPortal(true);
+        try {
+            // Get salon details from storage
+            const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+            if (!saved) throw new Error("Salong hittades inte i lokalt minne.");
+            const salon = JSON.parse(saved);
+
+            const response = await fetch('/api/stripe/portal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    salonId: salon.id,
+                    email: user?.email
+                })
+            });
+            const data = await response.json();
+            if (!response.ok || !data.url) {
+                throw new Error(data.error || "Kunde inte initiera betalningsportal.");
+            }
+            window.location.href = data.url;
+        } catch (err: any) {
+            alert(err.message || "Ett fel uppstod. Kontakta support.");
+            setLoadingPortal(false);
+        }
+    };
 
     useEffect(() => {
         if (!isLoading && isSalonOwner && user) {
@@ -109,12 +138,13 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
                     </div>
 
                     <div className="flex flex-col gap-3">
-                        <Link
-                            href="/provider/settings?tab=membership"
-                            className="w-full py-4 bg-foreground text-background rounded-2xl font-bold hover:bg-champagne-600 hover:text-white transition-all shadow-xl"
+                        <button
+                            onClick={handleManageMembership}
+                            disabled={loadingPortal}
+                            className="w-full py-4 bg-foreground text-background rounded-2xl font-bold hover:bg-champagne-600 hover:text-white transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                            Hantera medlemskap
-                        </Link>
+                            {loadingPortal ? "Laddar..." : "Hantera medlemskap"}
+                        </button>
                         <button
                             onClick={() => window.location.reload()}
                             className="text-xs font-bold text-foreground/40 hover:text-foreground transition-colors"
