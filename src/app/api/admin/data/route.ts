@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { stripe } from '@/lib/stripe';
 
 export async function GET(req: Request) {
     try {
@@ -57,8 +58,19 @@ export async function DELETE(req: Request) {
         
         if (userId) {
             // Delete all salons owned by the user first to avoid database orphaning
-            const salons = await prisma.salon.findMany({ where: { owner_id: userId } });
+            const salons = await prisma.salon.findMany({ 
+                where: { owner_id: userId },
+                select: { id: true, stripe_subscription_id: true }
+            });
             for (const s of salons) {
+                if (s.stripe_subscription_id) {
+                    try {
+                        await stripe.subscriptions.cancel(s.stripe_subscription_id);
+                        console.log(`[Admin DELETE] Stripe subscription ${s.stripe_subscription_id} cancelled for user ${userId}.`);
+                    } catch (stripeErr: any) {
+                        console.error('[Admin DELETE] Failed to cancel Stripe subscription:', stripeErr.message);
+                    }
+                }
                 await prisma.salon.delete({ where: { id: s.id } });
             }
             await prisma.profile.delete({ where: { id: userId } });
@@ -69,8 +81,18 @@ export async function DELETE(req: Request) {
             // Find if there is an owner profile linked to this salon
             const salon = await prisma.salon.findUnique({
                 where: { id: salonId },
-                select: { owner_id: true }
+                select: { owner_id: true, stripe_subscription_id: true }
             });
+            
+            if (salon?.stripe_subscription_id) {
+                try {
+                    await stripe.subscriptions.cancel(salon.stripe_subscription_id);
+                    console.log(`[Admin DELETE] Stripe subscription ${salon.stripe_subscription_id} cancelled successfully.`);
+                } catch (stripeErr: any) {
+                    console.error('[Admin DELETE] Failed to cancel Stripe subscription:', stripeErr.message);
+                }
+            }
+
             // Delete the salon
             await prisma.salon.delete({ where: { id: salonId } });
             // If it had an owner, delete the owner's profile too
