@@ -796,7 +796,7 @@ export default function AdminDashboard() {
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Uppskattad MRR</h3>
                                     </div>
                                     <p className="text-5xl font-extrabold text-premium-black mb-2">
-                                        {providers.reduce((acc, p) => {
+                                        {providers.filter(p => ['active', 'trialing', 'canceling'].includes(p.status)).reduce((acc, p) => {
                                             const tier = (p.tier as string).toUpperCase();
                                             const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 349 :
                                                 tier === 'PRO' || tier === 'STANDARD' ? 149 : 79;
@@ -824,7 +824,7 @@ export default function AdminDashboard() {
                                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Total Årsomsättning</h3>
                                         </div>
                                         <p className="text-5xl font-extrabold text-white mb-2">
-                                            {(providers.reduce((acc, p) => {
+                                            {(providers.filter(p => ['active', 'trialing', 'canceling'].includes(p.status)).reduce((acc, p) => {
                                                 const tier = (p.tier as string).toUpperCase();
                                                 const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 349 :
                                                     tier === 'PRO' || tier === 'STANDARD' ? 149 : 79;
@@ -845,16 +845,18 @@ export default function AdminDashboard() {
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Genomsnittsintäkt</h3>
                                     </div>
                                     <p className="text-5xl font-extrabold text-premium-black mb-2">
-                                        {Math.round(
-                                            providers.reduce((acc, p) => {
+                                        {(() => {
+                                            const activeProvs = providers.filter(p => ['active', 'trialing', 'canceling'].includes(p.status));
+                                            const totalMRR = activeProvs.reduce((acc, p) => {
                                                 const tier = (p.tier as string).toUpperCase();
                                                 const base = tier === 'LUXE' || tier === 'STUDIO' || tier === 'DIAMOND' ? 349 :
                                                     tier === 'PRO' || tier === 'STANDARD' ? 149 : 79;
                                                 const dur = (p as any).duration || 1;
                                                 const discountFactor: Record<number, number> = { 1: 1, 3: 0.95, 6: 0.9, 12: 0.85 };
                                                 return acc + Math.round(base * (discountFactor[dur] || 1));
-                                            }, 0) / (providers.filter(p => p.tier !== 'Trial').length || 1)
-                                        ).toLocaleString('sv-SE')} <span className="text-xl font-normal text-gray-300">SEK</span>
+                                            }, 0);
+                                            return Math.round(totalMRR / (activeProvs.length || 1)).toLocaleString('sv-SE');
+                                        })()} <span className="text-xl font-normal text-gray-300">SEK</span>
                                     </p>
                                     <p className="text-xs text-gray-500 font-medium">per betalande medlemskap</p>
                                 </div>
@@ -869,9 +871,9 @@ export default function AdminDashboard() {
 
                                     <div className="space-y-6">
                                         {[
-                                            { tier: 'LUXE', price: 349, count: providers.filter(p => (p.tier as string).toUpperCase() === 'LUXE' || (p.tier as string).toUpperCase() === 'STUDIO' || (p.tier as string).toUpperCase() === 'DIAMOND').length, color: 'bg-premium-black' },
-                                            { tier: 'PRO', price: 149, count: providers.filter(p => (p.tier as string).toUpperCase() === 'PRO' || (p.tier as string).toUpperCase() === 'STANDARD').length, color: 'bg-champagne-500' },
-                                            { tier: 'BAS', price: 79, count: providers.filter(p => (p.tier as string).toUpperCase() === 'BAS' || (p.tier as string).toUpperCase() === 'START').length, color: 'bg-gray-200' }
+                                            { tier: 'LUXE', price: 349, count: providers.filter(p => ['active', 'trialing', 'canceling'].includes(p.status) && ((p.tier as string).toUpperCase() === 'LUXE' || (p.tier as string).toUpperCase() === 'STUDIO' || (p.tier as string).toUpperCase() === 'DIAMOND')).length, color: 'bg-premium-black' },
+                                            { tier: 'PRO', price: 149, count: providers.filter(p => ['active', 'trialing', 'canceling'].includes(p.status) && ((p.tier as string).toUpperCase() === 'PRO' || (p.tier as string).toUpperCase() === 'STANDARD')).length, color: 'bg-champagne-500' },
+                                            { tier: 'BAS', price: 79, count: providers.filter(p => ['active', 'trialing', 'canceling'].includes(p.status) && ((p.tier as string).toUpperCase() === 'BAS' || (p.tier as string).toUpperCase() === 'START')).length, color: 'bg-gray-200' }
                                         ].map((item, i) => (
                                             <div key={i} className="flex items-center gap-6 p-4 rounded-3xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
                                                 <div className={clsx("w-3 h-12 rounded-full", item.color)} />
@@ -895,7 +897,7 @@ export default function AdminDashboard() {
                                     </div>
 
                                     <div className="space-y-4">
-                                        {providers.slice(0, 5).map((p, i) => {
+                                        {providers.filter(p => ['active', 'trialing', 'canceling'].includes(p.status)).slice(0, 5).map((p, i) => {
                                             const basePrice =
                                                 (p.tier as string).toUpperCase() === 'LUXE' || (p.tier as string).toUpperCase() === 'STUDIO' || (p.tier as string).toUpperCase() === 'DIAMOND' ? 349 :
                                                     (p.tier as string).toUpperCase() === 'PRO' || (p.tier as string).toUpperCase() === 'STANDARD' ? 149 : 79;
