@@ -693,6 +693,91 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         window.dispatchEvent(new Event('glowbook_update'));
     };
 
+    const handleRescheduleDragAndDrop = async (apt: Appointment, newDateStr: string, newTimeStr: string) => {
+        const originalDate = apt.date || (apt.start_time ? format(new Date(apt.start_time), 'yyyy-MM-dd') : '');
+        const originalTime = apt.startTime;
+        if (originalDate === newDateStr && originalTime === newTimeStr) {
+            return;
+        }
+
+        const confirmMsg = `Vill du flytta bokningen för ${apt.clientName} till ${newDateStr} kl ${newTimeStr}?`;
+        if (!window.confirm(confirmMsg)) {
+            return;
+        }
+
+        try {
+            const localStart = new Date(`${newDateStr}T${newTimeStr}:00`);
+            const start_time = localStart.toISOString();
+            const end_time = new Date(localStart.getTime() + (apt.duration || 30) * 60000).toISOString();
+
+            const response = await fetch('/api/bookings/reschedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    appointmentId: apt.id,
+                    newDate: newDateStr,
+                    newStartTime: newTimeStr,
+                    newStartTimeUtc: start_time,
+                    bypassPolicy: true
+                })
+            });
+
+            const resData = await response.json();
+            if (!response.ok || !resData.success) {
+                alert(resData.error || 'Ombokningen misslyckades.');
+                return;
+            }
+
+            const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+            if (saved) {
+                const salonData = JSON.parse(saved);
+                const updatedApts = (salonData.appointments || []).map((a: any) => {
+                    if (a.id === apt.id) {
+                        return {
+                            ...a,
+                            start_time,
+                            end_time,
+                            booking_date: new Date(newDateStr),
+                            startTime: newTimeStr,
+                            date: newDateStr,
+                            dayIndex: (localStart.getDay() + 6) % 7
+                        };
+                    }
+                    return a;
+                });
+                
+                salonData.appointments = updatedApts;
+                localStorage.setItem('glowbook_salon', JSON.stringify(salonData));
+                sessionStorage.setItem('glowbook_salon', JSON.stringify(salonData));
+                localStorage.setItem('glowbook_last_mutation', Date.now().toString());
+                sessionStorage.setItem('glowbook_last_mutation', Date.now().toString());
+                
+                const mappedApts = updatedApts.map((a: any) => {
+                    const sDate = new Date(a.start_time);
+                    const pad = (n: number) => String(n).padStart(2, '0');
+                    return {
+                        ...a,
+                        clientName: a.customer_name || a.customer_email || a.clientName || 'Kund',
+                        clientEmail: a.customer_email || a.clientEmail || '',
+                        clientPhone: a.customer_phone || a.clientPhone || '',
+                        service: a.service_name || a.service || 'Tjänst',
+                        startTime: `${pad(sDate.getHours())}:${pad(sDate.getMinutes())}`,
+                        duration: a.duration || Math.round((new Date(a.end_time).getTime() - sDate.getTime()) / 60000),
+                        dayIndex: (sDate.getDay() + 6) % 7,
+                        date: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(sDate),
+                        status: a.status || 'confirmed',
+                        color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
+                    };
+                });
+                setInternalAppointments(mappedApts);
+                window.dispatchEvent(new Event('glowbook_update'));
+            }
+        } catch (err: any) {
+            console.error('Drag and drop reschedule error:', err);
+            alert('Ett fel uppstod vid ombokningen.');
+        }
+    };
+
     const prevWeek = () => setCurrentDate(addDays(currentDate, -7));
     const nextWeek = () => setCurrentDate(addDays(currentDate, 7));
 
@@ -805,6 +890,36 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                         <div
                                             key={hour}
                                             onClick={() => !hideAppointments && handleEmptySlotClick(dayIndex, hour, day)}
+                                            onDragOver={(e) => {
+                                                if (!hideAppointments) {
+                                                    e.preventDefault();
+                                                    e.currentTarget.style.backgroundColor = "rgba(16, 185, 129, 0.1)";
+                                                }
+                                            }}
+                                            onDragLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = "";
+                                            }}
+                                            onDrop={async (e) => {
+                                                if (hideAppointments) return;
+                                                e.preventDefault();
+                                                e.currentTarget.style.backgroundColor = "";
+                                                
+                                                const appointmentId = e.dataTransfer.getData("text/plain");
+                                                if (!appointmentId) return;
+
+                                                const apt = appointments.find(a => a.id === appointmentId);
+                                                if (!apt) return;
+
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                const offsetY = e.clientY - rect.top;
+                                                const minutes = Math.floor((offsetY / 64) * 60);
+                                                const roundedMinutes = Math.floor(minutes / 15) * 15; // 0, 15, 30, 45
+                                                
+                                                const newTimeStr = `${String(hour).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`;
+                                                const newDateStr = format(day, 'yyyy-MM-dd');
+
+                                                await handleRescheduleDragAndDrop(apt, newDateStr, newTimeStr);
+                                            }}
                                             className={clsx(
                                                 "absolute w-full h-16 border-b border-border/60 transition-all",
                                                 !hideAppointments && "hover:bg-emerald-500/[0.05] cursor-pointer group/grid"
@@ -980,8 +1095,18 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                 e.stopPropagation();
                                                 setViewingAppointment(apt);
                                             }}
+                                            draggable={true}
+                                            onDragStart={(e) => {
+                                                e.dataTransfer.setData("text/plain", apt.id);
+                                                e.currentTarget.style.opacity = "0.5";
+                                                e.currentTarget.style.cursor = "grabbing";
+                                            }}
+                                            onDragEnd={(e) => {
+                                                e.currentTarget.style.opacity = "1";
+                                                e.currentTarget.style.cursor = "pointer";
+                                            }}
                                             className={clsx(
-                                                "absolute inset-x-1 rounded-xl border p-2.5 text-[10px] cursor-pointer hover:shadow-lg transition-all z-[25] overflow-hidden flex flex-col justify-between",
+                                                "absolute inset-x-1 rounded-xl border p-2.5 text-[10px] cursor-grab hover:shadow-lg transition-all z-[25] overflow-hidden flex flex-col justify-between",
                                                 "bg-pink-50/95 dark:bg-pink-950/90 border-pink-200 dark:border-pink-900/60 text-pink-900 dark:text-pink-100 shadow-sm hover:scale-[1.01] active:scale-[0.99]"
                                             )}
                                             style={getItemStyle(apt)}

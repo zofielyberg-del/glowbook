@@ -4,7 +4,7 @@ import { sendCustomerRescheduleEmail, sendProviderBookingNotification } from '@/
 import { emitAvailabilityUpdate } from '@/lib/realtime';
 export async function POST(req: Request) {
     try {
-        const { appointmentId, newDate, newStartTime, newStartTimeUtc } = await req.json();
+        const { appointmentId, newDate, newStartTime, newStartTimeUtc, bypassPolicy } = await req.json();
 
         if (!appointmentId || !newDate || !newStartTime) {
             return NextResponse.json({ error: 'Missing required rescheduling data' }, { status: 400 });
@@ -28,15 +28,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
         }
 
-        // Cancellation policy window check
-        const windowHours = appointment.salon?.cancellation_window_hours ?? 24;
-        const diffMs = new Date(appointment.start_time).getTime() - Date.now();
-        const diffHours = diffMs / (1000 * 60 * 60);
+        // Cancellation policy window check (Bypassed if bypassPolicy is true, e.g. for providers)
+        if (!bypassPolicy) {
+            const windowHours = appointment.salon?.cancellation_window_hours ?? 24;
+            const diffMs = new Date(appointment.start_time).getTime() - Date.now();
+            const diffHours = diffMs / (1000 * 60 * 60);
 
-        if (diffHours < windowHours) {
-            return NextResponse.json({ 
-                error: `Ombokning nekad: Denna salong tillåter inte ombokningar mindre än ${windowHours} timmar innan besöket.` 
-            }, { status: 400 });
+            if (diffHours < windowHours) {
+                return NextResponse.json({ 
+                    error: `Ombokning nekad: Denna salong tillåter inte ombokningar mindre än ${windowHours} timmar innan besöket.` 
+                }, { status: 400 });
+            }
         }
 
         // Calculate duration (minutes)
