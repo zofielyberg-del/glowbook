@@ -81,6 +81,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
     const [applyToAllWeeks, setApplyToAllWeeks] = useState(true);
     const [conflictWarning, setConflictWarning] = useState<string | null>(null);
     const [viewingAppointment, setViewingAppointment] = useState<Appointment | null>(null);
+    const [rescheduleConfirm, setRescheduleConfirm] = useState<{ apt: Appointment; newDate: string; newTime: string } | null>(null);
 
     const availability = propAvailability || internalAvailability;
     const appointments = propAppointments || internalAppointments;
@@ -693,17 +694,20 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         window.dispatchEvent(new Event('glowbook_update'));
     };
 
-    const handleRescheduleDragAndDrop = async (apt: Appointment, newDateStr: string, newTimeStr: string) => {
+    const handleRescheduleDragAndDrop = (apt: Appointment, newDateStr: string, newTimeStr: string) => {
         const originalDate = apt.date || (apt.start_time ? format(new Date(apt.start_time), 'yyyy-MM-dd') : '');
         const originalTime = apt.startTime;
         if (originalDate === newDateStr && originalTime === newTimeStr) {
             return;
         }
 
-        const confirmMsg = `Vill du flytta bokningen för ${apt.clientName} till ${newDateStr} kl ${newTimeStr}?`;
-        if (!window.confirm(confirmMsg)) {
-            return;
-        }
+        setRescheduleConfirm({ apt, newDate: newDateStr, newTime: newTimeStr });
+    };
+
+    const executeReschedule = async () => {
+        if (!rescheduleConfirm) return;
+        const { apt, newDate: newDateStr, newTime: newTimeStr } = rescheduleConfirm;
+        setRescheduleConfirm(null);
 
         try {
             const localStart = new Date(`${newDateStr}T${newTimeStr}:00`);
@@ -1487,6 +1491,88 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                     className="w-full py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-foreground font-bold text-xs transition-all active:scale-95"
                                 >
                                     Stäng
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+            {/* Reschedule Confirmation Modal (Stunning Premium Backdrop Blur) */}
+            <AnimatePresence>
+                {rescheduleConfirm && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setRescheduleConfirm(null)}
+                            className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[90]"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-96 bg-card border border-border shadow-2xl rounded-3xl z-[100] flex flex-col overflow-hidden"
+                        >
+                            {/* Header */}
+                            <div className="p-4 border-b border-border bg-foreground/[0.02] flex items-center justify-between shrink-0">
+                                <div>
+                                    <h3 className="text-sm font-black text-foreground">Bekräfta flytt av bokning</h3>
+                                    <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest mt-0.5">
+                                        Ombokning
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setRescheduleConfirm(null)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-foreground/5 text-foreground/40 hover:text-foreground transition-all"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-6 space-y-4">
+                                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-center space-y-3">
+                                    <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+                                        <AlertTriangle size={20} />
+                                    </div>
+                                    <p className="text-xs text-foreground/80 leading-relaxed font-bold">
+                                        Vill du flytta bokningen för <span className="text-amber-600 dark:text-amber-400 font-extrabold">{rescheduleConfirm.apt.clientName}</span>?
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3 bg-foreground/[0.02] border border-border rounded-2xl p-4">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-foreground/40 font-bold">Behandling:</span>
+                                        <span className="text-foreground font-extrabold">{rescheduleConfirm.apt.service}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-foreground/40 font-bold">Nytt datum:</span>
+                                        <span className="text-foreground font-extrabold">{rescheduleConfirm.newDate}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-foreground/40 font-bold">Ny tid:</span>
+                                        <span className="text-foreground font-extrabold flex items-center gap-1">
+                                            <Clock size={12} className="text-emerald-500" />
+                                            {rescheduleConfirm.newTime} ({rescheduleConfirm.apt.duration} min)
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-4 border-t border-border bg-foreground/[0.01] grid grid-cols-2 gap-3 shrink-0">
+                                <button
+                                    onClick={() => setRescheduleConfirm(null)}
+                                    className="py-3 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-foreground font-bold text-xs transition-all active:scale-95 border border-border"
+                                >
+                                    Avbryt
+                                </button>
+                                <button
+                                    onClick={executeReschedule}
+                                    className="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
+                                >
+                                    Bekräfta flytt
                                 </button>
                             </div>
                         </motion.div>
