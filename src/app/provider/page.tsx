@@ -121,7 +121,8 @@ export default function ProviderDashboard() {
         topTime: '',
         newCustomers: 0,
     });
-    const [dailyRevenue, setDailyRevenue] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+    const [dailyRevenue, setDailyRevenue] = useState<number[]>(() => Array(30).fill(0));
+    const [revenueLabels, setRevenueLabels] = useState<string[]>([]);
 
     const { user, isLoggedIn, isLoading: authLoading } = useAuth();
 
@@ -212,36 +213,37 @@ export default function ProviderDashboard() {
                 setAllAppointments(apts);
 
                 // Calculate real statistics from appointments
-                const confirmedApts = apts.filter((a: any) => a.status !== 'cancelled');
+                const confirmedApts = apts.filter((a: any) => a.status !== 'cancelled' && a.status !== 'pending_payment');
                 const uniqueCustomers = new Set(confirmedApts.map((a: any) => a.clientName || a.customer_name)).size;
 
                 // Top service & time calculation
                 const serviceCounts: Record<string, number> = {};
                 const timeCounts: Record<string, number> = {};
-                const revenueByDay = [0, 0, 0, 0, 0, 0, 0];
+                const revenueByDay = Array(30).fill(0);
 
-                // Build a set of the last 7 days (Mon-Sun of the current week)
-                const weekStart = startOfWeek(toStockholmDate(), { weekStartsOn: 1 });
-                const weekDates = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
+                // Build a set of the last 30 days (up to today)
+                const today = toStockholmDate();
+                const last30DaysDates = Array.from({ length: 30 }, (_, i) => {
+                    const d = addDays(today, -29 + i);
+                    return format(d, 'yyyy-MM-dd');
+                });
 
                 confirmedApts.forEach((a: any) => {
                     const serviceName = a.service_name || a.service;
                     if (serviceName) serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
                     
-                    if (a.status === 'completed' || a.status === 'paid') {
-                        // Compute day index from the appointment date (works for both local and DB appointments)
-                        let aptDateStr = a.date || '';
-                        if (!aptDateStr && a.start_time) {
-                            try { aptDateStr = format(toStockholmDate(new Date(a.start_time)), 'yyyy-MM-dd'); } catch {}
-                        }
-                        if (!aptDateStr && a.booking_date) {
-                            try { aptDateStr = format(toStockholmDate(new Date(a.booking_date)), 'yyyy-MM-dd'); } catch {}
-                        }
-                        const dayIdx = weekDates.indexOf(aptDateStr);
-                        if (dayIdx !== -1) {
-                            const price = Number(a.price || a.total_price || 0);
-                            revenueByDay[dayIdx] += price;
-                        }
+                    // Compute day index from the appointment date (works for both local and DB appointments)
+                    let aptDateStr = a.date || '';
+                    if (!aptDateStr && a.start_time) {
+                        try { aptDateStr = format(toStockholmDate(new Date(a.start_time)), 'yyyy-MM-dd'); } catch {}
+                    }
+                    if (!aptDateStr && a.booking_date) {
+                        try { aptDateStr = format(toStockholmDate(new Date(a.booking_date)), 'yyyy-MM-dd'); } catch {}
+                    }
+                    const dayIdx = last30DaysDates.indexOf(aptDateStr);
+                    if (dayIdx !== -1) {
+                        const price = Number(a.price || a.total_price || 0);
+                        revenueByDay[dayIdx] += price;
                     }
 
                     const aptTime = a.startTime || (a.start_time ? format(toStockholmDate(new Date(a.start_time)), 'HH:mm') : '');
@@ -254,7 +256,13 @@ export default function ProviderDashboard() {
                 const sortedTimes = Object.entries(timeCounts).sort((a, b) => b[1] - a[1]);
                 const topTime = sortedTimes[0] ? sortedTimes[0][0] : '';
 
+                const labels = last30DaysDates.map(dateStr => {
+                    const d = new Date(`${dateStr}T12:00:00`);
+                    return format(d, 'd MMM', { locale: sv });
+                });
+
                 setDailyRevenue(revenueByDay);
+                setRevenueLabels(labels);
                 setStats(prev => ({
                     ...prev,
                     bookings: confirmedApts.length,
@@ -533,9 +541,7 @@ export default function ProviderDashboard() {
         setIsBookingModalOpen(true);
     };
 
-    const totalRevenue = allAppointments
-        .filter((apt: any) => apt.status === 'completed' || apt.status === 'paid')
-        .reduce((sum: number, apt: any) => sum + Number(apt.price || apt.total_price || 0), 0);
+    const totalRevenue = dailyRevenue.reduce((sum, val) => sum + val, 0);
 
     const todayStr = format(toStockholmDate(), 'yyyy-MM-dd');
 
@@ -1038,17 +1044,17 @@ export default function ProviderDashboard() {
                         <div className="lg:col-span-3 bg-card p-8 rounded-3xl border border-border shadow-sm relative overflow-hidden">
                             <div className="flex justify-between items-center mb-4">
                                 <div>
-                                    <h3 className="font-bold text-lg text-foreground">Intäkter senaste 7 dagarna</h3>
+                                    <h3 className="font-bold text-lg text-foreground">Intäkter senaste 30 dagarna</h3>
                                     <p className="text-xs text-foreground/60 font-medium">Statistik baserad på dina faktiska bokningar</p>
                                 </div>
                                 <div className="text-right">
                                     <div className="text-2xl font-black text-foreground">{totalRevenue} {currency}</div>
                                     <div className="text-[10px] text-foreground/30 font-bold uppercase tracking-wider flex items-center justify-end gap-1">
-                                        <TrendingUp size={12} /> Realiserade intäkter
+                                        <TrendingUp size={12} /> Totalt senaste 30 dagarna
                                     </div>
                                 </div>
                             </div>
-                            <RevenueChart currency={currency} data={dailyRevenue} />
+                            <RevenueChart currency={currency} data={dailyRevenue} labels={revenueLabels} />
                         </div>
                     </div>
 
