@@ -66,7 +66,7 @@ export async function POST(req: Request) {
                     if (!url.startsWith('https://')) url = 'https://' + url;
                 }
                 if (url.includes('localhost')) url = 'https://glowbook.se';
-                return `${url}/salon/${salonId}?booking_canceled=true`;
+                return `${url}/salon/${salonId}?booking_canceled=true&appointment_id=${appointmentId}`;
             })(),
             metadata: {
                 type: 'booking',

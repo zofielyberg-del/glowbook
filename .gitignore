@@ -51,3 +51,5 @@ tmp_*
 
 .vercel
 .env*.local
+.env*
+/scratch/

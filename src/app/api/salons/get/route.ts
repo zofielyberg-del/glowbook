@@ -18,6 +18,19 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'ID or Slug is required' }, { status: 400 });
         }
 
+        // Clean up expired pending payments (older than 15 minutes)
+        try {
+            const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+            await prisma.appointment.deleteMany({
+                where: {
+                    status: 'pending_payment',
+                    created_at: { lt: fifteenMinutesAgo }
+                }
+            });
+        } catch (cleanupErr) {
+            console.error('Failed to clean up expired pending bookings:', cleanupErr);
+        }
+
         const salon = await prisma.salon.findUnique({
             where: id ? { id } : { slug: slug as string },
             include: {

@@ -7,7 +7,7 @@ const resend = new Resend(process.env.RESEND_API_KEY || 're_mockKey1234567890');
 const FROM_EMAIL = 'support@glowbook.se'; 
 
 /**
- * Premium HTML Wrapper for all Glowbook emails
+ * Premium HTML Wrapper for all Glowbook emails with a fixed natural cream background
  */
 export const getHtmlWrapper = (content: string) => `
 <!DOCTYPE html>
@@ -15,13 +15,13 @@ export const getHtmlWrapper = (content: string) => `
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light dark">
-    <meta name="supported-color-schemes" content="light dark">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700;900&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
       :root {
-        color-scheme: light dark;
-        supported-color-schemes: light dark;
+        color-scheme: light;
+        supported-color-schemes: light;
       }
       body, table, td, div, p, a {
         -webkit-text-size-adjust: 100%;
@@ -31,54 +31,69 @@ export const getHtmlWrapper = (content: string) => `
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
-        background-color: transparent !important;
+        background-color: #F8F7F4 !important;
       }
       
-      /* Default light theme overrides */
+      /* Natural light theme styles */
       h1, h2, h3, h4, h5, h6, strong, b, span, p, td, div {
-        color: #374151;
+        color: #2D2B2A;
       }
       h1, h2, h3, h4 {
-        color: #111827;
+        color: #1A1918;
       }
       
       /* Keep the gold color for accent words or buttons */
       [style*="color:#C1B363"],
       [style*="color: #C1B363"],
       [style*="color:#b45309"],
-      [style*="color: #b45309"] {
-        color: #b45309 !important;
+      [style*="color: #b45309"],
+      [style*="color:#C5B358"],
+      [style*="color: #C5B358"] {
+        color: #C5B358 !important;
       }
       
-      /* Handle boxes inside content (booking details, etc) */
-      div[style*="background:#111111"],
-      div[style*="background-color:#111111"],
-      div[style*="background: #000000"],
-      div[style*="background-color: #000000"],
-      td[style*="background:#111111"],
-      td[style*="background-color:#111111"] {
-        background-color: #f9fafb !important;
-        background: #f9fafb !important;
-        border-color: #e5e7eb !important;
+      /* Card layout styling for emails */
+      .card {
+        background-color: #F3F1ED !important;
+        border: 1px solid #E5E4DE !important;
+        border-radius: 16px !important;
+        padding: 24px !important;
+        margin: 20px 0 !important;
       }
-      [style*="border-bottom:1px solid #222222"],
-      [style*="border-top:1px solid #222222"],
-      [style*="border-bottom: 1px solid #222222"],
-      [style*="border-top: 1px solid #222222"] {
-        border-color: #e5e7eb !important;
+      .label {
+        font-size: 11px !important;
+        color: #6B6965 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1.5px !important;
+        margin-top: 12px !important;
+        margin-bottom: 2px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
       }
-      
-      /* Restore button text to white */
-      a[style*="background-color:#C1B363"],
-      a[style*="background-color: #C1B363"],
-      a[style*="background-color:#b45309"] {
-        background-color: #b45309 !important;
+      .value {
+        font-size: 15px !important;
+        color: #1A1918 !important;
+        font-weight: bold !important;
+        margin-bottom: 12px !important;
+        font-family: Arial, sans-serif !important;
+      }
+      .btn {
+        display: inline-block !important;
+        background-color: #C5B358 !important;
         color: #ffffff !important;
+        padding: 14px 32px !important;
+        border-radius: 100px !important;
+        text-decoration: none !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        margin: 16px 0 !important;
       }
       
       /* Logo colors */
       .logo-glow {
-        color: #000000 !important;
+        color: #1A1918 !important;
         font-weight: 300 !important;
       }
       .logo-book {
@@ -86,60 +101,32 @@ export const getHtmlWrapper = (content: string) => `
         font-weight: 300 !important;
       }
 
-      /* Dark mode overrides */
+      /* Force natural theme even if mail client forces dark mode */
       @media (prefers-color-scheme: dark) {
-        h1, h2, h3, h4, h5, h6, strong, b, span, p, td, div {
-          color: #d4d4d4 !important;
-        }
-        h1, h2, h3, h4 {
-          color: #ffffff !important;
-        }
-        .email-container {
-          border-color: #374151 !important;
-        }
-        .logo-glow {
-          color: #ffffff !important;
-        }
-        .logo-book {
-          color: #C5B358 !important;
-        }
-        
-        /* Dark mode boxes styling */
-        div[style*="background:#111111"],
-        div[style*="background-color:#111111"],
-        div[style*="background: #000000"],
-        div[style*="background-color: #000000"],
-        td[style*="background:#111111"],
-        td[style*="background-color:#111111"] {
-          background-color: #1f2937 !important;
-          background: #1f2937 !important;
-          border-color: #374151 !important;
-        }
-        [style*="border-bottom:1px solid #222222"],
-        [style*="border-top:1px solid #222222"],
-        [style*="border-bottom: 1px solid #222222"],
-        [style*="border-top: 1px solid #222222"] {
-          border-color: #374151 !important;
-        }
+        body { background-color: #F8F7F4 !important; }
+        .email-container { background-color: #FFFFFF !important; }
+        h1, h2, h3, h4, h5, h6, strong, b, span, p, td, div { color: #2D2B2A !important; }
+        h1, h2, h3, h4 { color: #1A1918 !important; }
+        .card { background-color: #F3F1ED !important; border-color: #E5E4DE !important; }
       }
     </style>
   </head>
-  <body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
-    <div style="width:100%; padding: 32px 0;">
+  <body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;background-color:#F8F7F4;">
+    <div style="width:100%; padding: 32px 0; background-color:#F8F7F4;">
       <table align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%;">
         <tr>
           <td align="center" style="padding:0 16px;">
             <!-- EMAIL CONTAINER WITH BORDER (FRAME) -->
-            <table class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e5e7eb; border-radius: 24px; overflow: hidden;">
+            <table class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #E5E4DE; border-radius: 24px; overflow: hidden; background-color:#FFFFFF;">
               <tr>
-                <td style="padding: 40px 24px;">
+                <td style="padding: 40px 24px; background-color:#FFFFFF;">
                   <table width="100%" cellpadding="0" cellspacing="0" border="0">
                     
                     <!-- LOGO HEADER -->
                     <tr>
                       <td align="center" style="padding:0 0 32px 0;">
                         <a href="https://www.glowbook.se" style="text-decoration:none;">
-                          <span class="logo-glow" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:300;color:#000000;">Glow</span><span class="logo-book" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:300;color:#C5B358;">book</span>
+                          <span class="logo-glow" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:300;color:#1A1918;">Glow</span><span class="logo-book" style="font-family:'Comfortaa', 'Outfit', sans-serif;font-size:36px;font-weight:300;color:#C5B358;">book</span>
                         </a>
                       </td>
                     </tr>
@@ -147,7 +134,7 @@ export const getHtmlWrapper = (content: string) => `
                     <!-- CONTENT CARD -->
                     <tr>
                       <td>
-                        <div style="font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+                        <div style="font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;color:#2D2B2A;">
                           ${content}
                         </div>
                       </td>
@@ -155,7 +142,7 @@ export const getHtmlWrapper = (content: string) => `
 
                     <!-- FOOTER -->
                     <tr>
-                      <td align="center" style="padding:40px 20px 0 20px;font-size:12px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;border-top:1px solid #e5e7eb;margin-top:32px;border-color:#e5e7eb;">
+                      <td align="center" style="padding:40px 20px 0 20px;font-size:12px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;border-top:1px solid #E5E4DE;margin-top:32px;border-color:#E5E4DE;color:#6B6965;">
                         &copy; ${new Date().getFullYear()} Glowbook AB<br>
                         <a href="https://www.glowbook.se" style="color:#C5B358;text-decoration:none;font-weight:bold;">www.glowbook.se</a>
                       </td>
@@ -179,17 +166,17 @@ export const getHtmlWrapper = (content: string) => `
  */
 export const sendProviderWelcomeEmail = async (email: string, firstName: string) => {
     const htmlContent = `
-        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Välkommen till Glowbook</h1>
-        <p style="color:#d4d4d4;margin:0 0 16px 0;">Bästa ${firstName},</p>
-        <p style="color:#d4d4d4;margin:0 0 16px 0;">Det gläder oss oerhört att ni har valt att ansluta er till Glowbook – Sveriges ledande bokningsplattform för exklusiv skönhet och hälsa.</p>
-        <p style="color:#d4d4d4;margin:0 0 40px 0;">Er profil är nu skapad. Ni kan omgående konfigurera er kalender, lägga till behandlingar samt anpassa er presentation för att återspegla er salongs unika karaktär.</p>
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Välkommen till Glowbook</h1>
+        <p style="color:#2D2B2A;margin:0 0 16px 0;">Bästa ${firstName},</p>
+        <p style="color:#2D2B2A;margin:0 0 16px 0;">Det gläder oss oerhört att ni har valt att ansluta er till Glowbook – Sveriges ledande bokningsplattform för exklusiv skönhet och hälsa.</p>
+        <p style="color:#2D2B2A;margin:0 0 40px 0;">Er profil är nu skapad. Ni kan omgående konfigurera er kalender, lägga till behandlingar samt anpassa er presentation för att återspegla er salongs unika karaktär.</p>
         
         <div style="margin:40px 0;">
-            <a href="https://glowbook.se/admin" style="display:inline-block;background-color:#C1B363;color:#000000;padding:16px 40px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Gå till er Dashboard</a>
+            <a href="https://glowbook.se/admin" style="display:inline-block;background-color:#C5B358;color:#FFFFFF;padding:16px 40px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Gå till er Dashboard</a>
         </div>
         
-        <p style="color:#aaaaaa;margin:0 0 12px 0;">Om ni har några frågor eller önskar vägledning under uppstarten står vår dedikerade support alltid till er tjänst.</p>
-        <p style="color:#cccccc;margin:0;">Med vänliga hälsningar,<br/><strong style="color:#ffffff;">Team Glowbook</strong></p>
+        <p style="color:#6B6965;margin:0 0 12px 0;">Om ni har några frågor eller önskar vägledning under uppstarten står vår dedikerade support alltid till er tjänst.</p>
+        <p style="color:#2D2B2A;margin:0;">Med vänliga hälsningar,<br/><strong style="color:#1A1918;">Team Glowbook</strong></p>
     `;
 
     try {
@@ -217,31 +204,31 @@ export const sendProviderWelcomeEmail = async (email: string, firstName: string)
  */
 export const sendCustomerWelcomeEmail = async (email: string, firstName: string) => {
     const htmlContent = `
-        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Välkommen till Glowbook</h1>
-        <p style="color:#d4d4d4;margin:0 0 16px 0;">Hej ${firstName},</p>
-        <p style="color:#d4d4d4;margin:0 0 32px 0;">Vi är mycket glada över att välkomna dig till Glowbook. Hos oss får du direkt tillgång till Sveriges mest framstående salonger och skönhetsutförare.</p>
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Välkommen till Glowbook</h1>
+        <p style="color:#2D2B2A;margin:0 0 16px 0;">Hej ${firstName},</p>
+        <p style="color:#2D2B2A;margin:0 0 32px 0;">Vi är mycket glada över att välkomna dig till Glowbook. Hos oss får du direkt tillgång till Sveriges mest framstående salonger och skönhetsutförare.</p>
         
         <div style="margin-bottom:32px;">
-            <h3 style="margin:0 0 8px 0;color:#C1B363;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Din lojalitetsbonus: Glowpoints</h3>
-            <p style="font-size:14px;line-height:1.6;margin:0;color:#a3a3a3;">
+            <h3 style="margin:0 0 8px 0;color:#C5B358;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Din lojalitetsbonus: Glowpoints</h3>
+            <p style="font-size:14px;line-height:1.6;margin:0;color:#2D2B2A;">
                 Du tjänar poäng automatiskt vid varje slutförd behandling bokad via Glowbook. 
                 För varje 10 SEK du spenderar erhåller du 5 poäng. Samla poäng för att erhålla exklusiva förmåner och avancera i våra medlemsnivåer.
             </p>
         </div>
 
         <div style="margin-bottom:40px;">
-            <h3 style="margin:0 0 8px 0;color:#ffffff;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Digitala presentkort</h3>
-            <p style="font-size:14px;line-height:1.6;margin:0;color:#a3a3a3;">
+            <h3 style="margin:0 0 8px 0;color:#1A1918;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Digitala presentkort</h3>
+            <p style="font-size:14px;line-height:1.6;margin:0;color:#2D2B2A;">
                 Ge bort en stund av lyx. Du kan enkelt köpa digitala presentkort på Glowbook för direkt leverans till mottagarens e-post.
             </p>
         </div>
         
         <div style="margin:40px 0;">
-            <a href="https://glowbook.se/explore" style="display:inline-block;background-color:#C1B363;color:#000000;padding:16px 40px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Upptäck Salonger</a>
+            <a href="https://glowbook.se/explore" style="display:inline-block;background-color:#C5B358;color:#FFFFFF;padding:16px 40px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Upptäck Salonger</a>
         </div>
         
-        <p style="color:#aaaaaa;margin:24px 0 12px 0;">Vi ser fram emot att hjälpa dig att stråla.</p>
-        <p style="color:#cccccc;margin:0;">Bästa hälsningar,<br/><strong style="color:#ffffff;">Team Glowbook</strong></p>
+        <p style="color:#6B6965;margin:24px 0 12px 0;">Vi ser fram emot att hjälpa dig att stråla.</p>
+        <p style="color:#2D2B2A;margin:0;">Bästa hälsningar,<br/><strong style="color:#1A1918;">Team Glowbook</strong></p>
     `;
 
     try {
@@ -279,53 +266,53 @@ export const sendCustomerBookingConfirmation = async (
     messageTemplates?: { directions?: string; policy?: string; preparation?: string }
 ) => {
     const htmlContent = `
-        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Bokningsbekräftelse</h1>
-        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hej ${customerName} !</p>
-        <p style="color:#d4d4d4;margin:0 0 32px 0;font-size:15px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">Tack för att du bokar din tid hos oss. Vi ser fram emot att ta hand om dig!</p>
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Bokningsbekräftelse</h1>
+        <p style="color:#2D2B2A;margin:0 0 16px 0;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hej ${customerName}!</p>
+        <p style="color:#2D2B2A;margin:0 0 32px 0;font-size:15px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">Tack för att du bokar din tid hos oss. Vi ser fram emot att ta hand om dig!</p>
         
-        <div style="background:#111111;border:1px solid #222222;border-radius:16px;padding:28px;margin:0 0 32px;">
-            <h3 style="font-size:12px;color:#C1B363;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #222222;padding-bottom:12px;">Din bokning</h3>
+        <div style="background:#F3F1ED;border:1px solid #E5E4DE;border-radius:16px;padding:28px;margin:0 0 32px;">
+            <h3 style="font-size:12px;color:#C5B358;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #E5E4DE;padding-bottom:12px;">Din bokning</h3>
             
-            <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">📅</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Datum:</strong> ${dateStr}</p>
-            <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">🕒</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Tid:</strong> ${timeStr}</p>
-            <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">📍</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Plats:</strong> ${salonName}</p>
-            <p style="color:#ffffff;font-size:15px;margin:0 0 0 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💅</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Behandling:</strong> ${serviceName}</p>
+            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">📅</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Datum:</strong> ${dateStr}</p>
+            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">🕒</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Tid:</strong> ${timeStr}</p>
+            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">📍</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Plats:</strong> ${salonName}</p>
+            <p style="color:#1A1918;font-size:15px;margin:0 0 0 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💅</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Behandling:</strong> ${serviceName}</p>
         </div>
 
         ${messageTemplates?.directions || messageTemplates?.preparation || messageTemplates?.policy ? `
-        <div style="background:#111111;border:1px solid #222222;border-radius:16px;padding:28px;margin:0 0 32px;">
-            <h3 style="font-size:12px;color:#C1B363;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #222222;padding-bottom:12px;">Viktig information</h3>
+        <div style="background:#F3F1ED;border:1px solid #E5E4DE;border-radius:16px;padding:28px;margin:0 0 32px;">
+            <h3 style="font-size:12px;color:#C5B358;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #E5E4DE;padding-bottom:12px;">Viktig information</h3>
             
             ${messageTemplates.preparation ? `
             <div style="margin-bottom: 20px;">
-                <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffffff; margin: 0 0 6px 0; font-family:Arial,Helvetica,sans-serif;">Inför besöket</h4>
-                <p style="color: #aaaaaa; font-size: 14px; margin: 0; line-height: 1.5; font-family:Arial,Helvetica,sans-serif;">${messageTemplates.preparation}</p>
+                <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #1A1918; margin: 0 0 6px 0; font-family:Arial,Helvetica,sans-serif;">Inför besöket</h4>
+                <p style="color: #2D2B2A; font-size: 14px; margin: 0; line-height: 1.5; font-family:Arial,Helvetica,sans-serif;">${messageTemplates.preparation}</p>
             </div>
             ` : ''}
             
             ${messageTemplates.directions ? `
             <div style="margin-bottom: 20px;">
-                <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffffff; margin: 0 0 6px 0; font-family:Arial,Helvetica,sans-serif;">Vägbeskrivning</h4>
-                <p style="color: #aaaaaa; font-size: 14px; margin: 0; line-height: 1.5; font-family:Arial,Helvetica,sans-serif;">${messageTemplates.directions}</p>
+                <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #1A1918; margin: 0 0 6px 0; font-family:Arial,Helvetica,sans-serif;">Vägbeskrivning</h4>
+                <p style="color: #2D2B2A; font-size: 14px; margin: 0; line-height: 1.5; font-family:Arial,Helvetica,sans-serif;">${messageTemplates.directions}</p>
             </div>
             ` : ''}
             
             ${messageTemplates.policy ? `
             <div style="margin-bottom: 0;">
-                <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffffff; margin: 0 0 6px 0; font-family:Arial,Helvetica,sans-serif;">Bokningspolicy</h4>
-                <p style="color: #aaaaaa; font-size: 14px; margin: 0; line-height: 1.5; font-family:Arial,Helvetica,sans-serif;">${messageTemplates.policy}</p>
+                <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #1A1918; margin: 0 0 6px 0; font-family:Arial,Helvetica,sans-serif;">Bokningspolicy</h4>
+                <p style="color: #2D2B2A; font-size: 14px; margin: 0; line-height: 1.5; font-family:Arial,Helvetica,sans-serif;">${messageTemplates.policy}</p>
             </div>
             ` : ''}
         </div>
         ` : ''}
         
-        <p style="color:#d4d4d4;margin:0 0 24px 0;font-size:15px;font-family:Arial,Helvetica,sans-serif;">Vi ser fram emot att välkomna dig ✨</p>
+        <p style="color:#2D2B2A;margin:0 0 24px 0;font-size:15px;font-family:Arial,Helvetica,sans-serif;">Vi ser fram emot att välkomna dig ✨</p>
         
-        <p style="color:#cccccc;margin:0;font-size:15px;font-family:Arial,Helvetica,sans-serif;">Med vänliga hälsningar,<br/><strong style="color:#ffffff;">${salonName}</strong></p>
+        <p style="color:#6B6965;margin:0;font-size:15px;font-family:Arial,Helvetica,sans-serif;">Med vänliga hälsningar,<br/><strong style="color:#1A1918;">${salonName}</strong></p>
 
         ${appointmentId ? `
-        <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #222222; text-align: center;">
-            <a href="https://glowbook.se/booking/manage/${appointmentId}" style="display:inline-block;background-color:#C1B363;color:#000000;padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Hantera eller Avboka din tid</a>
+        <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #E5E4DE; text-align: center;">
+            <a href="https://glowbook.se/booking/manage/${appointmentId}" style="display:inline-block;background-color:#C5B358;color:#FFFFFF;padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Hantera eller Avboka din tid</a>
         </div>
         ` : ''}
     `;
@@ -362,7 +349,7 @@ export const sendCustomerCancellationEmail = async (
     timeStr: string
 ) => {
     const htmlContent = `
-        <h1 style="color: #111111;">Bokning avbokad</h1>
+        <h1 style="color: #1A1918;">Bokning avbokad</h1>
         <p>Hej ${customerName},</p>
         <p>Vi har nu registrerat din avbokning för <strong>${serviceName}</strong> den ${dateStr} kl. ${timeStr}.</p>
         <p>Vi hoppas få välkomna dig tillbaka snart och du är alltid varmt välkommen att boka en ny tid när det passar dig.</p>
@@ -396,7 +383,7 @@ export const sendCustomerCancellationByProviderEmail = async (
     timeStr: string
 ) => {
     const htmlContent = `
-        <h1 style="color: #111111;">Bokning avbokad</h1>
+        <h1 style="color: #1A1918;">Bokning avbokad</h1>
         <p>Hej ${customerName},</p>
         <p>Vi behöver tyvärr meddela att din bokning för <strong>${serviceName}</strong> den ${dateStr} kl. ${timeStr} har behövt avbokas från salongens sida.</p>
         <p>Detta kan bero på sjukdom, schemaändringar eller andra oförutsedda omständigheter. Vi ber om ursäkt för besväret och hjälper dig gärna att hitta en ny tid som passar.</p>
@@ -430,7 +417,7 @@ export const sendCustomerRescheduleEmail = async (
     timeStr: string
 ) => {
     const htmlContent = `
-        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Bokning ombokad</h1>
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Bokning ombokad</h1>
         <p>Hej ${customerName},</p>
         <p>Din bokning har nu blivit ombokad enligt önskemål.</p>
         <p><strong>Ny tid:</strong></p>
@@ -466,7 +453,7 @@ export const sendProviderCancellationEmail = async (
     timeStr: string
 ) => {
     const htmlContent = `
-        <h1 style="color: #111111;">Avbokad tid</h1>
+        <h1 style="color: #1A1918;">Avbokad tid</h1>
         <p>Hej ${salonName},</p>
         <p>Kunden <strong>${customerName}</strong> har avbokat sin tid.</p>
         
@@ -502,7 +489,7 @@ export const sendProviderCancellationEmail = async (
 };
 
 /**
- * 3. Booking Notification for Providers
+ * 3b. Booking Notification for Providers
  */
 export const sendProviderBookingNotification = async (
     providerEmail: string, 
@@ -515,17 +502,17 @@ export const sendProviderBookingNotification = async (
     paymentMethod?: string
 ) => {
     const htmlContent = `
-        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Ny Bokning</h1>
-        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hej ${salonName},</p>
-        <p style="color:#d4d4d4;margin:0 0 32px 0;font-size:15px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">Du har precis fått en ny bokning via Glowbook.</p>
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Ny Bokning</h1>
+        <p style="color:#2D2B2A;margin:0 0 16px 0;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hej ${salonName},</p>
+        <p style="color:#2D2B2A;margin:0 0 32px 0;font-size:15px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">Du har precis fått en ny bokning via Glowbook.</p>
         
-        <div style="background:#111111;border:1px solid #222222;border-radius:16px;padding:28px;margin:0 0 32px;">
-            <h3 style="font-size:12px;color:#C1B363;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #222222;padding-bottom:12px;">Bokningsdetaljer</h3>
+        <div style="background:#F3F1ED;border:1px solid #E5E4DE;border-radius:16px;padding:28px;margin:0 0 32px;">
+            <h3 style="font-size:12px;color:#C5B358;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #E5E4DE;padding-bottom:12px;">Bokningsdetaljer</h3>
             
-            <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">👤</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Kund:</strong> ${customerName} <span style="font-weight: normal; color: #666; font-size: 13px;">(${customerEmail})</span></p>
-            <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💅</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Behandling:</strong> ${serviceName}</p>
-            <p style="color:#ffffff;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">🕒</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Tid:</strong> ${dateStr} kl ${timeStr}</p>
-            <p style="color:#ffffff;font-size:15px;margin:0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💳</span> <strong style="color:#888888;font-weight:normal;margin-right:8px;">Betalsätt:</strong> ${
+            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">👤</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Kund:</strong> ${customerName} <span style="font-weight: normal; color: #666; font-size: 13px;">(${customerEmail})</span></p>
+            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💅</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Behandling:</strong> ${serviceName}</p>
+            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">🕒</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Tid:</strong> ${dateStr} kl ${timeStr}</p>
+            <p style="color:#1A1918;font-size:15px;margin:0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💳</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Betalsätt:</strong> ${
                 paymentMethod === 'klarna' ? 'Betald online (Klarna)' :
                 paymentMethod === 'card' ? 'Betald online (Kort)' :
                 (paymentMethod === 'stripe' || paymentMethod === 'paid') ? 'Betald online (Kort/Klarna)' :
@@ -536,7 +523,7 @@ export const sendProviderBookingNotification = async (
         </div>
         
         <div style="text-align: center; margin-top: 40px;">
-            <a href="https://glowbook.se/admin/calendar" style="display:inline-block;background-color:#C1B363;color:#000000;padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Visa i Kalendern</a>
+            <a href="https://glowbook.se/admin/calendar" style="display:inline-block;background-color:#C5B358;color:#FFFFFF;padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Visa i Kalendern</a>
         </div>
     `;
 
@@ -575,29 +562,29 @@ export const sendGiftCardEmail = async (
     const expiresAtStr = expiresAt ? expiresAt.toLocaleDateString('sv-SE') : new Date(Date.now() + 365 * 2 * 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE');
     
     const htmlContent = `
-        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Ett presentkort från Glowbook</h1>
-        <p style="font-family:Arial,Helvetica,sans-serif;color:#d4d4d4;margin:0 0 16px 0;">Hej ${recipientName},</p>
-        <p style="font-family:Arial,Helvetica,sans-serif;color:#d4d4d4;margin:0 0 32px 0;">${senderName} har skickat ett digitalt presentkort till dig!</p>
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Ett presentkort från Glowbook</h1>
+        <p style="font-family:Arial,Helvetica,sans-serif;color:#2D2B2A;margin:0 0 16px 0;">Hej ${recipientName},</p>
+        <p style="font-family:Arial,Helvetica,sans-serif;color:#2D2B2A;margin:0 0 32px 0;">${senderName} har skickat ett digitalt presentkort till dig!</p>
         
-        <div style="background: #000000; color: #ffffff; padding: 40px 0; text-align: left; margin: 32px 0;">
-            <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #C1B363; font-weight: 700; font-family:Arial,Helvetica,sans-serif;">Presentkort</p>
-            <h1 style="font-size: 48px; margin: 12px 0; color: #ffffff; letter-spacing: -1px; font-weight: 700; font-family:Arial,Helvetica,sans-serif;">${amount} SEK</h1>
-            <p style="color: #C1B363; font-size: 24px; letter-spacing: 2px; margin: 0; font-weight: 700; font-family:Arial,Helvetica,sans-serif;">KOD: ${code}</p>
+        <div style="background: #F3F1ED; border: 1px solid #E5E4DE; color: #1A1918; padding: 40px 24px; text-align: center; border-radius: 16px; margin: 32px 0;">
+            <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #C5B358; font-weight: 700; font-family:Arial,Helvetica,sans-serif;">Presentkort</p>
+            <h1 style="font-size: 48px; margin: 12px 0; color: #1A1918; letter-spacing: -1px; font-weight: 700; font-family:Arial,Helvetica,sans-serif;">${amount} SEK</h1>
+            <p style="color: #C5B358; font-size: 24px; letter-spacing: 2px; margin: 0; font-weight: 700; font-family:Arial,Helvetica,sans-serif;">KOD: ${code}</p>
         </div>
         
         ${message ? `
         <div style="margin: 24px 0;">
-            <p style="font-family:Arial,Helvetica,sans-serif;font-size: 15px; font-style: italic; line-height: 1.6; margin: 0; color: #d4d4d4;">
+            <p style="font-family:Arial,Helvetica,sans-serif;font-size: 15px; font-style: italic; line-height: 1.6; margin: 0; color: #2D2B2A;">
                 "${message}"
             </p>
         </div>
         ` : ''}
         
-        <div style="margin: 40px 0;">
-            <a href="https://www.glowbook.se/giftcards" style="display:inline-block;background-color:#C1B363;color:#000000;padding:16px 40px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Lös in Presentkort</a>
+        <div style="margin: 40px 0; text-align: center;">
+            <a href="https://www.glowbook.se/giftcards" style="display:inline-block;background-color:#C5B358;color:#FFFFFF;padding:16px 40px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Lös in Presentkort</a>
         </div>
         
-        <p style="font-family:Arial,Helvetica,sans-serif;margin-top: 32px; font-size: 12px; color: #888888;">
+        <p style="font-family:Arial,Helvetica,sans-serif;margin-top: 32px; font-size: 12px; color: #6B6965;">
             Giltigt till ${expiresAtStr} hos alla Glowbook-anslutna salonger.
         </p>
     `;
@@ -634,12 +621,12 @@ export const sendGiftCardUsageEmail = async (
     newBalance: number
 ) => {
     const htmlContent = `
-        <h1>Ditt presentkort har använts</h1>
+        <h1 style="color: #1A1918;">Ditt presentkort har använts</h1>
         <p>Hej ${recipientName},</p>
         <p>Ditt presentkort har precis använts för en bokning hos <strong>${salonName}</strong>.</p>
         
         <div class="card">
-            <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #111; border-bottom: 1px solid #eee; padding-bottom: 10px;">Transaktionsdetaljer</h3>
+            <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #1A1918; border-bottom: 1px solid #E5E4DE; padding-bottom: 10px;">Transaktionsdetaljer</h3>
             
             <div class="label">Salong</div>
             <div class="value">${salonName}</div>
@@ -648,7 +635,7 @@ export const sendGiftCardUsageEmail = async (
             <div class="value" style="color: #d32f2f;">-${amount} SEK</div>
             
             <div class="label">Kvarvarande saldo</div>
-            <div class="value highlight" style="font-size: 18px; font-weight: 800;">${newBalance} SEK</div>
+            <div class="value" style="font-size: 18px; font-weight: 800; color: #C5B358;">${newBalance} SEK</div>
             
             <div class="label">Kod</div>
             <div class="value" style="font-family: monospace; letter-spacing: 1px;">${code}</div>
@@ -687,34 +674,34 @@ export const sendCancellationEmail = async (
     salonName: string
 ) => {
     const htmlContent = `
-        <p style="font-size:16px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;margin:0 0 24px;">Bästa ${firstName},</p>
+        <p style="font-size:16px;color:#1A1918;font-family:Arial,Helvetica,sans-serif;margin:0 0 24px;">Bästa ${firstName},</p>
 
-        <p style="font-size:15px;color:#aaaaaa;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 20px;">
-            Vi har mottagit din uppsägning av <strong style="color:#ffffff;">${salonName}</strong>s Glowbook-medlemskap. 
+        <p style="font-size:15px;color:#2D2B2A;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 20px;">
+            Vi har mottagit din uppsägning av <strong style="color:#1A1918;">${salonName}</strong>s Glowbook-medlemskap. 
             Ditt konto är aktivt fram till periodens slut — du behåller full tillgång tills dess.
         </p>
 
-        <p style="font-size:15px;color:#aaaaaa;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 32px;">
+        <p style="font-size:15px;color:#2D2B2A;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 32px;">
             Vi är ledsna att se dig gå och hoppas att vi ses igen. 💛
         </p>
 
-        <div style="background:#111111;border:1px solid #222222;border-radius:16px;padding:28px;margin:0 0 32px;">
-            <p style="font-size:13px;color:#888888;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 12px;">Hjälp oss bli bättre</p>
-            <p style="font-size:15px;color:#dddddd;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 16px;">
+        <div style="background:#F3F1ED;border:1px solid #E5E4DE;border-radius:16px;padding:28px;margin:0 0 32px;">
+            <p style="font-size:13px;color:#C5B358;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 12px;font-weight:bold;">Hjälp oss bli bättre</p>
+            <p style="font-size:15px;color:#2D2B2A;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 16px;">
                 Vad kunde vi gjort annorlunda? Ditt svar betyder mycket för oss — svara direkt på det här mejlet så läser vi varje ord.
             </p>
-            <p style="font-size:13px;color:#666666;font-family:Arial,Helvetica,sans-serif;margin:0;">
+            <p style="font-size:13px;color:#6B6965;font-family:Arial,Helvetica,sans-serif;margin:0;">
                 Alla svar går direkt till teamet bakom Glowbook.
             </p>
         </div>
 
-        <p style="font-size:15px;color:#aaaaaa;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 8px;">
+        <p style="font-size:15px;color:#2D2B2A;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 8px;">
             Om du någonsin vill komma tillbaka är du alltid välkommen — det tar bara några sekunder att aktivera ditt konto igen.
         </p>
 
-        <p style="font-size:15px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;margin:32px 0 0;">
+        <p style="font-size:15px;color:#1A1918;font-family:Arial,Helvetica,sans-serif;margin:32px 0 0;">
             Varmt,<br/>
-            <strong style="color:#C1B363;">Team Glowbook</strong>
+            <strong style="color:#C5B358;">Team Glowbook</strong>
         </p>
     `;
 
@@ -751,46 +738,46 @@ export const sendProviderReceiptEmail = async (
     currencySymbol: string = 'SEK'
 ) => {
     const htmlContent = `
-        <p style="font-size:16px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;margin:0 0 24px;">Hej ${firstName},</p>
+        <p style="font-size:16px;color:#1A1918;font-family:Arial,Helvetica,sans-serif;margin:0 0 24px;">Hej ${firstName},</p>
 
-        <p style="font-size:15px;color:#aaaaaa;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 24px;">
-            Här kommer din betalningsbekräftelse för din prenumeration av <strong style="color:#ffffff;">Glowbook ${tierName.toUpperCase()}</strong> för salongen <strong style="color:#ffffff;">${salonName}</strong>.
+        <p style="font-size:15px;color:#2D2B2A;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 24px;">
+            Här kommer din betalningsbekräftelse för din prenumeration av <strong style="color:#1A1918;">Glowbook ${tierName.toUpperCase()}</strong> för salongen <strong style="color:#1A1918;">${salonName}</strong>.
         </p>
 
-        <div style="background:#111111;border:1px solid #222222;border-radius:16px;padding:28px;margin:0 0 32px;">
-            <h3 style="font-size:12px;color:#C1B363;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #222222;padding-bottom:12px;">Kvitto / Specifikation</h3>
+        <div style="background:#F3F1ED;border:1px solid #E5E4DE;border-radius:16px;padding:28px;margin:0 0 32px;">
+            <h3 style="font-size:12px;color:#C5B358;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #E5E4DE;padding-bottom:12px;">Kvitto / Specifikation</h3>
             
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                    <td style="font-size:14px;color:#888888;padding:8px 0;font-family:Arial,Helvetica,sans-serif;">Produkt:</td>
-                    <td style="font-size:14px;color:#ffffff;padding:8px 0;text-align:right;font-family:Arial,Helvetica,sans-serif;font-weight:bold;">Glowbook ${tierName.toUpperCase()}</td>
+                    <td style="font-size:14px;color:#6B6965;padding:8px 0;font-family:Arial,Helvetica,sans-serif;">Produkt:</td>
+                    <td style="font-size:14px;color:#1A1918;padding:8px 0;text-align:right;font-family:Arial,Helvetica,sans-serif;font-weight:bold;">Glowbook ${tierName.toUpperCase()}</td>
                 </tr>
                 <tr>
-                    <td style="font-size:14px;color:#888888;padding:8px 0;font-family:Arial,Helvetica,sans-serif;">Salong:</td>
-                    <td style="font-size:14px;color:#ffffff;padding:8px 0;text-align:right;font-family:Arial,Helvetica,sans-serif;">${salonName}</td>
+                    <td style="font-size:14px;color:#6B6965;padding:8px 0;font-family:Arial,Helvetica,sans-serif;">Salong:</td>
+                    <td style="font-size:14px;color:#1A1918;padding:8px 0;text-align:right;font-family:Arial,Helvetica,sans-serif;">${salonName}</td>
                 </tr>
                 <tr>
-                    <td style="font-size:14px;color:#888888;padding:8px 0;font-family:Arial,Helvetica,sans-serif;">Provperiod (Trial):</td>
-                    <td style="font-size:14px;color:#ffffff;padding:8px 0;text-align:right;font-family:Arial,Helvetica,sans-serif;color:#55cc55;">30 dagar gratis ingår</td>
+                    <td style="font-size:14px;color:#6B6965;padding:8px 0;font-family:Arial,Helvetica,sans-serif;">Provperiod (Trial):</td>
+                    <td style="font-size:14px;color:#2e7d32;padding:8px 0;text-align:right;font-family:Arial,Helvetica,sans-serif;font-weight:bold;">30 dagar gratis ingår</td>
                 </tr>
                 <tr>
-                    <td style="font-size:14px;color:#888888;padding:8px 0;font-family:Arial,Helvetica,sans-serif;">Status:</td>
-                    <td style="font-size:14px;color:#ffffff;padding:8px 0;text-align:right;font-family:Arial,Helvetica,sans-serif;font-weight:bold;color:#C1B363;">Betald</td>
+                    <td style="font-size:14px;color:#6B6965;padding:8px 0;font-family:Arial,Helvetica,sans-serif;">Status:</td>
+                    <td style="font-size:14px;color:#C5B358;padding:8px 0;text-align:right;font-family:Arial,Helvetica,sans-serif;font-weight:bold;">Betald</td>
                 </tr>
-                <tr style="border-top:1px solid #222222;">
-                    <td style="font-size:16px;color:#ffffff;padding:16px 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:bold;">Totalt:</td>
-                    <td style="font-size:20px;color:#ffffff;padding:16px 0 0;text-align:right;font-family:Arial,Helvetica,sans-serif;font-weight:black;color:#C1B363;">${price} ${currencySymbol}</td>
+                <tr style="border-top:1px solid #E5E4DE;">
+                    <td style="font-size:16px;color:#1A1918;padding:16px 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:bold;">Totalt:</td>
+                    <td style="font-size:20px;color:#C5B358;padding:16px 0 0;text-align:right;font-family:Arial,Helvetica,sans-serif;font-weight:bold;">${price} ${currencySymbol}</td>
                 </tr>
             </table>
         </div>
 
-        <p style="font-size:15px;color:#aaaaaa;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 24px;">
+        <p style="font-size:15px;color:#2D2B2A;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 24px;">
             Transaktionen är nu slutförd och registrerad. Du kan hantera ditt medlemskap och ladda ner kvitton direkt under inställningar i din dashboard.
         </p>
 
-        <p style="font-size:15px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;margin:32px 0 0;">
+        <p style="font-size:15px;color:#1A1918;font-family:Arial,Helvetica,sans-serif;margin:32px 0 0;">
             Vänliga hälsningar,<br/>
-            <strong style="color:#C1B363;">Team Glowbook</strong>
+            <strong style="color:#C5B358;">Team Glowbook</strong>
         </p>
     `;
 
@@ -824,26 +811,26 @@ export const sendCustomerFeedbackRequestEmail = async (
     reviewUrl: string
 ) => {
     const htmlContent = `
-        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;color:#ffffff;margin:0 0 24px 0;letter-spacing:-0.5px;">Tack för ditt besök! ✨</h1>
-        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hej ${customerFirstName},</p>
-        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Tack för ditt besök! ✨</h1>
+        <p style="color:#2D2B2A;margin:0 0 16px 0;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hej ${customerFirstName},</p>
+        <p style="color:#2D2B2A;margin:0 0 16px 0;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
             Tack för din bokning hos <strong>${salonName}</strong>. Vi hoppas att du trivdes och älskade resultatet.
         </p>
-        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+        <p style="color:#2D2B2A;margin:0 0 16px 0;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
             Din feedback betyder mycket och hjälper både salongen och andra kunder att känna sig trygga när de bokar.
         </p>
-        <p style="color:#d4d4d4;margin:0 0 16px 0;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+        <p style="color:#2D2B2A;margin:0 0 16px 0;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
             Lämna gärna ett snabbt betyg här:
         </p>
         
         <div style="margin:28px 0 36px;text-align:left;">
-            <a href="${reviewUrl}" style="display:inline-block;background-color:#C1B363;color:#000000;padding:14px 32px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Lämna betyg</a>
+            <a href="${reviewUrl}" style="display:inline-block;background-color:#C5B358;color:#FFFFFF;padding:14px 32px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Lämna betyg</a>
         </div>
         
-        <p style="color:#aaaaaa;margin:24px 0 16px 0;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Tack för att du använder Glowbook.</p>
-        <p style="color:#cccccc;margin:0;font-size:15px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+        <p style="color:#6B6965;margin:24px 0 16px 0;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Tack för att du använder Glowbook.</p>
+        <p style="color:#2D2B2A;margin:0;font-size:15px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
             Vänliga hälsningar,<br/>
-            <strong style="color:#ffffff;">Glowbook & ${salonName}</strong>
+            <strong style="color:#1A1918;">Glowbook & ${salonName}</strong>
         </p>
     `;
 
@@ -866,5 +853,3 @@ export const sendCustomerFeedbackRequestEmail = async (
         return { success: false, error };
     }
 };
-
-

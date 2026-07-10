@@ -327,6 +327,30 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     fetchAppointmentDetails();
                 }
             }
+
+            // Check for canceled payment from Stripe
+            const bookingCanceled = params.get('booking_canceled') === 'true';
+            const canceledAppointmentId = params.get('appointment_id');
+            if (bookingCanceled && canceledAppointmentId) {
+                fetch('/api/bookings/cancel-pending', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ appointmentId: canceledAppointmentId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Pending payment booking cleaned up successfully:', data);
+                    alert('Betalningen avbröts. Din tid har frigjorts.');
+                    
+                    // Clear the query parameters
+                    const newParams = new URLSearchParams(window.location.search);
+                    newParams.delete('booking_canceled');
+                    newParams.delete('appointment_id');
+                    const newQuery = newParams.toString();
+                    router.replace(window.location.pathname + (newQuery ? '?' + newQuery : ''));
+                })
+                .catch(err => console.error('Failed to clean up pending booking:', err));
+            }
         };
         checkCustomerLogin();
         window.addEventListener('glowbook_update', checkCustomerLogin);

@@ -27,6 +27,19 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'Missing salonId or serviceId' }, { status: 400 });
         }
 
+        // Clean up expired pending payments (older than 15 minutes)
+        try {
+            const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+            await prisma.appointment.deleteMany({
+                where: {
+                    status: 'pending_payment',
+                    created_at: { lt: fifteenMinutesAgo }
+                }
+            });
+        } catch (cleanupErr) {
+            console.error('Failed to clean up expired pending bookings:', cleanupErr);
+        }
+
         const twelveWeeksFromNow = addDays(new Date(), 84);
 
         // Run both DB queries in parallel for max speed
