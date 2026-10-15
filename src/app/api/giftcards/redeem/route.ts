@@ -7,57 +7,60 @@ export async function POST(req: Request) {
     try {
         const { code, amount, salonName } = await req.json();
 
-        if (!code || !amount) {
-            return NextResponse.json({ error: 'Code and amount are required' }, { status: 400 });
+        const numericAmount = Number(amount);
+        if (!code || isNaN(numericAmount) || numericAmount <= 0) {
+            return NextResponse.json({ error: 'Giltig kod och ett positivt belopp krävs.' }, { status: 400 });
         }
 
-        // 1. Get gift card
-        const giftCard = await prisma.giftCard.findUnique({
-            where: { code }
-        });
+        const normalizedCode = String(code).trim().toUpperCase();
 
-        if (!giftCard) {
-            return NextResponse.json({ error: 'Gift card not found' }, { status: 404 });
-        }
+        // 1 & 2. Atomic check and deduction using transaction
+        const { updatedCard, newBalance, status } = await prisma.$transaction(async (tx) => {
+            const card = await tx.giftCard.findUnique({
+                where: { code: normalizedCode }
+            });
 
-        if (giftCard.status !== 'active') {
-            return NextResponse.json({ error: 'Gift card is not active' }, { status: 400 });
-        }
+            if (!card) {
+                throw new Error('NOT_FOUND');
+            }
 
-        if (giftCard.expires_at && new Date(giftCard.expires_at) < new Date()) {
-            return NextResponse.json({ error: 'Gift card has expired' }, { status: 400 });
-        }
+            if (card.status !== 'active') {
+                throw new Error('NOT_ACTIVE');
+            }
 
-        if (Number(giftCard.remaining_balance) < amount) {
-            return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
-        }
+            if (card.expires_at && new Date(card.expires_at) < new Date()) {
+                throw new Error('EXPIRED');
+            }
 
-        // 2. Deduct balance
-        const newBalance = Number(giftCard.remaining_balance) - amount;
-        const status = newBalance <= 0 ? 'used' : 'active';
+            const currentBal = Number(card.remaining_balance);
+            if (currentBal < numericAmount) {
+                throw new Error('INSUFFICIENT_BALANCE');
+            }
 
-        try {
-            await prisma.giftCard.update({
-                where: { id: giftCard.id },
+            const nextBal = Math.max(0, currentBal - numericAmount);
+            const nextStatus = nextBal <= 0 ? 'used' : 'active';
+
+            const updated = await tx.giftCard.update({
+                where: { id: card.id },
                 data: {
-                    remaining_balance: newBalance,
-                    status: status
+                    remaining_balance: nextBal,
+                    status: nextStatus
                 }
             });
-        } catch (updateError) {
-            throw updateError;
-        }
+
+            return { updatedCard: updated, newBalance: nextBal, status: nextStatus };
+        });
 
         // 3. Send email to the giftcard owner notifying them where it was used and the remaining balance
-        if (giftCard.recipient_email) {
+        if (updatedCard.recipient_email) {
             const salonDisplay = salonName || 'en av våra anslutna salonger';
             try {
                 await sendGiftCardUsageEmail(
-                    giftCard.recipient_email,
-                    giftCard.recipient_name || 'mottagare',
+                    updatedCard.recipient_email,
+                    updatedCard.recipient_name || 'mottagare',
                     salonDisplay,
-                    amount,
-                    giftCard.code,
+                    numericAmount,
+                    updatedCard.code,
                     newBalance
                 );
             } catch (mailError) {
@@ -71,8 +74,20 @@ export async function POST(req: Request) {
             status: status
         });
 
-    } catch (error) {
+    } catch (error: any) {
+        if (error.message === 'NOT_FOUND') {
+            return NextResponse.json({ error: 'Presentkortet hittades inte.' }, { status: 404 });
+        }
+        if (error.message === 'NOT_ACTIVE') {
+            return NextResponse.json({ error: 'Presentkortet är inte längre aktivt.' }, { status: 400 });
+        }
+        if (error.message === 'EXPIRED') {
+            return NextResponse.json({ error: 'Presentkortets giltighetstid har gått ut.' }, { status: 400 });
+        }
+        if (error.message === 'INSUFFICIENT_BALANCE') {
+            return NextResponse.json({ error: 'Saldot på presentkortet räcker inte till.' }, { status: 400 });
+        }
         console.error('Error redeeming gift card:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: 'Ett tekniskt fel uppstod vid inlösen.' }, { status: 500 });
     }
 }

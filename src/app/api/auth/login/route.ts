@@ -7,14 +7,22 @@ export async function POST(req: Request) {
     try {
         const { email, password, role } = await req.json();
 
-        if (!email || !password) {
+        const normalizedEmail = (email || '').toLowerCase().trim();
+
+        if (!normalizedEmail || !password) {
             return NextResponse.json({ error: 'E-post och lösenord krävs' }, { status: 400 });
         }
 
-        // Find user by email
-        const profile = await prisma.profile.findUnique({
-            where: { email },
+        // Find user by email with case-insensitive fallback
+        let profile = await prisma.profile.findUnique({
+            where: { email: normalizedEmail },
         });
+
+        if (!profile) {
+            profile = await prisma.profile.findFirst({
+                where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+            });
+        }
 
         if (!profile) {
             return NextResponse.json({ error: 'Inget konto hittades med den e-postadressen' }, { status: 401 });

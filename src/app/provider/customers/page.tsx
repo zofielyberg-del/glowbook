@@ -27,82 +27,105 @@ export default function CustomersPage() {
     const [inviteSent, setInviteSent] = useState(false);
     const [customers, setCustomers] = useState<Customer[]>([]);
 
-    const loadCustomers = () => {
-        const saved = localStorage.getItem('glowbook_salon');
+    const loadCustomers = async () => {
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+        let localSalonId = '';
+        const customerMap: Record<string, Customer> = {};
+
         if (saved) {
-            const data = JSON.parse(saved);
-            const appts = data.appointments || [];
-            const localCusts = data.customers || [];
-            
-            const customerMap: Record<string, Customer> = {};
+            try {
+                const data = JSON.parse(saved);
+                localSalonId = data.id || '';
+                const appts = data.appointments || [];
+                const localCusts = data.customers || [];
 
-            // 1. Map invited/saved customers
-            localCusts.forEach((c: any) => {
-                const emailKey = (c.email || '').toLowerCase().trim();
-                customerMap[emailKey] = {
-                    id: c.id || Math.random().toString(),
-                    firstName: c.firstName || '',
-                    lastName: c.lastName || '',
-                    email: c.email || '',
-                    phone: c.phone || '-',
-                    lastVisit: c.lastVisit || '-',
-                    totalBookings: c.totalBookings || 0,
-                    totalCancellations: c.totalCancellations || 0,
-                    status: c.status || 'Active'
-                };
-            });
-
-            // 2. Extrakt and map from actual appointments
-            appts.forEach((apt: any) => {
-                const rawEmail = apt.customer_email || apt.clientEmail || '';
-                const emailKey = rawEmail.toLowerCase().trim();
-                if (!emailKey) return;
-                
-                const isCancelled = apt.status === 'cancelled';
-
-                const rawName = apt.customer_name || apt.clientName || '';
-                const nameParts = rawName.split(' ');
-                const firstName = nameParts[0] || 'Gäst';
-                const lastName = nameParts.slice(1).join(' ') || '';
-                
-                const rawPhone = apt.customer_phone || apt.clientPhone || '-';
-                
-                let rawDate = '-';
-                if (apt.date) {
-                    rawDate = apt.date;
-                } else if (apt.start_time) {
-                    rawDate = new Date(apt.start_time).toISOString().split('T')[0];
-                }
-
-                if (customerMap[emailKey]) {
-                    if (isCancelled) {
-                        customerMap[emailKey].totalCancellations += 1;
-                    } else {
-                        customerMap[emailKey].totalBookings += 1;
-                        // Keep the latest visit date
-                        if (rawDate !== '-' && (!customerMap[emailKey].lastVisit || rawDate > customerMap[emailKey].lastVisit)) {
-                            customerMap[emailKey].lastVisit = rawDate;
-                        }
-                    }
-                    if (rawPhone && rawPhone !== '-') {
-                        customerMap[emailKey].phone = rawPhone;
-                    }
-                } else {
+                // 1. Map invited/saved customers
+                localCusts.forEach((c: any) => {
+                    const emailKey = (c.email || '').toLowerCase().trim();
+                    if (!emailKey) return;
                     customerMap[emailKey] = {
-                        id: apt.id || Math.random().toString(),
-                        firstName,
-                        lastName,
-                        email: rawEmail,
-                        phone: rawPhone,
-                        lastVisit: isCancelled ? '-' : rawDate,
-                        totalBookings: isCancelled ? 0 : 1,
-                        totalCancellations: isCancelled ? 1 : 0,
-                        status: 'Active'
+                        id: c.id || Math.random().toString(),
+                        firstName: c.firstName || '',
+                        lastName: c.lastName || '',
+                        email: c.email || '',
+                        phone: c.phone || '-',
+                        lastVisit: c.lastVisit || '-',
+                        totalBookings: c.totalBookings || 0,
+                        totalCancellations: c.totalCancellations || 0,
+                        status: c.status || 'Active'
                     };
-                }
-            });
+                });
 
-            setCustomers(Object.values(customerMap));
+                // 2. Extract and map from local appointments
+                appts.forEach((apt: any) => {
+                    const rawEmail = apt.customer_email || apt.clientEmail || '';
+                    const emailKey = rawEmail.toLowerCase().trim();
+                    if (!emailKey) return;
+
+                    const isCancelled = apt.status === 'cancelled';
+                    const rawName = apt.customer_name || apt.clientName || '';
+                    const nameParts = rawName.split(' ');
+                    const firstName = nameParts[0] || 'Gäst';
+                    const lastName = nameParts.slice(1).join(' ') || '';
+                    const rawPhone = apt.customer_phone || apt.clientPhone || '-';
+
+                    let rawDate = '-';
+                    if (apt.date) {
+                        rawDate = apt.date;
+                    } else if (apt.start_time) {
+                        rawDate = new Date(apt.start_time).toISOString().split('T')[0];
+                    }
+
+                    if (customerMap[emailKey]) {
+                        if (isCancelled) {
+                            customerMap[emailKey].totalCancellations += 1;
+                        } else {
+                            customerMap[emailKey].totalBookings += 1;
+                            if (rawDate !== '-' && (!customerMap[emailKey].lastVisit || rawDate > customerMap[emailKey].lastVisit)) {
+                                customerMap[emailKey].lastVisit = rawDate;
+                            }
+                        }
+                        if (rawPhone && rawPhone !== '-') {
+                            customerMap[emailKey].phone = rawPhone;
+                        }
+                    } else {
+                        customerMap[emailKey] = {
+                            id: apt.id || Math.random().toString(),
+                            firstName,
+                            lastName,
+                            email: rawEmail,
+                            phone: rawPhone,
+                            lastVisit: isCancelled ? '-' : rawDate,
+                            totalBookings: isCancelled ? 0 : 1,
+                            totalCancellations: isCancelled ? 1 : 0,
+                            status: 'Active'
+                        };
+                    }
+                });
+
+                setCustomers(Object.values(customerMap));
+            } catch (e) {
+                console.error('Error parsing local salon data:', e);
+            }
+        }
+
+        // 3. Fetch full customer directory from database
+        if (localSalonId) {
+            try {
+                const res = await fetch(`/api/salons/customers?salonId=${localSalonId}&_t=${Date.now()}`);
+                const result = await res.json();
+                if (result.success && Array.isArray(result.customers)) {
+                    result.customers.forEach((c: Customer) => {
+                        const emailKey = (c.email || '').toLowerCase().trim();
+                        if (emailKey) {
+                            customerMap[emailKey] = c;
+                        }
+                    });
+                    setCustomers(Object.values(customerMap));
+                }
+            } catch (err) {
+                console.error('Failed to fetch customers from database:', err);
+            }
         }
     };
 

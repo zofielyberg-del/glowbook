@@ -39,39 +39,70 @@ export async function POST(req: Request) {
 
         // 1. Check for Overlaps (Double booking prevention)
         const isUUID = (id: string) => id && id.length > 20;
-        const pid = isUUID(practitionerId) ? practitionerId : undefined;
+        const requestedPid = isUUID(practitionerId) ? practitionerId : undefined;
         const sid = isUUID(salonId) ? salonId : undefined;
 
         if (sid) {
-            const overlap = await prisma.appointment.findFirst({
-                where: {
-                    salon_id: sid,
-                    practitioner_id: pid,
-                    status: { not: 'cancelled' },
-                    OR: [
-                        {
-                            // New starts during existing
-                            start_time: { lte: startDateTime },
-                            end_time: { gt: startDateTime }
-                        },
-                        {
-                            // New ends during existing
-                            start_time: { lt: endDateTime },
-                            end_time: { gte: endDateTime }
-                        },
-                        {
-                            // New fully wraps existing
-                            start_time: { gte: startDateTime },
-                            end_time: { lte: endDateTime }
-                        }
-                    ]
-                }
-            });
+            if (requestedPid && requestedPid !== 'any' && requestedPid !== 'owner') {
+                const overlap = await prisma.appointment.findFirst({
+                    where: {
+                        salon_id: sid,
+                        practitioner_id: requestedPid,
+                        status: { not: 'cancelled' },
+                        AND: [
+                            { start_time: { lt: endDateTime } },
+                            { end_time: { gt: startDateTime } }
+                        ]
+                    }
+                });
 
-            if (overlap) {
-                return NextResponse.json({ 
-                    error: 'Tiden är tyvärr redan bokad. Vänligen välj en annan tid.' 
-                }, { status: 409 });
+                if (overlap) {
+                    return NextResponse.json({ 
+                        error: 'Tiden är tyvärr redan bokad för denna utövare. Vänligen välj en annan tid.' 
+                    }, { status: 409 });
+                }
+            } else {
+                // If 'any' is requested, check if at least one practitioner is available
+                const activePractitioners = await prisma.practitioner.findMany({
+                    where: { salon_id: sid, status: 'active' }
+                });
+
+                if (activePractitioners.length > 0) {
+                    const busyAppointments = await prisma.appointment.findMany({
+                        where: {
+                            salon_id: sid,
+                            status: { not: 'cancelled' },
+                            AND: [
+                                { start_time: { lt: endDateTime } },
+                                { end_time: { gt: startDateTime } }
+                            ]
+                        },
+                        select: { practitioner_id: true }
+                    });
+                    const busyIds = new Set(busyAppointments.map(a => a.practitioner_id).filter(Boolean));
+                    const hasFreePractitioner = activePractitioners.some(p => !busyIds.has(p.id));
+                    if (!hasFreePractitioner) {
+                        return NextResponse.json({ 
+                            error: 'Tiden är tyvärr redan fullbokad hos alla utövare. Vänligen välj en annan tid.' 
+                        }, { status: 409 });
+                    }
+                } else {
+                    const overlap = await prisma.appointment.findFirst({
+                        where: {
+                            salon_id: sid,
+                            status: { not: 'cancelled' },
+                            AND: [
+                                { start_time: { lt: endDateTime } },
+                                { end_time: { gt: startDateTime } }
+                            ]
+                        }
+                    });
+                    if (overlap) {
+                        return NextResponse.json({ 
+                            error: 'Tiden är tyvärr redan bokad. Vänligen välj en annan tid.' 
+                        }, { status: 409 });
+                    }
+                }
             }
         }
 
@@ -150,21 +181,65 @@ export async function POST(req: Request) {
         let appointment;
         try {
             appointment = await prisma.$transaction(async (tx) => {
-                // 3a. Check for overlap
-                const overlap = await tx.appointment.findFirst({
-                    where: {
-                        salon_id: sid,
-                        practitioner_id: pid !== 'any' && pid !== 'owner' ? pid : undefined,
-                        status: { not: 'cancelled' },
-                        AND: [
-                            { start_time: { lt: endDateTime } },
-                            { end_time: { gt: startDateTime } }
-                        ]
-                    }
-                });
+                let assignedPractitionerId = requestedPid !== 'any' && requestedPid !== 'owner' ? requestedPid : undefined;
 
-                if (overlap) {
-                    throw new Error('SLOT_TAKEN');
+                if (sid) {
+                    if (assignedPractitionerId) {
+                        const overlap = await tx.appointment.findFirst({
+                            where: {
+                                salon_id: sid,
+                                practitioner_id: assignedPractitionerId,
+                                status: { not: 'cancelled' },
+                                AND: [
+                                    { start_time: { lt: endDateTime } },
+                                    { end_time: { gt: startDateTime } }
+                                ]
+                            }
+                        });
+
+                        if (overlap) {
+                            throw new Error('SLOT_TAKEN');
+                        }
+                    } else {
+                        // Find active practitioners in the salon and assign the first free one
+                        const activePractitioners = await tx.practitioner.findMany({
+                            where: { salon_id: sid, status: 'active' }
+                        });
+
+                        if (activePractitioners.length > 0) {
+                            const busyAppointments = await tx.appointment.findMany({
+                                where: {
+                                    salon_id: sid,
+                                    status: { not: 'cancelled' },
+                                    AND: [
+                                        { start_time: { lt: endDateTime } },
+                                        { end_time: { gt: startDateTime } }
+                                    ]
+                                },
+                                select: { practitioner_id: true }
+                            });
+                            const busyIds = new Set(busyAppointments.map(a => a.practitioner_id).filter(Boolean));
+                            const availablePractitioners = activePractitioners.filter(p => !busyIds.has(p.id));
+                            if (availablePractitioners.length === 0) {
+                                throw new Error('SLOT_TAKEN');
+                            }
+                            assignedPractitionerId = availablePractitioners[0].id;
+                        } else {
+                            const overlap = await tx.appointment.findFirst({
+                                where: {
+                                    salon_id: sid,
+                                    status: { not: 'cancelled' },
+                                    AND: [
+                                        { start_time: { lt: endDateTime } },
+                                        { end_time: { gt: startDateTime } }
+                                    ]
+                                }
+                            });
+                            if (overlap) {
+                                throw new Error('SLOT_TAKEN');
+                            }
+                        }
+                    }
                 }
 
                 // 3b. Create appointment
@@ -172,7 +247,7 @@ export async function POST(req: Request) {
                     data: {
                         salon_id: sid,
                         service_name: serviceName,
-                        practitioner_id: pid,
+                        practitioner_id: assignedPractitionerId,
                         customer_id: profileId,
                         customer_email: customerInfo.email,
                         customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,

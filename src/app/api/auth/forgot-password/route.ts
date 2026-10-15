@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         // Send email using Resend
         if (resend) {
         await resend.emails.send({
-          from: 'GlowBook <no-reply@glowbook.se>', // Adjust if your verified domain differs
+          from: 'Glowbook <noreply@glowbook.se>',
           to: user.email,
           subject: 'Återställ ditt lösenord på GlowBook',
           html: `

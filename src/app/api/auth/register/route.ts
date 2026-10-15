@@ -7,13 +7,15 @@ export async function POST(req: Request) {
     try {
         const { email, firstName, lastName, phone, role, country, municipality, password } = await req.json();
 
-        if (!email || !firstName || !lastName || !role) {
+        const normalizedEmail = (email || '').toLowerCase().trim();
+
+        if (!normalizedEmail || !firstName || !lastName || !role) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // 1. Check if profile already exists
-        const existingProfile = await prisma.profile.findUnique({
-             where: { email },
+        // 1. Check if profile already exists (case-insensitive check)
+        const existingProfile = await prisma.profile.findFirst({
+             where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
              select: { id: true }
         });
 
@@ -26,7 +28,7 @@ export async function POST(req: Request) {
         try {
             profile = await prisma.profile.create({
                 data: {
-                    email,
+                    email: normalizedEmail,
                     first_name: firstName,
                     last_name: lastName,
                     phone,

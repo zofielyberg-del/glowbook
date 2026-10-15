@@ -51,7 +51,8 @@ export async function GET(req: Request) {
                     appointments: {
                         where: {
                             status: { not: 'cancelled' },
-                            start_time: { gte: new Date(), lte: twelveWeeksFromNow }
+                            end_time: { gte: new Date() },
+                            start_time: { lte: twelveWeeksFromNow }
                         }
                     }
                 }

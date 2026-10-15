@@ -406,10 +406,16 @@ export default function ProviderDashboard() {
     const handleCancelAppointment = async (aptId: string) => {
         // 1. Sync deletion to database immediately using bypassPolicy
         try {
+            const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+            const salonData = saved ? JSON.parse(saved) : {};
             const res = await fetch('/api/bookings/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ appointmentId: aptId, bypassPolicy: true })
+                body: JSON.stringify({ 
+                    appointmentId: aptId, 
+                    bypassPolicy: true,
+                    providerId: user?.id || salonData?.owner_id || salonData?.id 
+                })
             });
             const result = await res.json();
             if (!res.ok) {

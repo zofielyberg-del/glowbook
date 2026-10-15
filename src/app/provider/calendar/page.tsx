@@ -58,9 +58,11 @@ export default function CalendarPage() {
         // 1. Keep local sessionStorage & localStorage updated immediately (Optimistic UI)
         const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
         let dataId: string | null = null;
+        let ownerId: string | null = null;
         if (saved) {
             const data = JSON.parse(saved);
             dataId = data.id;
+            ownerId = data.owner_id || data.id;
             const appointments = data.appointments || [];
             const filtered = appointments.filter((a: any) => a.id !== aptId);
             const updatedData = { ...data, appointments: filtered };
@@ -78,7 +80,11 @@ export default function CalendarPage() {
                 const res = await fetch('/api/bookings/cancel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ appointmentId: aptId, bypassPolicy: true })
+                    body: JSON.stringify({ 
+                        appointmentId: aptId, 
+                        bypassPolicy: true,
+                        providerId: ownerId 
+                    })
                 });
                 const result = await res.json();
                 if (!res.ok) {

@@ -714,6 +714,9 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             const start_time = localStart.toISOString();
             const end_time = new Date(localStart.getTime() + (apt.duration || 30) * 60000).toISOString();
 
+            const savedSalon = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+            const salonInfo = savedSalon ? JSON.parse(savedSalon) : {};
+
             const response = await fetch('/api/bookings/reschedule', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -722,7 +725,8 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                     newDate: newDateStr,
                     newStartTime: newTimeStr,
                     newStartTimeUtc: start_time,
-                    bypassPolicy: true
+                    bypassPolicy: true,
+                    providerId: salonInfo.owner_id || salonInfo.id
                 })
             });
 

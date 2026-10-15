@@ -6,58 +6,55 @@ export async function POST(req: Request) {
     try {
         const { userId, salonId, amount, description } = await req.json();
 
-        if (!userId || !salonId || !amount) {
-            return NextResponse.json({ error: 'Missing required data' }, { status: 400 });
+        const numericAmount = Math.floor(Number(amount));
+        if (!userId || !salonId || isNaN(numericAmount) || numericAmount <= 0) {
+            return NextResponse.json({ error: 'Användar-ID, salongs-ID och ett giltigt positivt poängbelopp krävs.' }, { status: 400 });
         }
 
-        // 1. Check current balance
-        const balance = await prisma.loyaltyBalance.findUnique({
-            where: {
-                profile_id_salon_id: { profile_id: userId, salon_id: salonId }
-            },
-            select: { id: true, current_points: true }
-        });
+        // Atomic transaction: verify balance, deduct points, and record transaction
+        const { newBalance } = await prisma.$transaction(async (tx) => {
+            const balance = await tx.loyaltyBalance.findUnique({
+                where: {
+                    profile_id_salon_id: { profile_id: userId, salon_id: salonId }
+                },
+                select: { id: true, current_points: true }
+            });
 
-        if (!balance || (balance.current_points ?? 0) < amount) {
-            return NextResponse.json({ error: 'Insufficient points' }, { status: 400 });
-        }
+            if (!balance || (balance.current_points ?? 0) < numericAmount) {
+                throw new Error('INSUFFICIENT_POINTS');
+            }
 
-        const currentPoints = balance.current_points ?? 0;
+            const currentPoints = balance.current_points ?? 0;
+            const updatedPoints = currentPoints - numericAmount;
 
-        // 2. Start Transaction (Atomic via RPC or separate calls)
-        // Deduct points
-        try {
-            await prisma.loyaltyBalance.update({
+            await tx.loyaltyBalance.update({
                 where: { id: balance.id },
                 data: {
-                    current_points: currentPoints - amount,
+                    current_points: updatedPoints,
                     updated_at: new Date()
                 }
             });
-        } catch (updateError) {
-            console.error('Error updating points:', updateError);
-            return NextResponse.json({ error: 'Failed to spend points' }, { status: 500 });
-        }
 
-        // 3. Record transaction
-        try {
-            await prisma.pointTransaction.create({
+            await tx.pointTransaction.create({
                 data: {
                     profile_id: userId,
                     salon_id: salonId,
                     type: 'spent',
-                    amount: amount,
+                    amount: numericAmount,
                     description: description || 'Inlösen av poäng vid bokning'
                 }
             });
-        } catch (transError) {
-            console.error('Error recording transaction:', transError);
+
+            return { newBalance: updatedPoints };
+        });
+
+        return NextResponse.json({ success: true, newBalance });
+
+    } catch (error: any) {
+        if (error.message === 'INSUFFICIENT_POINTS') {
+            return NextResponse.json({ error: 'Inte tillräckligt med poäng.' }, { status: 400 });
         }
-
-        return NextResponse.json({ success: true, newBalance: currentPoints - amount });
-
-    } catch (error) {
         console.error('Loyalty spend error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: 'Ett tekniskt fel uppstod vid inlösen av poäng.' }, { status: 500 });
     }
 }

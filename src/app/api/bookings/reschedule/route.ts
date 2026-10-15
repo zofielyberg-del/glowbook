@@ -4,7 +4,7 @@ import { sendCustomerRescheduleEmail, sendProviderBookingNotification } from '@/
 import { emitAvailabilityUpdate } from '@/lib/realtime';
 export async function POST(req: Request) {
     try {
-        const { appointmentId, newDate, newStartTime, newStartTimeUtc, bypassPolicy } = await req.json();
+        const { appointmentId, newDate, newStartTime, newStartTimeUtc, bypassPolicy, providerId } = await req.json();
 
         if (!appointmentId || !newDate || !newStartTime) {
             return NextResponse.json({ error: 'Missing required rescheduling data' }, { status: 400 });
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
                 salon: {
                     include: {
                         owner: {
-                            select: { email: true }
+                            select: { email: true, id: true }
                         }
                     }
                 }
@@ -28,8 +28,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
         }
 
-        // Cancellation policy window check (Bypassed if bypassPolicy is true, e.g. for providers)
-        if (!bypassPolicy) {
+        // Cancellation policy window check (Only verified salon owners or admins can bypass)
+        let canBypass = false;
+        if (bypassPolicy && providerId) {
+            const profile = await prisma.profile.findUnique({
+                where: { id: providerId },
+                select: { id: true, role: true }
+            });
+            if (profile?.role === 'admin' || (profile && appointment.salon?.owner_id === profile.id)) {
+                canBypass = true;
+            }
+        }
+
+        if (!canBypass) {
             const windowHours = appointment.salon?.cancellation_window_hours ?? 24;
             const diffMs = new Date(appointment.start_time).getTime() - Date.now();
             const diffHours = diffMs / (1000 * 60 * 60);
