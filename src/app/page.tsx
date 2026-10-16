@@ -509,22 +509,22 @@ export default function Home() {
               >
                 <Link
                   href={cat.href}
-                  className="group block aspect-square rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-500 border border-black/5 dark:border-white/5 relative bg-neutral-900"
+                  className="group block aspect-square rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-black/5 dark:border-white/10 relative"
                 >
                   <img
                     src={cat.img}
                     alt={t(cat.nameKey)}
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 mix-blend-overlay"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     onError={(e) => {
                       (e.target as any).src = `https://images.unsplash.com/photo-1620331311520-246422fe82f9?auto=format&fit=crop&q=80&w=400`;
                     }}
                   />
-                  <div className="absolute inset-0 bg-black/60 group-hover:bg-black/45 transition-colors duration-500 flex flex-col items-center justify-center p-4 text-center">
-                    <div className="text-champagne-400 group-hover:scale-110 transition-transform duration-300 mb-2.5">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/15 group-hover:from-black/70 group-hover:via-black/20 group-hover:to-transparent transition-all duration-500 flex flex-col items-center justify-center p-3 text-center">
+                    <div className="text-champagne-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] group-hover:scale-110 transition-transform duration-300 mb-2">
                       {cat.icon}
                     </div>
-                    <h3 className="text-xs sm:text-sm font-heading font-medium text-white tracking-wide">
+                    <h3 className="text-xs sm:text-sm font-heading font-medium text-white tracking-wide drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
                       {t(cat.nameKey)}
                     </h3>
                   </div>
