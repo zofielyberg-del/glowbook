@@ -35,7 +35,7 @@ const config: Config = {
         }
       },
       fontFamily: {
-        heading: ['var(--font-comfortaa)'],
+        heading: ['var(--font-cormorant)'],
         body: ['var(--font-outfit)'],
       }
     },

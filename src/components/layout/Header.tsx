@@ -60,9 +60,9 @@ export default function Header() {
                 {/* Logo */}
                 <div className="flex items-center gap-4 md:gap-10 flex-1">
                     <Link href="/" className="flex items-center gap-1 group shrink-0">
-                        <h1 className="font-heading text-lg md:text-xl font-black tracking-[-0.04em]">
+                        <h1 className="font-heading text-2xl md:text-3xl font-medium tracking-tight">
                             <span className="text-foreground">Glow</span>
-                            <span className="text-champagne-500">book</span>
+                            <span className="text-champagne-500 italic font-normal">book</span>
                         </h1>
                     </Link>
 
@@ -158,7 +158,7 @@ export default function Header() {
                         </div>
                     ) : (
                         <div className="hidden lg:flex items-center gap-8">
-                            <Link href="/auth/register?role=provider" className="text-foreground/40 text-[9px] font-black uppercase tracking-widest hover:text-foreground transition-colors">
+                            <Link href="/auth/register?role=provider" className="premium-glow-button px-6 py-2 text-[9px] font-black uppercase tracking-widest">
                                 {t('action_register')}
                             </Link>
                             <Link href="/auth/login" className="bg-foreground/5 text-foreground border border-foreground/10 px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-foreground hover:text-background transition-all">
@@ -185,8 +185,8 @@ export default function Header() {
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
                         {/* Top bar */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
-                            <span style={{ fontFamily: 'var(--font-comfortaa)', fontWeight: 900, fontSize: '20px', color: theme === 'dark' ? '#fff' : '#1A1A1A' }}>
-                                Glow<span style={{ color: '#C5B358' }}>book</span>
+                            <span style={{ fontFamily: 'var(--font-cormorant)', fontWeight: 500, fontSize: '24px', letterSpacing: '-0.02em', color: theme === 'dark' ? '#fff' : '#1A1A1A' }}>
+                                Glow<span style={{ color: '#C5B358', fontStyle: 'italic', fontWeight: 400 }}>book</span>
                             </span>
                             <button 
                                 onClick={() => setIsMobileMenuOpen(false)}
@@ -269,9 +269,9 @@ export default function Header() {
                                         <Link 
                                             href="/auth/register?role=provider" 
                                             onClick={() => setIsMobileMenuOpen(false)}
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '18px', borderRadius: '20px', background: '#C5B358', color: '#fff', fontSize: '16px', fontWeight: 900, textDecoration: 'none', marginTop: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                                            className="premium-glow-button flex w-full items-center justify-center gap-3 py-4 mt-4 text-[13px] font-black uppercase tracking-widest"
                                         >
-                                            <Star size={18} /> Starta Studio
+                                            <Star size={16} /> Starta Studio
                                         </Link>
                                         <Link 
                                             href="/auth/login" 

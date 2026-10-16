@@ -1,14 +1,16 @@
 
 import type { Metadata } from "next";
-import { Comfortaa, Outfit } from "next/font/google";
+import { Cormorant_Garamond, Outfit } from "next/font/google";
 import "./globals.css";
 import clsx from "clsx";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 
-const comfortaa = Comfortaa({
+const cormorantGaramond = Cormorant_Garamond({
   subsets: ["latin"],
-  variable: "--font-comfortaa",
+  variable: "--font-cormorant",
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -55,6 +57,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({
@@ -66,7 +69,7 @@ export default function RootLayout({
     <html lang="sv">
       <body
         className={clsx(
-          comfortaa.variable,
+          cormorantGaramond.variable,
           outfit.variable,
           "antialiased bg-background text-foreground font-body transition-colors duration-300"
         )}
