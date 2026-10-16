@@ -60,9 +60,9 @@ export default function Header() {
                 {/* Logo */}
                 <div className="flex items-center gap-4 md:gap-10 flex-1">
                     <Link href="/" className="flex items-center gap-1 group shrink-0">
-                        <h1 className="font-heading text-2xl md:text-3xl font-medium tracking-tight">
-                            <span className="text-foreground">Glow</span>
-                            <span className="text-champagne-500 italic font-normal">book</span>
+                        <h1 className="text-2xl md:text-[28px] font-light tracking-[0.05em]" style={{ fontFamily: 'var(--font-serif, "Didot", "Bodoni MT", "Playfair Display", Georgia, serif)' }}>
+                            <span className="text-foreground font-light">Glow</span>
+                            <span style={{ color: '#C2A26A', fontStyle: 'normal', fontWeight: 400 }}>book</span>
                         </h1>
                     </Link>
 
@@ -185,8 +185,8 @@ export default function Header() {
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
                         {/* Top bar */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
-                            <span style={{ fontFamily: 'var(--font-cormorant)', fontWeight: 500, fontSize: '24px', letterSpacing: '-0.02em', color: theme === 'dark' ? '#fff' : '#1A1A1A' }}>
-                                Glow<span style={{ color: '#C5B358', fontStyle: 'italic', fontWeight: 400 }}>book</span>
+                            <span style={{ fontFamily: 'var(--font-serif, "Didot", "Bodoni MT", "Playfair Display", Georgia, serif)', fontWeight: 300, fontSize: '26px', letterSpacing: '0.05em', color: theme === 'dark' ? '#F1EFF7' : '#111112' }}>
+                                Glow<span style={{ color: '#C2A26A', fontStyle: 'normal', fontWeight: 400 }}>book</span>
                             </span>
                             <button 
                                 onClick={() => setIsMobileMenuOpen(false)}

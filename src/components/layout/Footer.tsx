@@ -23,8 +23,8 @@ export default function Footer() {
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-champagne-400 to-champagne-600 flex items-center justify-center shadow-lg shadow-champagne-500/20 group-hover:shadow-champagne-500/40 transition-shadow duration-500">
                 <Sparkles size={14} className="text-white" />
               </div>
-              <span className="font-heading font-black text-lg text-foreground tracking-tight">
-                Glow<span className="text-champagne-600">book</span>
+              <span className="text-xl font-light tracking-[0.05em] text-foreground" style={{ fontFamily: 'var(--font-serif, "Didot", "Bodoni MT", "Playfair Display", Georgia, serif)' }}>
+                Glow<span style={{ color: '#C2A26A', fontStyle: 'normal', fontWeight: 400 }}>book</span>
               </span>
             </Link>
             <p className="text-sm text-foreground/40 dark:text-white/40 leading-relaxed max-w-xs">

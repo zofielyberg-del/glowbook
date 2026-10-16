@@ -16,27 +16,31 @@ const config: Config = {
         card: "var(--card)",
         border: "var(--border)",
         champagne: {
-          50: '#F9F7F2',
-          100: '#F2EFE8',
-          200: '#E6DFC9',
+          50: '#F9F9F8',
+          100: '#F5E2C1',
+          200: '#EAE8E2',
           300: '#D9CFAB',
           400: '#CCBF8D',
-          500: '#C5B358', // Base gold
-          600: '#A69542',
-          700: '#877833',
-          800: '#695C26',
-          900: '#4A411B',
+          500: '#C2A26A', // Core gold color
+          600: '#A38652',
+          700: '#856C3D',
+          800: '#69552E',
+          900: '#4D3E1F',
+        },
+        gold: {
+          solid: '#C2A26A',
         },
         premium: {
-          black: '#1A1A1A',
-          dark: '#0A0A0A',
+          black: '#0B0B0C',
+          dark: '#141416',
           white: '#FFFFFF',
-          cream: '#FFFBF5',
+          cream: '#F9F9F8',
         }
       },
       fontFamily: {
-        heading: ['var(--font-cormorant)'],
-        body: ['var(--font-outfit)'],
+        heading: ['"Didot"', '"Bodoni MT"', '"Playfair Display"', 'Georgia', 'serif'],
+        serif: ['"Didot"', '"Bodoni MT"', '"Playfair Display"', 'Georgia', 'serif'],
+        body: ['var(--font-outfit)', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
       }
     },
   },

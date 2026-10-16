@@ -2,22 +2,41 @@
 @config "../../tailwind.config.ts";
 
 :root {
-  --background: #FAFAF8;
-  /* champagne-50 */
-  --foreground: #1A1A1A;
-  /* premium-black */
+  --bg: #F9F9F8;
+  --surface: #FFFFFF;
+  --border: #EAE8E2;
+  --text: #111112;
+  --text-muted: #6C6A72;
+  --gold-solid: #C2A26A;
+  --gold-gradient: linear-gradient(135deg, #C2A26A 0%, #947847 100%);
+  --btn-bg: #111112;
+  --btn-text: #F5E2C1;
+  --nav-bg: rgba(249, 249, 248, 0.85);
+  --card-shadow: 0 15px 40px rgba(148, 120, 71, 0.08);
+
+  --background: #F9F9F8;
+  --foreground: #111112;
   --card: #FFFFFF;
-  --border: #E6DFC9;
-  /* champagne-200 */
+  --border: #EAE8E2;
 }
 
 .dark {
-  --background: #000000;
-  --foreground: #F9F7F2;
-  /* Pure white */
-  --card: #121212;
-  /* Deep charcoal */
-  --border: #1F1F1F;
+  --bg: #0B0B0C;
+  --surface: #141416;
+  --border: #232326;
+  --text: #F1EFF7;
+  --text-muted: #8E8A94;
+  --gold-solid: #C2A26A;
+  --gold-gradient: linear-gradient(135deg, #F5E2C1 0%, #C2A26A 60%, #947847 100%);
+  --btn-bg: #C2A26A;
+  --btn-text: #0B0B0C;
+  --nav-bg: rgba(11, 11, 12, 0.85);
+  --card-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+
+  --background: #0B0B0C;
+  --foreground: #F1EFF7;
+  --card: #141416;
+  --border: #232326;
 }
 
 body {
