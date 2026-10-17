@@ -31,9 +31,15 @@ export const metadata: Metadata = {
   title: "Glowbook | Premium Booking Made Simple",
   description: "Booking made easier. A premium experience for providers and customers.",
   icons: {
-    icon: '/icon.png',
-    shortcut: '/icon.png',
-    apple: '/apple-icon.png',
+    icon: [
+      { url: '/favicon-32.png?v=2', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16.png?v=2', sizes: '16x16', type: 'image/png' },
+      { url: '/icon.png?v=2', sizes: '1024x1024', type: 'image/png' },
+    ],
+    shortcut: '/favicon-32.png?v=2',
+    apple: [
+      { url: '/apple-icon.png?v=2', sizes: '1024x1024', type: 'image/png' },
+    ],
   },
   appleWebApp: {
     capable: true,
