@@ -68,7 +68,7 @@ export async function POST(req: Request) {
                             currency: 'sek',
                             product_data: {
                                 name: `Glowbook ${tier.toUpperCase()}`,
-                                description: `Glowbook ${tier.toUpperCase()} Medlemskap (${durationNum} mån) - 30 dagars gratis provperiod`,
+                                description: `Glowbook ${tier.toUpperCase()} Medlemskap (${durationNum} mån) - 3 månader gratis provperiod`,
                             },
                             unit_amount: calculatePrice(tier, durationNum).total * 100,
                             recurring: {
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
                 ...(salonEmail ? { customer_email: salonEmail } : {}),
                 line_items,
                 subscription_data: {
-                    trial_period_days: 30,
+                    trial_period_days: 90, // 3 månader gratis provperiod
                     metadata: {
                         salonId: salonId || '',
                         tier: String(tier),

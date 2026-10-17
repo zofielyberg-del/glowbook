@@ -1550,7 +1550,7 @@ function SettingsContent() {
                                                         <span>
                                                             {salonData.tier === p.key && comparisonDuration === (salonData.duration || 12) 
                                                                 ? 'Nuvarande plan' 
-                                                                : salonData.subscription_status === 'trialing' ? 'Uppgradera plan' : 'Starta 30 dagars gratis prova-på'}
+                                                                : salonData.subscription_status === 'trialing' ? 'Uppgradera plan' : 'Starta 3 månader gratis prova-på'}
                                                         </span>
                                                         {!(salonData.tier === p.key && comparisonDuration === (salonData.duration || 12)) && (
                                                             <span className="text-[7px] opacity-50 lowercase font-medium tracking-normal flex items-center gap-1">

@@ -764,7 +764,7 @@ export const sendProviderReceiptEmail = async (
                 </tr>
                 <tr>
                     <td style="font-size:14px;color:#6B6965;padding:8px 0;font-family:Arial,Helvetica,sans-serif;">Provperiod (Trial):</td>
-                    <td style="font-size:14px;color:#2e7d32;padding:8px 0;text-align:right;font-family:Arial,Helvetica,sans-serif;font-weight:bold;">30 dagar gratis ingår</td>
+                    <td style="font-size:14px;color:#2e7d32;padding:8px 0;text-align:right;font-family:Arial,Helvetica,sans-serif;font-weight:bold;">3 månader gratis ingår</td>
                 </tr>
                 <tr>
                     <td style="font-size:14px;color:#6B6965;padding:8px 0;font-family:Arial,Helvetica,sans-serif;">Status:</td>

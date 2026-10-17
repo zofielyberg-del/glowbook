@@ -255,7 +255,7 @@ export default function ProviderOnboarding() {
                                                     Motsvarar endast {calculatePrice(formData.tier, formData.duration).monthly} {currency} / mån!
                                                 </p>
                                             )}
-                                            <p className="text-[10px] text-foreground/40 mt-1">Inga kostnader under din 30-dagars provperiod.</p>
+                                            <p className="text-[10px] text-foreground/40 mt-1">Inga kostnader under din 3 månaders gratis provperiod.</p>
                                         </div>
 
                                         <div className="py-8 flex flex-col items-center gap-4 min-h-[160px] justify-center">
@@ -458,8 +458,8 @@ export default function ProviderOnboarding() {
                                     {/* Free Trial Banner */}
                                     <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 rounded-2xl p-5">
                                         <div>
-                                            <h4 className="font-bold text-foreground text-sm">Första månaden gratis!</h4>
-                                            <p className="text-xs text-foreground/50">Testa valfri plan i 30 dagar utan kostnad. Avsluta när som helst.</p>
+                                            <h4 className="font-bold text-foreground text-sm">Första 3 månaderna gratis!</h4>
+                                            <p className="text-xs text-foreground/50">Testa valfri plan i 3 månader utan kostnad. Avsluta när som helst.</p>
                                         </div>
                                     </div>
 
@@ -527,7 +527,7 @@ export default function ProviderOnboarding() {
                                                         <div className="text-right">
                                                             <div className={clsx("font-bold text-lg line-through opacity-40", isSelected && isPremium ? "text-white" : "text-foreground")}>{prices.monthly} {currency}</div>
                                                             <div className={clsx("font-black text-2xl", isSelected && isPremium ? "text-emerald-400" : "text-emerald-600")}>0 {currency}</div>
-                                                            <p className="text-[10px] opacity-70">första månaden</p>
+                                                            <p className="text-[10px] opacity-70">första 3 månaderna</p>
                                                         </div>
                                                     </div>
 
@@ -583,7 +583,7 @@ export default function ProviderOnboarding() {
                                             <div className="flex justify-between items-center">
                                                 <div className="space-y-1">
                                                     <p className="text-sm text-white/60">Att betala idag</p>
-                                                    <p className="text-xs text-white/30">Provperiod — 30 dagar</p>
+                                                    <p className="text-xs text-white/30">Provperiod — 3 månader gratis</p>
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-4xl font-black text-emerald-400">0 {currency}</p>
@@ -619,7 +619,7 @@ export default function ProviderOnboarding() {
 
                                         <div className="bg-foreground/[0.03] border border-border rounded-2xl p-4 space-y-2">
                                             <p className="text-xs text-foreground/50 leading-relaxed">
-                                                ✓ Inga avgifter debiteras under de första 30 dagarna.
+                                                ✓ Inga avgifter debiteras under de första 3 månaderna.
                                             </p>
                                             <p className="text-xs text-foreground/50 leading-relaxed">
                                                 ✓ Betalmetoden verifieras säkert för automatisk debitering efter provperioden.
@@ -630,7 +630,7 @@ export default function ProviderOnboarding() {
                                         </div>
 
                                         <p className="text-[10px] text-foreground/30 text-center px-8 leading-relaxed">
-                                            Genom att fortsätta godkänner du våra användarvillkor. Efter 30 dagars gratis provperiod debiteras en förskottsbetalning på {calculatePrice(formData.tier, formData.duration).total} {currency} för din valda period via Stripe.
+                                            Genom att fortsätta godkänner du våra användarvillkor. Efter 3 månaders gratis provperiod debiteras en förskottsbetalning på {calculatePrice(formData.tier, formData.duration).total} {currency} för din valda period via Stripe.
                                         </p>
                                     </div>
                                 </motion.div>
