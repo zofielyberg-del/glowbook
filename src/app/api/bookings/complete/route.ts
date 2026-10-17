@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendCustomerFeedbackRequestEmail } from '@/lib/email';
+import { triggerBookingCompletedReward } from '@/lib/rewards-service';
 
 export async function POST(req: Request) {
     try {
@@ -26,6 +27,14 @@ export async function POST(req: Request) {
         await prisma.appointment.update({
             where: { id: appointmentId },
             data: { status: 'completed' }
+        });
+
+        // 2.5 Trigger rewards logging if salon has rewards enabled
+        await triggerBookingCompletedReward({
+            appointmentId: appointment.id,
+            userId: appointment.customer_id,
+            salonId: appointment.salon_id,
+            totalPrice: appointment.total_price ? Number(appointment.total_price) : null
         });
 
         // 3. Send feedback/rating request email if the customer has an email address

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
 import { sendProviderWelcomeEmail, sendCustomerWelcomeEmail } from '@/lib/email';
+import { triggerAccountCreatedReward } from '@/lib/rewards-service';
 
 export async function POST(req: Request) {
     try {
@@ -40,6 +41,9 @@ export async function POST(req: Request) {
             console.error('Profile creation error:', profileError);
             return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 });
         }
+
+        // Award +100 welcome points to user_rewards_ledger
+        await triggerAccountCreatedReward(profile.id);
 
         // 3. If Provider, create Salon
         let salon = null;

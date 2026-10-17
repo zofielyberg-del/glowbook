@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { triggerAccountCreatedReward } from '@/lib/rewards-service';
 
 export async function POST(req: Request) {
     try {
@@ -24,9 +25,12 @@ export async function POST(req: Request) {
                     first_name: firstName || platform === 'google' ? 'Google' : 'Apple',
                     last_name: lastName || 'Användare',
                     role: role === 'provider' ? 'provider' : 'customer',
-                    total_points_earned: 0
+                    total_points_earned: 100
                 }
             });
+
+            // Record welcome bonus in user_rewards_ledger
+            await triggerAccountCreatedReward(profile.id);
         }
 
         // Check role and fetch salon if provider

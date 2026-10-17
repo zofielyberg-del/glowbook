@@ -51,6 +51,10 @@ export async function POST(req: Request) {
                 slug: salonInfo.slug,
                 category: salonInfo.category,
                 categories: salonInfo.categories !== undefined ? salonInfo.categories : (existing ? existing.categories : []),
+                disclaimer: salonInfo.disclaimer !== undefined ? salonInfo.disclaimer : (existing ? (existing as any).disclaimer : null),
+                instagram_url: salonInfo.instagramUrl !== undefined ? salonInfo.instagramUrl : (salonInfo.instagram_url !== undefined ? salonInfo.instagram_url : (existing ? (existing as any).instagram_url : null)),
+                facebook_url: salonInfo.facebookUrl !== undefined ? salonInfo.facebookUrl : (salonInfo.facebook_url !== undefined ? salonInfo.facebook_url : (existing ? (existing as any).facebook_url : null)),
+                tiktok_url: salonInfo.tiktokUrl !== undefined ? salonInfo.tiktokUrl : (salonInfo.tiktok_url !== undefined ? salonInfo.tiktok_url : (existing ? (existing as any).tiktok_url : null)),
                 // 🎯 Race-Condition Protection: Fall back to existing database assets if payload is empty/null
                 logo_url: salonInfo.profileImage || salonInfo.logo_url || (existing ? existing.logo_url : null),
                 banner_url: salonInfo.backgroundImage || salonInfo.banner_url || (existing ? existing.banner_url : null),
@@ -68,7 +72,12 @@ export async function POST(req: Request) {
                 verified_categories: salonInfo.verifiedCategories !== undefined ? salonInfo.verifiedCategories : (existing ? existing.verified_categories : []),
                 onboarding_progress: salonInfo.onboardingProgress !== undefined ? salonInfo.onboardingProgress : (existing ? existing.onboarding_progress : null),
                 stripe_account_id: salonInfo.stripe_account_id !== undefined ? salonInfo.stripe_account_id : (existing ? existing.stripe_account_id : null),
-                message_templates: salonInfo.messageTemplates || (existing ? existing.message_templates : null)
+                message_templates: salonInfo.messageTemplates || (existing ? existing.message_templates : null),
+                is_rewards_enabled: salonInfo.is_rewards_enabled !== undefined 
+                    ? Boolean(salonInfo.is_rewards_enabled) 
+                    : (salonInfo.isRewardsEnabled !== undefined 
+                        ? Boolean(salonInfo.isRewardsEnabled) 
+                        : (existing ? existing.is_rewards_enabled : false))
             };
 
             if (existing) {

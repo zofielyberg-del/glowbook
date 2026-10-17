@@ -22,7 +22,9 @@ model Profile {
   appointments        Appointment[]
   loyalty_balances    LoyaltyBalance[]
   point_transactions  PointTransaction[]
+  rewards_ledger      UserRewardsLedger[]
   salons              Salon[]            @relation("SalonOwner")
+  punch_cards         PunchCard[]
 
   @@map("profiles")
 }
@@ -57,13 +59,20 @@ model Salon {
   verified_categories Json?
   onboarding_progress Json?
   message_templates   Json?
+  is_rewards_enabled  Boolean?           @default(false)
   created_at          DateTime?          @default(now())
+  disclaimer          String?
+  instagram_url       String?
+  facebook_url        String?
+  tiktok_url          String?
   appointments        Appointment[]
   loyalty_balances    LoyaltyBalance[]
   point_transactions  PointTransaction[]
+  rewards_ledger      UserRewardsLedger[]
   practitioners       Practitioner[]
   owner               Profile?           @relation("SalonOwner", fields: [owner_id], references: [id])
   services            Service[]
+  punch_cards         PunchCard[]
 
   @@index([owner_id], map: "salons_owner_id_idx")
   @@map("salons")
@@ -97,8 +106,12 @@ model Service {
   sale_ends_at     DateTime?
   duration_minutes Int
   category         String?
+  is_punchcard     Boolean?      @default(false)
+  punches_count    Int?          @default(5)
+  applies_to_service_id String?
   created_at       DateTime?     @default(now())
   appointments     Appointment[]
+  punch_cards      PunchCard[]
   salon            Salon?        @relation(fields: [salon_id], references: [id], onDelete: Cascade)
 
   @@index([salon_id], map: "services_salon_id_idx")
@@ -183,4 +196,45 @@ model PointTransaction {
   @@index([profile_id], map: "point_transactions_profile_id_idx")
   @@index([salon_id], map: "point_transactions_salon_id_idx")
   @@map("point_transactions")
+}
+
+model PunchCard {
+  id                String    @id @default(uuid())
+  code              String    @unique
+  salon_id          String
+  customer_id       String?
+  service_id        String?
+  name              String
+  total_punches     Int
+  remaining_punches Int
+  price             Decimal
+  expires_at        DateTime?
+  status            String    @default("active")
+  created_at        DateTime  @default(now())
+
+  salon             Salon     @relation(fields: [salon_id], references: [id], onDelete: Cascade)
+  customer          Profile?  @relation(fields: [customer_id], references: [id])
+  service           Service?  @relation(fields: [service_id], references: [id])
+
+  @@index([salon_id])
+  @@index([customer_id])
+  @@index([service_id])
+  @@map("punch_cards")
+}
+
+model UserRewardsLedger {
+  id           String    @id @default(uuid())
+  user_id      String
+  salon_id     String?
+  points       Int
+  action_type  String
+  reference_id String?
+  created_at   DateTime  @default(now())
+
+  user         Profile   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  salon        Salon?    @relation(fields: [salon_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "user_rewards_ledger_user_id_idx")
+  @@index([salon_id], map: "user_rewards_ledger_salon_id_idx")
+  @@map("user_rewards_ledger")
 }

@@ -18,6 +18,64 @@ import {
 
 type TabKey = 'profile' | 'membership' | 'payments' | 'loyalty' | 'inbox' | 'notifications' | 'marketing' | 'reviews' | 'templates' | 'practitioners';
 
+function ChangePasswordForm({ email }: { email: string }) {
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [status, setStatus] = useState<{type: 'error' | 'success', msg: string} | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setStatus(null);
+        try {
+            const res = await fetch('/api/auth/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, currentPassword, newPassword })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Ett fel uppstod');
+            setStatus({ type: 'success', msg: 'Lösenordet har ändrats!' });
+            setCurrentPassword('');
+            setNewPassword('');
+        } catch(err: any) {
+            setStatus({ type: 'error', msg: err.message });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <section className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-6 mt-8">
+            <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded-lg">
+                    <Lock size={20} />
+                </div>
+                <h2 className="text-xl font-bold text-foreground">Säkerhet & Lösenord</h2>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
+                <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Nuvarande lösenord</label>
+                    <input type="password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all" />
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Nytt lösenord</label>
+                    <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all" />
+                </div>
+                {status && (
+                    <div className={clsx("p-3 rounded-xl text-sm font-medium", status.type === 'error' ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500")}>
+                        {status.msg}
+                    </div>
+                )}
+                <button type="submit" disabled={loading} className="px-6 py-3 bg-[#111] dark:bg-white text-white dark:text-[#111] rounded-xl font-bold text-sm disabled:opacity-50 transition-all shadow-md">
+                    {loading ? 'Sparar...' : 'Uppdatera lösenord'}
+                </button>
+            </form>
+        </section>
+    );
+}
+
 export default function SettingsPage() {
     return (
         <Suspense fallback={null}>
@@ -61,6 +119,10 @@ function SettingsContent() {
         stripeConnected: false,
         subscription_status: 'none' as string,
         cancellation_window_hours: 24,
+        disclaimer: '',
+        instagram_url: '',
+        facebook_url: '',
+        tiktok_url: '',
         messageTemplates: {
             directions: '',
             policy: '',
@@ -73,6 +135,7 @@ function SettingsContent() {
     const [managingScheduleId, setManagingScheduleId] = useState<string | null>(null);
     const [editingPractitionerId, setEditingPractitionerId] = useState<string | null>(null);
     const [newPractitioner, setNewPractitioner] = useState({ name: '', role: '', title: '', categories: [] as string[], image: '' });
+    const [showCategorySelector, setShowCategorySelector] = useState(false);
     const [scheduleBuffer, setScheduleBuffer] = useState<any>({});
     const [uploadedDiploma, setUploadedDiploma] = useState<string | null>(null);
     const [verificationCategory, setVerificationCategory] = useState('Naglar');
@@ -460,7 +523,7 @@ function SettingsContent() {
 
     const loyaltyInfo = calculateLoyaltyStatus(loyaltyState, new Date());
 
-    const handleActivateLoyalty = () => {
+    const handleActivateLoyalty = async () => {
         const updated: ProviderLoyaltyState = {
             enabled: true,
             status: 'active',
@@ -471,15 +534,49 @@ function SettingsContent() {
         };
         setLoyaltyState(updated);
         localStorage.setItem('glowbook_provider_loyalty', JSON.stringify(updated));
+
+        // Sync is_rewards_enabled: true to backend
+        if (salonData.id) {
+            try {
+                await fetch('/api/salons/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: salonData.id,
+                        is_rewards_enabled: true
+                    })
+                });
+                setSalonData(prev => ({ ...prev, is_rewards_enabled: true }));
+            } catch (err) {
+                console.error('Failed to sync is_rewards_enabled:', err);
+            }
+        }
     };
 
-    const handleDeactivateLoyalty = () => {
+    const handleDeactivateLoyalty = async () => {
         const updated: ProviderLoyaltyState = {
             ...loyaltyState,
             deactivationRequestedAt: new Date().toISOString(),
         };
         setLoyaltyState(updated);
         localStorage.setItem('glowbook_provider_loyalty', JSON.stringify(updated));
+
+        // Sync is_rewards_enabled: false to backend
+        if (salonData.id) {
+            try {
+                await fetch('/api/salons/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: salonData.id,
+                        is_rewards_enabled: false
+                    })
+                });
+                setSalonData(prev => ({ ...prev, is_rewards_enabled: false }));
+            } catch (err) {
+                console.error('Failed to sync is_rewards_enabled:', err);
+            }
+        }
     };
 
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -927,6 +1024,60 @@ function SettingsContent() {
                                             />
                                             <p className="text-[10px] text-foreground/40 mt-2 italic">Denna text visas på din offentliga profilsida under sektionen "Om oss".</p>
                                         </div>
+
+                                        <div className="md:col-span-2 border-t border-border pt-6">
+                                            <label className="block text-sm font-bold text-foreground mb-2">Viktigt meddelande / Inforuta (t.ex. vid semester)</label>
+                                            <textarea
+                                                value={salonData.disclaimer || ''}
+                                                onChange={(e) => setSalonData({ ...salonData, disclaimer: e.target.value })}
+                                                placeholder="Skriv ett meddelande som visas högst upp på din bokningssida (t.ex. 'Vi har semesterstängt vecka 28-30' eller information om vägarbeten)..."
+                                                className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all min-h-[80px] resize-none"
+                                            />
+                                            <p className="text-[10px] text-foreground/40 mt-2 italic">Lämna tomt om du inte har något meddelande att visa just nu. Om text skrivs in här, visas den som en framträdande ruta högst upp på bokningssidan.</p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Sociala Medier Section */}
+                                <section className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-6">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="p-2 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 rounded-lg">
+                                            <Instagram size={20} />
+                                        </div>
+                                        <h2 className="text-xl font-bold text-foreground">Sociala Medier</h2>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-bold text-foreground mb-2">Instagram URL</label>
+                                            <input
+                                                type="url"
+                                                placeholder="https://instagram.com/din_salong"
+                                                value={salonData.instagram_url || ''}
+                                                onChange={(e) => setSalonData({ ...salonData, instagram_url: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all placeholder:text-foreground/30"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-foreground mb-2">Facebook URL</label>
+                                            <input
+                                                type="url"
+                                                placeholder="https://facebook.com/din_salong"
+                                                value={salonData.facebook_url || ''}
+                                                onChange={(e) => setSalonData({ ...salonData, facebook_url: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all placeholder:text-foreground/30"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-foreground mb-2">TikTok URL</label>
+                                            <input
+                                                type="url"
+                                                placeholder="https://tiktok.com/@din_salong"
+                                                value={salonData.tiktok_url || ''}
+                                                onChange={(e) => setSalonData({ ...salonData, tiktok_url: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:border-champagne-500 outline-none transition-all placeholder:text-foreground/30"
+                                            />
+                                        </div>
                                     </div>
                                 </section>
 
@@ -1201,6 +1352,9 @@ function SettingsContent() {
                                         </div>
                                     </div>
                                 </section>
+
+                                {/* Password Change Section */}
+                                <ChangePasswordForm email={salonData.email} />
 
                                 {/* Auto-save status indicator */}
                                 <div className="flex justify-end items-center h-8">
@@ -2558,6 +2712,7 @@ function SettingsContent() {
                                                                         categories: p.categories || [],
                                                                         image: p.image || ''
                                                                     });
+                                                                    setShowCategorySelector(p.categories && p.categories.length > 0);
                                                                     setIsAddPractitionerModalOpen(true);
                                                                 }}
                                                                 className="p-3 text-foreground/20 hover:text-blue-500 transition-colors bg-foreground/5 rounded-xl"
@@ -2809,6 +2964,7 @@ function SettingsContent() {
                                         setIsAddPractitionerModalOpen(false);
                                         setEditingPractitionerId(null);
                                         setNewPractitioner({ name: '', role: '', title: '', categories: [], image: '' });
+                                        setShowCategorySelector(false);
                                     }} className="hover:rotate-90 transition-transform"><Plus size={24} className="rotate-45" /></button>
                                 </div>
 
@@ -2855,35 +3011,49 @@ function SettingsContent() {
                                                 <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-foreground/30 pointer-events-none" size={18} />
                                             </div>
                                         </div>
+
                                         <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-foreground/30 mb-2">Specialiseringar / Kategorier</label>
-                                            <p className="text-[10px] text-foreground/50 mb-2 leading-relaxed">Välj allt som utövaren kan erbjuda. Detta påverkar sökresultat för kunder.</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {['Frisör', 'Barberare', 'Fransstylist', 'Nagelterapeut', 'Hudterapeut', 'Massör', 'Makeup-artist', 'Brow stylist', 'Tatuerare', 'Piercing', 'Kiropraktor', 'Naprapat', 'Tandblekning', 'Estetisk Injektion', 'Spa', 'Lasertekniker', 'Fotvårdsterapeut'].map(cat => (
-                                                    <button
-                                                        key={cat}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const cats = newPractitioner.categories || [];
-                                                            setNewPractitioner({
-                                                                ...newPractitioner,
-                                                                categories: cats.includes(cat)
-                                                                    ? cats.filter(c => c !== cat)
-                                                                    : [...cats, cat]
-                                                            });
-                                                        }}
-                                                        className={clsx(
-                                                            "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border",
-                                                            (newPractitioner.categories || []).includes(cat)
-                                                                ? "bg-violet-600 text-white border-violet-600 shadow-md"
-                                                                : "bg-foreground/5 text-foreground/40 border-border hover:border-violet-300 hover:text-violet-500"
-                                                        )}
-                                                    >
-                                                        {cat}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCategorySelector(!showCategorySelector)}
+                                                className="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1.5 transition-colors duration-200 mt-2 hover:underline select-none"
+                                            >
+                                                {showCategorySelector ? '− Dölj extra kategorier' : '+ Lägg till fler kategorier / specialiseringar'}
+                                            </button>
+                                            
+                                            {showCategorySelector && (
+                                                <div className="mt-3 space-y-2 border-t border-border/40 pt-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <label className="block text-[10px] font-black uppercase tracking-widest text-foreground/30 mb-1">Extra kategorier</label>
+                                                    <p className="text-[10px] text-foreground/50 mb-3 leading-relaxed">Välj ytterligare kategorier som utövaren kan utföra tjänster inom.</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['Frisör', 'Barberare', 'Fransstylist', 'Nagelterapeut', 'Hudterapeut', 'Massör', 'Makeup-artist', 'Brow stylist', 'Tatuerare', 'Piercing', 'Kiropraktor', 'Naprapat', 'Tandblekning', 'Estetisk Injektion', 'Spa', 'Lasertekniker', 'Fotvårdsterapeut'].map(cat => (
+                                                            <button
+                                                                key={cat}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const cats = newPractitioner.categories || [];
+                                                                    setNewPractitioner({
+                                                                        ...newPractitioner,
+                                                                        categories: cats.includes(cat)
+                                                                            ? cats.filter(c => c !== cat)
+                                                                            : [...cats, cat]
+                                                                    });
+                                                                }}
+                                                                className={clsx(
+                                                                    "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border select-none",
+                                                                    (newPractitioner.categories || []).includes(cat)
+                                                                        ? "bg-violet-600 text-white border-violet-600 shadow-md"
+                                                                        : "bg-foreground/5 text-foreground/40 border-border hover:border-violet-300 hover:text-violet-500"
+                                                                )}
+                                                            >
+                                                                {cat}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
+
                                         <div>
                                             <label className="block text-[10px] font-black uppercase tracking-widest text-foreground/30 mb-2">Beskrivning / Specialisering (valfritt)</label>
                                             <input
@@ -2964,6 +3134,7 @@ function SettingsContent() {
 
                                             setIsAddPractitionerModalOpen(false);
                                             setNewPractitioner({ name: '', role: '', title: '', categories: [], image: '' });
+                                            setShowCategorySelector(false);
                                             setSavedSuccess(true);
                                             setTimeout(() => setSavedSuccess(false), 2000);
                                         }}
