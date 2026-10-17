@@ -61,13 +61,16 @@ export default function Header() {
             <header
                 className="fixed top-0 left-0 right-0 z-50 h-20 border-b border-border/40 bg-background/85 dark:bg-[#0B0B0C]/85 backdrop-blur-xl transition-colors"
             >
-                <div className="max-w-[1440px] mx-auto h-full flex items-center justify-between px-6 md:px-10">
+                <div className="max-w-[1440px] mx-auto h-full flex items-center justify-between px-6 md:px-10 relative">
                     {/* Left: Logo & Location */}
-                    <div className="flex items-center gap-6 shrink-0">
+                    <div className="flex items-center gap-6 z-10">
                         <Link href="/" className="flex items-center gap-1 group shrink-0">
-                            <span className="text-2xl md:text-[28px] font-light tracking-[0.05em]" style={{ fontFamily: 'var(--font-serif, "Didot", "Bodoni MT", "Playfair Display", Georgia, serif)' }}>
-                                <span className="text-foreground font-light">Glow</span>
-                                <span style={{ color: '#C2A26A', fontStyle: 'normal', fontWeight: 400 }}>book</span>
+                            <span 
+                                className="text-3xl md:text-[34px] font-normal tracking-[0.02em] leading-none" 
+                                style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", "Didot", "Bodoni MT", Georgia, serif' }}
+                            >
+                                <span className="text-foreground">Glow</span>
+                                <span style={{ color: '#C2A26A', fontStyle: 'normal', fontWeight: 500 }}>book</span>
                             </span>
                         </Link>
 
@@ -75,8 +78,8 @@ export default function Header() {
                         <LocationSelector dark={theme === 'dark'} className="hidden 2xl:flex" />
                     </div>
 
-                    {/* Center: Navigation Links (Airy, horizontal, high-fashion sans) */}
-                    <nav className="hidden lg:flex items-center gap-7 xl:gap-9">
+                    {/* Center: Navigation Links (Perfectly centered on the viewport/container) */}
+                    <nav className="hidden lg:flex items-center gap-8 xl:gap-10 absolute left-1/2 -translate-x-1/2">
                         {showLoggedInUI ? (
                             isProviderPortal ? (
                                 <>
@@ -211,8 +214,11 @@ export default function Header() {
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
                         {/* Top bar */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
-                            <span style={{ fontFamily: 'var(--font-serif, "Didot", "Bodoni MT", "Playfair Display", Georgia, serif)', fontWeight: 300, fontSize: '26px', letterSpacing: '0.05em', color: theme === 'dark' ? '#F1EFF7' : '#111112' }}>
-                                Glow<span style={{ color: '#C2A26A', fontStyle: 'normal', fontWeight: 400 }}>book</span>
+                            <span 
+                                className="text-3xl font-normal tracking-[0.02em] leading-none"
+                                style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", "Didot", "Bodoni MT", Georgia, serif', color: theme === 'dark' ? '#F1EFF7' : '#111112' }}
+                            >
+                                Glow<span style={{ color: '#C2A26A', fontStyle: 'normal', fontWeight: 500 }}>book</span>
                             </span>
                             <button 
                                 onClick={() => setIsMobileMenuOpen(false)}

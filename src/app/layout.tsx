@@ -1,6 +1,6 @@
 
 import type { Metadata } from "next";
-import { Playfair_Display, Cormorant_Garamond, Outfit } from "next/font/google";
+import { Playfair_Display, Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import clsx from "clsx";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -21,9 +21,9 @@ const cormorantGaramond = Cormorant_Garamond({
   display: "swap",
 });
 
-const outfit = Outfit({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-sans",
   display: "swap",
 });
 
@@ -89,7 +89,7 @@ export default function RootLayout({
         className={clsx(
           playfairDisplay.variable,
           cormorantGaramond.variable,
-          outfit.variable,
+          inter.variable,
           "antialiased bg-background text-foreground font-body transition-colors duration-300"
         )}
       >

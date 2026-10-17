@@ -165,7 +165,7 @@ export default function SupportPage() {
     const inputClass = "w-full px-5 py-3.5 rounded-xl bg-[#F5F3EE] dark:bg-white/10 border border-black/10 dark:border-white/10 focus:border-champagne-500 focus:bg-white dark:focus:bg-white/20 outline-none transition-all text-sm font-medium text-black dark:text-white placeholder:text-black/30 dark:placeholder:text-white/30";
 
     return (
-        <div className="min-h-screen bg-[#F9F7F2] dark:bg-black text-black dark:text-white flex flex-col font-outfit transition-colors duration-500">
+        <div className="min-h-screen bg-[#F9F7F2] dark:bg-black text-black dark:text-white flex flex-col font-sans transition-colors duration-500">
             <Header />
 
             <main className="flex-1 flex flex-col items-center px-6 pt-32 pb-24">

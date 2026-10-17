@@ -211,7 +211,7 @@ export default function GuidesPage() {
         : GUIDES.filter(g => g.category === activeCategory);
 
     return (
-        <div className="min-h-screen bg-[#FDFBF9] dark:bg-black text-black dark:text-white font-outfit transition-colors duration-500">
+        <div className="min-h-screen bg-[#FDFBF9] dark:bg-black text-black dark:text-white font-sans transition-colors duration-500">
             <Header />
 
             <main className="pt-28 pb-24">
@@ -383,7 +383,7 @@ export default function GuidesPage() {
                                 <div className="flex items-center justify-center gap-4">
                                     <Link
                                         href="/auth/register"
-                                        className="px-8 py-3.5 bg-white text-black rounded-full text-sm font-bold hover:bg-champagne-400 transition-all shadow-lg"
+                                        className="premium-glow-button px-8 py-3.5 text-sm font-bold"
                                     >
                                         Skapa konto
                                     </Link>

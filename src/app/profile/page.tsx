@@ -387,7 +387,7 @@ export default function ProfilePage() {
     const inputClass = "w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-champagne-500 outline-none transition-all text-sm font-medium text-foreground placeholder:text-foreground/20";
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex flex-col font-outfit transition-colors duration-500">
+        <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-500">
             <Header />
 
             <main className="flex-1 px-6 pt-28 pb-24">

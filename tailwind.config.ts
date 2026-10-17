@@ -38,9 +38,11 @@ const config: Config = {
         }
       },
       fontFamily: {
-        heading: ['"Didot"', '"Bodoni MT"', '"Playfair Display"', 'Georgia', 'serif'],
-        serif: ['"Didot"', '"Bodoni MT"', '"Playfair Display"', 'Georgia', 'serif'],
-        body: ['var(--font-outfit)', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        heading: ['var(--font-cormorant)', '"Cormorant Garamond"', '"Didot"', '"Bodoni MT"', '"Playfair Display"', 'Georgia', 'serif'],
+        serif: ['var(--font-cormorant)', '"Cormorant Garamond"', '"Didot"', '"Bodoni MT"', '"Playfair Display"', 'Georgia', 'serif'],
+        cormorant: ['var(--font-cormorant)', '"Cormorant Garamond"', 'Georgia', 'serif'],
+        body: ['var(--font-sans)', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        sans: ['var(--font-sans)', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
       }
     },
   },

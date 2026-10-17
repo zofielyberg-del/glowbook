@@ -34,7 +34,7 @@ export default function LocationSelector({ dark = false, className }: { dark?: b
         : allMunicipalities.filter(item => item.country.code === selectedCountry.code).slice(0, 50);
 
     return (
-        <div className={clsx("relative font-outfit flex items-center", className)}>
+        <div className={clsx("relative font-sans flex items-center", className)}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={clsx(

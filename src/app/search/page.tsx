@@ -102,7 +102,7 @@ export default function SearchPage() {
         : [];
 
     return (
-        <div className="min-h-screen bg-[#FDFBF9] dark:bg-black flex flex-col font-outfit transition-colors duration-700">
+        <div className="min-h-screen bg-[#FDFBF9] dark:bg-black flex flex-col font-sans transition-colors duration-700">
             <Header />
 
             <main className="flex-1 flex flex-col items-center pt-48 px-6 pb-20 relative overflow-hidden">
