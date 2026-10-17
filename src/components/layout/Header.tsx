@@ -18,7 +18,7 @@ const NavLink = ({ href, label, active }: { href: string; label: string; active?
     <Link
         href={href}
         className={clsx(
-            "relative text-[12px] xl:text-[13px] font-medium tracking-[0.14em] uppercase transition-colors duration-200 py-1 shrink-0",
+            "relative text-[11px] xl:text-[12px] font-medium tracking-[0.12em] uppercase transition-colors duration-200 py-1 shrink-0 whitespace-nowrap",
             active 
                 ? "text-[#C2A26A]" 
                 : "text-foreground/60 hover:text-[#C2A26A]"
@@ -79,7 +79,7 @@ export default function Header() {
                     </div>
 
                     {/* Center: Navigation Links (Perfectly centered on the viewport/container) */}
-                    <nav className="hidden lg:flex items-center gap-8 xl:gap-10 absolute left-1/2 -translate-x-1/2">
+                    <nav className="hidden lg:flex items-center gap-5 xl:gap-7 2xl:gap-8 absolute left-1/2 -translate-x-1/2">
                         {showLoggedInUI ? (
                             isProviderPortal ? (
                                 <>
@@ -113,7 +113,7 @@ export default function Header() {
                     </nav>
 
                     {/* Right side buttons */}
-                    <div className="flex items-center gap-4 md:gap-5 shrink-0">
+                    <div className="flex items-center gap-2.5 xl:gap-3 shrink-0 z-10">
                         {user?.isImpersonated && (
                             <button
                                 onClick={() => {
@@ -122,7 +122,7 @@ export default function Header() {
                                     window.dispatchEvent(new Event('glowbook_update'));
                                     window.location.href = '/';
                                 }}
-                                className="hidden md:flex items-center gap-2 bg-red-500 text-white px-3.5 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-widest hover:bg-red-600 transition-colors animate-pulse"
+                                className="hidden md:flex items-center gap-2 bg-red-500 text-white px-3 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-widest hover:bg-red-600 transition-colors animate-pulse"
                             >
                                 <X size={12} /> Avsluta inloggning
                             </button>
@@ -131,9 +131,9 @@ export default function Header() {
                         <button
                             onClick={toggleTheme}
                             aria-label="Växla tema"
-                            className="p-2 rounded-full hover:bg-foreground/5 transition-colors text-foreground/50 hover:text-[#C2A26A]"
+                            className="p-2 rounded-full hover:bg-foreground/5 transition-colors text-foreground/50 hover:text-[#C2A26A] shrink-0"
                         >
-                            {theme === 'light' ? <Moon size={17} /> : <Sun size={17} className="text-[#C2A26A]" />}
+                            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} className="text-[#C2A26A]" />}
                         </button>
 
                         {/* Desktop user menu */}
@@ -141,10 +141,10 @@ export default function Header() {
                             <div className="relative hidden lg:block">
                                 <button
                                     onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                                    className="bg-foreground text-background px-5 py-2.5 rounded-full text-[11px] font-medium uppercase tracking-[0.14em] hover:bg-[#C2A26A] hover:text-[#0B0B0C] transition-all flex items-center gap-2 shadow-sm"
+                                    className="bg-foreground text-background px-4 py-2 rounded-full text-[10px] xl:text-[11px] font-medium uppercase tracking-[0.12em] hover:bg-[#C2A26A] hover:text-[#0B0B0C] transition-all flex items-center gap-1.5 shadow-sm"
                                 >
                                     {isProvider ? 'Översikt' : t('my_pages')}
-                                    <ChevronDown size={13} className={clsx("transition-transform", isUserDropdownOpen && "rotate-180")} />
+                                    <ChevronDown size={12} className={clsx("transition-transform", isUserDropdownOpen && "rotate-180")} />
                                 </button>
                                 {isUserDropdownOpen && (
                                     <>
@@ -178,16 +178,16 @@ export default function Header() {
                                 )}
                             </div>
                         ) : (
-                            <div className="hidden lg:flex items-center gap-3 xl:gap-4">
+                            <div className="hidden lg:flex items-center gap-2 xl:gap-2.5">
                                 <Link
                                     href="/auth/register?role=provider"
-                                    className="text-[11px] xl:text-[12px] font-medium tracking-[0.14em] uppercase px-5 py-2.5 rounded-full border border-[#C2A26A] text-foreground hover:bg-[#C2A26A] hover:text-[#0B0B0C] transition-all duration-300"
+                                    className="text-[10px] xl:text-[11px] font-medium tracking-[0.12em] uppercase px-3.5 xl:px-4 py-2 rounded-full border border-[#C2A26A] text-foreground hover:bg-[#C2A26A] hover:text-[#0B0B0C] transition-all duration-300 whitespace-nowrap"
                                 >
                                     {t('action_register')}
                                 </Link>
                                 <Link
                                     href="/auth/login"
-                                    className="text-[11px] xl:text-[12px] font-medium tracking-[0.14em] uppercase px-5 py-2.5 rounded-full bg-foreground/5 hover:bg-foreground hover:text-background border border-foreground/10 transition-all duration-300"
+                                    className="text-[10px] xl:text-[11px] font-medium tracking-[0.12em] uppercase px-3.5 xl:px-4 py-2 rounded-full bg-foreground/5 hover:bg-foreground hover:text-background border border-foreground/10 transition-all duration-300 whitespace-nowrap"
                                 >
                                     {t('action_login')}
                                 </Link>
