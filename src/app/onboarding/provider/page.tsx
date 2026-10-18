@@ -129,7 +129,7 @@ export default function ProviderOnboarding() {
             currency: currency,
             joined: initialData.created_at || new Date().toISOString().split('T')[0],
             slug: (formData.businessName ? formData.businessName.toLowerCase().replace(/\s+/g, '-') : initialData.slug) || 'studio',
-            subscription_status: 'trialing'
+            subscription_status: 'pending_payment'
         };
 
         try {

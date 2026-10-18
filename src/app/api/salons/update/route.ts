@@ -104,7 +104,7 @@ export async function POST(req: Request) {
                     data: { 
                         ...updateData, 
                         id,
-                        subscription_status: salonInfo.subscription_status || 'active'
+                        subscription_status: salonInfo.subscription_status || 'pending_payment'
                     }
                 });
                 realSalonId = newSalon.id;

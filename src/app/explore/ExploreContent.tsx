@@ -136,15 +136,8 @@ export default function ExploreContent() {
                 );
                 const data = await response.json();
 
-                // Always get the local salon
-                const saved = localStorage.getItem('glowbook_salon');
-                const localSalons = saved ? [JSON.parse(saved)] : [];
-
-                if (data.success) {
-                    const filteredLocal = localSalons.filter((ls: any) => !data.salons.some((ss: any) => ss.id === ls.id));
-                    const combined = [...data.salons, ...filteredLocal];
-
-                    setSalons(combined.map(s => {
+                if (data.success && Array.isArray(data.salons)) {
+                    setSalons(data.salons.map((s: any) => {
                         const tier = (s.tier || s.membership_tier || 'bas').toLowerCase();
                         const rawPrice = calculateMinPrice(s);
                         return {
@@ -155,22 +148,11 @@ export default function ExploreContent() {
                         };
                     }));
                 } else {
-                    // Fallback to local drafts only if they have at least one service
-                    const activeLocal = localSalons.filter(s => (s.services || []).length > 0);
-                    setSalons(activeLocal.map(s => ({ 
-                        ...s, 
-                        priceFrom: calculateMinPrice(s),
-                        tier: (s.tier || 'bas').toLowerCase(),
-                        image: s.logo_url || s.profileImage || s.image
-                    })));
+                    setSalons([]);
                 }
             } catch (error) {
                 console.error('Error loading salons:', error);
-                const saved = localStorage.getItem('glowbook_salon');
-                if (saved) {
-                    const ls = JSON.parse(saved);
-                    setSalons([{ ...ls, priceFrom: calculateMinPrice(ls) }]);
-                }
+                setSalons([]);
             } finally {
                 setIsLoading(false);
             }

@@ -15,10 +15,38 @@ export async function GET(req: Request) {
 
         const where: Prisma.SalonWhereInput = {
             AND: [
+                // 1. Valid subscription status (must be active/trialing/canceling)
                 {
                     subscription_status: {
                         in: ['active', 'trialing', 'canceling']
                     }
+                },
+                // 2. Exclude any uncompleted/pending payments
+                {
+                    subscription_status: {
+                        notIn: ['pending_payment', 'unpaid', 'incomplete', 'canceled', 'none']
+                    }
+                },
+                // 3. Must be verified: either Stripe subscription started OR admin verified
+                {
+                    OR: [
+                        { is_verified: true },
+                        { stripe_subscription_id: { not: null } },
+                        { stripe_customer_id: { not: null } }
+                    ]
+                },
+                // 4. Must have at least one bookable service
+                {
+                    services: {
+                        some: {}
+                    }
+                },
+                // 5. Must have at least one image uploaded (logo or banner)
+                {
+                    OR: [
+                        { logo_url: { not: null } },
+                        { banner_url: { not: null } }
+                    ]
                 }
             ]
         };
@@ -339,9 +367,45 @@ export async function GET(req: Request) {
             };
         });
 
+        // Quality assurance criteria filter: only salons with services, images, and valid payment appear on Upptäck
+        const qualifiedSalons = processedData.filter(salon => {
+            // Criteria 1: Minst en aktiv bokningsbar tjänst
+            const hasServices = (salon.services || []).length > 0;
+            if (!hasServices) return false;
+
+            // Criteria 2: Minst en uppladdad bild (logotyp, omslag eller galleribild)
+            const hasImage = Boolean(
+                (salon.logo_url && salon.logo_url.trim().length > 5 && salon.logo_url !== 'null') ||
+                (salon.banner_url && salon.banner_url.trim().length > 5 && salon.banner_url !== 'null') ||
+                (salon.profileImage && salon.profileImage.trim().length > 5 && salon.profileImage !== 'null') ||
+                (salon.backgroundImage && salon.backgroundImage.trim().length > 5 && salon.backgroundImage !== 'null') ||
+                (Array.isArray(salon.gallery_images) && salon.gallery_images.length > 0)
+            );
+            if (!hasImage) return false;
+
+            // Criteria 3: Verifierat medlemskap (slutförd Stripe-prenumeration eller admin-verifierad)
+            const status = (salon.subscription_status || '').toLowerCase();
+            const isValidStatus = ['active', 'trialing', 'canceling'].includes(status) && status !== 'pending_payment';
+            if (!isValidStatus) return false;
+
+            const isVerifiedOrPaid = Boolean(
+                salon.is_verified ||
+                salon.stripe_subscription_id ||
+                salon.stripe_customer_id
+            );
+            if (!isVerifiedOrPaid) return false;
+
+            // Criteria 4: Grundläggande information (namn och plats)
+            const hasName = Boolean(salon.name && salon.name.trim().length > 1);
+            const hasLocation = Boolean(salon.city || salon.municipality || salon.address);
+            if (!hasName || !hasLocation) return false;
+
+            return true;
+        });
+
         // Smart recommended sorting: Tier (LUXE > PRO > BAS) -> Rating (high to low) -> Review Count (high to low) -> Name (alphabetical)
         const tierOrder: Record<string, number> = { 'luxe': 3, 'pro': 2, 'bas': 1 };
-        processedData.sort((a, b) => {
+        qualifiedSalons.sort((a, b) => {
             const tierA = tierOrder[a.tier] || 0;
             const tierB = tierOrder[b.tier] || 0;
             if (tierA !== tierB) return tierB - tierA;
@@ -359,7 +423,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json({
             success: true,
-            salons: processedData
+            salons: qualifiedSalons
         }, {
             headers: {
                 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'

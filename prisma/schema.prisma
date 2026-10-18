@@ -46,7 +46,7 @@ model Salon {
   rating              Decimal?           @default(0.000000000000000000000000000000)
   review_count        Int?               @default(0)
   membership_tier     String?            @default("BAS")
-  subscription_status String?            @default("trialing")
+  subscription_status String?            @default("pending_payment")
   stripe_customer_id  String?
   stripe_subscription_id String?
   stripe_account_id   String?
