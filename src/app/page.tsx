@@ -263,8 +263,8 @@ export default function Home() {
             {/* Main Headline in Cormorant Garamond */}
             <div className="space-y-4">
               <h1 className="font-heading text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-normal text-foreground leading-[1.05] tracking-tight">
-                Din tid. <br className="hidden sm:inline" />
-                <span className="italic font-light text-champagne-500">Din skönhet.</span>
+                {t('home_hero_title_1') || 'Din tid.'} <br className="hidden sm:inline" />
+                <span className="italic font-light text-champagne-500">{t('home_hero_title_2') || 'Din skönhet.'}</span>
               </h1>
               
               {/* Minimal Luxury Divider */}

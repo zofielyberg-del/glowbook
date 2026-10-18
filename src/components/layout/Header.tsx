@@ -6,13 +6,22 @@ import { usePathname } from 'next/navigation';
 import { 
     Compass, BookOpen, Star, Ticket, HelpCircle, 
     AlignJustify, Sun, Moon, Calendar, User, Settings, 
-    Users, Scissors, ChevronDown, MessageSquare, X 
+    Users, Scissors, ChevronDown, MessageSquare, X, Check, Globe 
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import LocationSelector from '@/components/LocationSelector';
 import { useAuth } from '@/hooks/useAuth';
+
+const LANGUAGES = [
+    { id: 'Svenska' as const, code: 'SV', label: 'Svenska', native: 'Sverige', flag: '🇸🇪' },
+    { id: 'English' as const, code: 'EN', label: 'English', native: 'English', flag: '🇬🇧' },
+    { id: 'Finska' as const, code: 'FI', label: 'Suomi', native: 'Finska', flag: '🇫🇮' },
+    { id: 'Norska' as const, code: 'NO', label: 'Norsk', native: 'Norska', flag: '🇳🇴' },
+    { id: 'Danska' as const, code: 'DA', label: 'Dansk', native: 'Danska', flag: '🇩🇰' },
+    { id: 'Isländska' as const, code: 'IS', label: 'Íslenska', native: 'Isländska', flag: '🇮🇸' },
+];
 
 const NavLink = ({ href, label, active }: { href: string; label: string; active?: boolean }) => (
     <Link
@@ -32,13 +41,16 @@ const NavLink = ({ href, label, active }: { href: string; label: string; active?
 );
 
 export default function Header() {
-    const { t } = useLanguage();
+    const { language, setLanguage, t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
     const pathname = usePathname();
     const { isLoggedIn, isSalonOwner, isPractitioner: isPractitionerRole, logout, user } = useAuth();
     const isProvider = isSalonOwner || isPractitionerRole;
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
+
+    const currentLang = LANGUAGES.find(l => l.id === language) || LANGUAGES[0];
 
     const isProviderPortal = pathname?.startsWith('/provider');
     const isAdminPortal = pathname?.startsWith('/admin');
@@ -127,6 +139,61 @@ export default function Header() {
                                 <X size={12} /> Avsluta inloggning
                             </button>
                         )}
+
+                        {/* Language Selector */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
+                                aria-label="Byt språk / Change language"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full hover:bg-foreground/5 transition-all text-foreground/70 hover:text-foreground border border-foreground/10 hover:border-[#C2A26A]/40 shrink-0"
+                            >
+                                <span className="text-sm leading-none select-none">{currentLang.flag}</span>
+                                <span className="text-[10px] xl:text-[11px] font-semibold tracking-wider uppercase text-foreground/85">{currentLang.code}</span>
+                                <ChevronDown size={11} className={clsx("transition-transform opacity-40", isLanguageDropdownOpen && "rotate-180")} />
+                            </button>
+
+                            {isLanguageDropdownOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setIsLanguageDropdownOpen(false)} />
+                                    <div className="absolute right-0 mt-2.5 w-52 bg-background/95 dark:bg-[#121214]/95 border border-border/80 dark:border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150">
+                                        <div className="px-3 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-foreground/40 border-b border-border/40 mb-1">
+                                            Språk / Language
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            {LANGUAGES.map((lang) => {
+                                                const isSelected = language === lang.id;
+                                                return (
+                                                    <button
+                                                        key={lang.id}
+                                                        onClick={() => {
+                                                            setLanguage(lang.id);
+                                                            setIsLanguageDropdownOpen(false);
+                                                        }}
+                                                        className={clsx(
+                                                            "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all",
+                                                            isSelected
+                                                                ? "bg-[#C2A26A]/15 text-[#C2A26A] font-bold"
+                                                                : "text-foreground/70 hover:text-foreground hover:bg-foreground/5 text-xs font-medium"
+                                                        )}
+                                                    >
+                                                        <span className="flex items-center gap-2.5">
+                                                            <span className="text-base leading-none select-none">{lang.flag}</span>
+                                                            <span className="text-xs">
+                                                                {lang.label}
+                                                                {lang.label !== lang.native && (
+                                                                    <span className="text-[10px] text-foreground/40 ml-1.5 font-normal">({lang.native})</span>
+                                                                )}
+                                                            </span>
+                                                        </span>
+                                                        {isSelected && <Check size={14} className="text-[#C2A26A] shrink-0" />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
 
                         <button
                             onClick={toggleTheme}
@@ -329,6 +396,37 @@ export default function Header() {
 
                         {/* Bottom */}
                         <div style={{ padding: '20px', borderTop: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
+                            <div style={{ marginBottom: '16px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#C2A26A', marginBottom: '8px' }}>Språk / Language</p>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                                    {LANGUAGES.map((lang) => {
+                                        const isSelected = language === lang.id;
+                                        return (
+                                            <button
+                                                key={lang.id}
+                                                onClick={() => setLanguage(lang.id)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '6px',
+                                                    padding: '10px 8px',
+                                                    borderRadius: '12px',
+                                                    border: isSelected ? '1px solid #C2A26A' : (theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)'),
+                                                    background: isSelected ? 'rgba(194, 162, 106, 0.12)' : 'transparent',
+                                                    color: isSelected ? '#C2A26A' : (theme === 'dark' ? '#fff' : '#111'),
+                                                    fontSize: '11px',
+                                                    fontWeight: isSelected ? 700 : 500,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <span>{lang.flag}</span>
+                                                <span>{lang.code}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                             <LocationSelector dark={theme === 'dark'} />
                         </div>
                     </div>
