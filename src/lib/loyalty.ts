@@ -92,58 +92,100 @@ export function getPointsToNextLevel(totalPoints: number): number {
     return next.threshold - totalPoints;
 }
 
-// ─── REWARD TIERS ───
+// ─── REWARD TIERS (Simplified Points -> SEK Rabatt) ───
 export interface RewardOption {
     id: string;
     label: string;
     description: string;
-    icon: string; // emoji
+    icon: string; // emoji or lucide icon name
 }
 
 export interface RewardTier {
-    pointsCost: number;
-    label: string;
+    pointsCost: number;     // e.g. 200
+    discountAmount: number; // e.g. 50 (SEK)
+    label: string;          // e.g. "50 kr rabatt"
+    description?: string;
     options: RewardOption[];
 }
 
-export const REWARD_TIERS: RewardTier[] = [
+export const DEFAULT_REWARD_TIERS: RewardTier[] = [
     {
-        pointsCost: 150,
-        label: '150 poäng',
-        options: [
-            { id: 'r150_1', label: '20% på tillägg', description: 'Rabatt på valfritt tillägg', icon: 'Scissors' },
-            { id: 'r150_2', label: 'Gratis removal', description: 'Kostnadsfri borttagning', icon: 'Eraser' },
-            { id: 'r150_3', label: '50 kr rabatt', description: 'Rabatt på nästa behandling', icon: 'Banknote' },
-        ],
+        pointsCost: 200,
+        discountAmount: 50,
+        label: '50 kr rabatt',
+        description: 'Dras av direkt vid betalning',
+        options: [{ id: 'r_200_50', label: '50 kr rabatt', description: 'Dras av direkt vid betalning', icon: 'Banknote' }]
     },
     {
         pointsCost: 400,
-        label: '400 poäng',
-        options: [
-            { id: 'r400_1', label: '20% på behandling', description: 'Rabatt på valfri behandling', icon: 'Sparkles' },
-            { id: 'r400_2', label: '100 kr rabatt', description: 'Rabatt på nästa behandling', icon: 'Banknote' },
-            { id: 'r400_3', label: 'Gratis tillägg', description: 'Valfritt tillägg helt gratis', icon: 'Gift' },
-        ],
+        discountAmount: 100,
+        label: '100 kr rabatt',
+        description: 'Dras av direkt vid betalning',
+        options: [{ id: 'r_400_100', label: '100 kr rabatt', description: 'Dras av direkt vid betalning', icon: 'Banknote' }]
+    },
+    {
+        pointsCost: 600,
+        discountAmount: 150,
+        label: '150 kr rabatt',
+        description: 'Dras av direkt vid betalning',
+        options: [{ id: 'r_600_150', label: '150 kr rabatt', description: 'Dras av direkt vid betalning', icon: 'Banknote' }]
     },
     {
         pointsCost: 800,
-        label: '800 poäng',
-        options: [
-            { id: 'r800_1', label: '30% på behandling', description: 'Stor rabatt på valfri behandling', icon: 'Star' },
-            { id: 'r800_2', label: 'Gratis design/tillägg', description: 'Exklusiv design eller tillägg', icon: 'Palette' },
-            { id: 'r800_3', label: 'Prioriterad bokning', description: 'Boka innan andra kunder', icon: 'Crown' },
-        ],
-    },
-    {
-        pointsCost: 1500,
-        label: '1 500 poäng',
-        options: [
-            { id: 'r1500_1', label: '50% på behandling', description: 'Halva priset – 1 gång', icon: 'Flame' },
-            { id: 'r1500_2', label: 'Gratis premiumtillägg', description: 'Det bästa vi erbjuder – gratis', icon: 'Gem' },
-            { id: 'r1500_3', label: 'VIP-status hos utförare', description: 'Exklusiv VIP-status', icon: 'Award' },
-        ],
+        discountAmount: 200,
+        label: '200 kr rabatt',
+        description: 'Dras av direkt vid betalning',
+        options: [{ id: 'r_800_200', label: '200 kr rabatt', description: 'Dras av direkt vid betalning', icon: 'Banknote' }]
     },
 ];
+
+export const REWARD_TIERS: RewardTier[] = DEFAULT_REWARD_TIERS;
+
+export function normalizeRewardTiers(rawTiers: any): RewardTier[] {
+    if (!rawTiers || !Array.isArray(rawTiers) || rawTiers.length === 0) {
+        return DEFAULT_REWARD_TIERS;
+    }
+
+    return rawTiers.map((tier: any, idx: number) => {
+        const pointsCost = Number(tier.pointsCost) || (200 * (idx + 1));
+        let discount = Number(tier.discountAmount) || 0;
+        let label = tier.label || '';
+        let description = tier.description || '';
+
+        if (!discount && tier.options && Array.isArray(tier.options)) {
+            for (const opt of tier.options) {
+                const match = (opt.label || '').match(/(\d+)\s*kr/i);
+                if (match) {
+                    discount = parseInt(match[1], 10);
+                    break;
+                }
+            }
+        }
+        if (!discount) {
+            discount = Math.round(pointsCost / 4);
+        }
+        if (!label) {
+            label = `${discount} kr rabatt`;
+        }
+        if (!description) {
+            description = `Dra av ${discount} kr på din bokning`;
+        }
+
+        const options = (tier.options && Array.isArray(tier.options) && tier.options.length > 0)
+            ? tier.options
+            : [
+                { id: `r_${pointsCost}_${discount}`, label: `${discount} kr rabatt`, description: 'Dras av direkt vid betalning', icon: 'Banknote' }
+            ];
+
+        return {
+            pointsCost,
+            discountAmount: discount,
+            label,
+            description,
+            options
+        };
+    });
+}
 
 export function getAvailableRewards(currentPoints: number): RewardTier[] {
     return REWARD_TIERS.filter(t => currentPoints >= t.pointsCost);

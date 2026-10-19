@@ -13,7 +13,7 @@ import { NORDIC_COUNTRIES, getMunicipalities } from "@/data/nordic-data";
 import {
     getDefaultLoyaltyState, calculateLoyaltyStatus,
     LOYALTY_COOLDOWN_DAYS, LOYALTY_MIN_ACTIVE_DAYS,
-    REWARD_TIERS, type RewardTier,
+    REWARD_TIERS, type RewardTier, normalizeRewardTiers,
     type ProviderLoyaltyState, type LoyaltyStatus
 } from "@/lib/loyalty";
 
@@ -249,8 +249,8 @@ function SettingsContent() {
                             }
                             return { ...prev, ...parsedFresh };
                         });
-                        if (parsedFresh.custom_rewards && Array.isArray(parsedFresh.custom_rewards) && parsedFresh.custom_rewards.length > 0) {
-                            setCustomRewards(parsedFresh.custom_rewards);
+                        if (parsedFresh.custom_rewards) {
+                            setCustomRewards(normalizeRewardTiers(parsedFresh.custom_rewards));
                         }
                         setComparisonDuration(parsedFresh.duration || 1);
                         if (parsedFresh.category) {
@@ -278,8 +278,8 @@ function SettingsContent() {
                     }
                     return { ...prev, ...parsedLocal };
                 });
-                if (parsedLocal.custom_rewards && Array.isArray(parsedLocal.custom_rewards) && parsedLocal.custom_rewards.length > 0) {
-                    setCustomRewards(parsedLocal.custom_rewards);
+                if (parsedLocal.custom_rewards) {
+                    setCustomRewards(normalizeRewardTiers(parsedLocal.custom_rewards));
                 }
                 setComparisonDuration(parsedLocal.duration || 1);
 
@@ -593,15 +593,52 @@ function SettingsContent() {
         }
     };
 
-    const handleUpdateTierReward = (tierCost: number, optionIndex: number, field: 'label' | 'description', value: string) => {
-        setCustomRewards(prev => prev.map(tier => {
-            if (tier.pointsCost !== tierCost) return tier;
-            const newOptions = [...tier.options];
-            if (newOptions[optionIndex]) {
-                newOptions[optionIndex] = { ...newOptions[optionIndex], [field]: value };
-            }
-            return { ...tier, options: newOptions };
+    const handleUpdateTierPoints = (index: number, points: number) => {
+        setCustomRewards(prev => prev.map((tier, idx) => {
+            if (idx !== index) return tier;
+            const discount = tier.discountAmount || 50;
+            return {
+                ...tier,
+                pointsCost: points,
+                label: `${discount} kr rabatt`,
+                description: `Dra av ${discount} kr på din bokning`,
+                options: [{ id: `r_${points}_${discount}`, label: `${discount} kr rabatt`, description: 'Dras av direkt vid betalning', icon: 'Banknote' }]
+            };
         }));
+    };
+
+    const handleUpdateTierDiscount = (index: number, discount: number) => {
+        setCustomRewards(prev => prev.map((tier, idx) => {
+            if (idx !== index) return tier;
+            return {
+                ...tier,
+                discountAmount: discount,
+                label: `${discount} kr rabatt`,
+                description: `Dra av ${discount} kr på din bokning`,
+                options: [{ id: `r_${tier.pointsCost}_${discount}`, label: `${discount} kr rabatt`, description: 'Dras av direkt vid betalning', icon: 'Banknote' }]
+            };
+        }));
+    };
+
+    const handleAddTier = () => {
+        const lastTier = customRewards[customRewards.length - 1];
+        const nextPoints = lastTier ? lastTier.pointsCost + 200 : 200;
+        const nextDiscount = lastTier ? lastTier.discountAmount + 50 : 50;
+        setCustomRewards(prev => [
+            ...prev,
+            {
+                pointsCost: nextPoints,
+                discountAmount: nextDiscount,
+                label: `${nextDiscount} kr rabatt`,
+                description: `Dra av ${nextDiscount} kr på din bokning`,
+                options: [{ id: `r_${nextPoints}_${nextDiscount}`, label: `${nextDiscount} kr rabatt`, description: 'Dras av direkt vid betalning', icon: 'Banknote' }]
+            }
+        ]);
+    };
+
+    const handleRemoveTier = (index: number) => {
+        if (customRewards.length <= 1) return;
+        setCustomRewards(prev => prev.filter((_, idx) => idx !== index));
     };
 
     const handleSaveCustomRewards = async () => {
@@ -1871,43 +1908,80 @@ function SettingsContent() {
                                         </div>
                                     )}
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                                        {customRewards.map((tier) => (
-                                            <div key={tier.pointsCost} className="bg-background/80 p-5 rounded-2xl border border-border/60 space-y-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                                        {customRewards.map((tier, idx) => (
+                                            <div key={idx} className="bg-background/80 p-5 rounded-2xl border border-border/60 space-y-3 relative group">
                                                 <div className="flex items-center justify-between pb-2 border-b border-border/40">
                                                     <span className="text-xs font-black uppercase tracking-wider text-champagne-600 dark:text-champagne-400">
-                                                        {tier.label}
+                                                        Nivå {idx + 1}
                                                     </span>
-                                                    <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">
-                                                        Kräver {tier.pointsCost}p
-                                                    </span>
+                                                    {customRewards.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveTier(idx)}
+                                                            className="text-foreground/30 hover:text-red-500 text-xs transition-colors p-1"
+                                                            title="Ta bort nivå"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    )}
                                                 </div>
 
                                                 <div className="space-y-3">
-                                                    {tier.options.map((option, optIdx) => (
-                                                        <div key={option.id || optIdx} className="space-y-1.5 bg-card/60 p-3 rounded-xl border border-border/30">
-                                                            <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 block">
-                                                                Belöning #{optIdx + 1}
-                                                            </label>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 block">
+                                                            Glowpoints
+                                                        </label>
+                                                        <div className="relative">
                                                             <input
-                                                                type="text"
-                                                                value={option.label}
-                                                                onChange={(e) => handleUpdateTierReward(tier.pointsCost, optIdx, 'label', e.target.value)}
-                                                                placeholder="T.ex. 50 kr rabatt, Gratis hårolja..."
-                                                                className="w-full px-3 py-1.5 text-xs font-semibold bg-background border border-border rounded-lg text-foreground focus:border-[#C2A26A] outline-none"
+                                                                type="number"
+                                                                min="50"
+                                                                step="50"
+                                                                value={tier.pointsCost}
+                                                                onChange={(e) => handleUpdateTierPoints(idx, parseInt(e.target.value) || 0)}
+                                                                className="w-full px-3 py-2 text-xs font-bold bg-background border border-border rounded-xl text-foreground focus:border-[#C2A26A] outline-none"
                                                             />
-                                                            <input
-                                                                type="text"
-                                                                value={option.description}
-                                                                onChange={(e) => handleUpdateTierReward(tier.pointsCost, optIdx, 'description', e.target.value)}
-                                                                placeholder="Kort beskrivning (t.ex. Gäller valfri behandling)..."
-                                                                className="w-full px-3 py-1 text-[11px] bg-background border border-border/60 rounded-lg text-foreground/70 focus:border-[#C2A26A] outline-none"
-                                                            />
+                                                            <span className="absolute right-3 top-2 text-[10px] text-foreground/40 font-bold">p</span>
                                                         </div>
-                                                    ))}
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 block">
+                                                            Rabatt (kr)
+                                                        </label>
+                                                        <div className="relative">
+                                                            <input
+                                                                type="number"
+                                                                min="10"
+                                                                step="10"
+                                                                value={tier.discountAmount}
+                                                                onChange={(e) => handleUpdateTierDiscount(idx, parseInt(e.target.value) || 0)}
+                                                                className="w-full px-3 py-2 text-xs font-bold bg-background border border-border rounded-xl text-emerald-600 dark:text-emerald-400 focus:border-[#C2A26A] outline-none"
+                                                            />
+                                                            <span className="absolute right-3 top-2 text-[10px] text-foreground/40 font-bold">kr</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-2 text-center bg-foreground/[0.03] py-2 rounded-xl border border-border/30">
+                                                    <p className="text-[11px] font-bold text-foreground/80">
+                                                        {tier.pointsCost}p = <span className="text-emerald-600 font-extrabold">{tier.discountAmount} kr</span>
+                                                    </p>
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleAddTier}
+                                            className="inline-flex items-center gap-2 px-4 py-2 border border-border bg-card hover:bg-foreground/5 text-foreground font-bold text-xs rounded-xl transition-all"
+                                        >
+                                            <Plus size={14} />
+                                            <span>Lägg till nivå</span>
+                                        </button>
+                                        <p className="text-[11px] text-foreground/40">Kunder kan välja att dra av dessa belopp direkt vid betalning.</p>
                                     </div>
                                 </section>
 

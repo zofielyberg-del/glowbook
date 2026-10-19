@@ -9,7 +9,7 @@ import Calendar from "@/components/dashboard/Calendar";
 import clsx from "clsx";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
-import { REWARD_TIERS } from "@/lib/loyalty";
+import { REWARD_TIERS, normalizeRewardTiers } from "@/lib/loyalty";
 import { useSearchParams, useRouter } from "next/navigation";
 
 function getServiceCategory(service: any, salonCategory: string) {
@@ -251,22 +251,19 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         }, 0);
     }, [selectedAddons, salon?.addons]);
 
+    const salonRewards = useMemo(() => normalizeRewardTiers(salon?.custom_rewards), [salon?.custom_rewards]);
+
     const originalTotal = useMemo(() => {
         let total = basePrice + addonsPrice;
-        // Apply Glowpoints Reward Discount
+        // Apply Glowpoints Reward Discount directly in SEK
         if (useGlowpoints && selectedReward) {
-            if (selectedReward.id.includes('50 kr')) total = Math.max(0, total - 50);
-            if (selectedReward.id.includes('100 kr')) total = Math.max(0, total - 100);
-            if (selectedReward.label.includes('20%')) total = Math.floor(total * 0.8);
-            if (selectedReward.label.includes('30%')) total = Math.floor(total * 0.7);
-            if (selectedReward.label.includes('50%')) total = Math.floor(total * 0.5);
-            if (selectedReward.label.includes('Gratis tillägg')) {
-                const addonPrices = selectedAddons.map(id => (salon?.addons || []).find((a: any) => a.id === id)?.price || 0);
-                if (addonPrices.length > 0) total -= Math.max(...addonPrices);
-            }
+            const discount = Number(selectedReward.discountAmount) || 
+                             (selectedReward.label ? parseInt(selectedReward.label.replace(/\D/g, ''), 10) : 0) || 
+                             0;
+            total = Math.max(0, total - discount);
         }
         return total;
-    }, [basePrice, addonsPrice, useGlowpoints, selectedReward, selectedAddons, salon?.addons]);
+    }, [basePrice, addonsPrice, useGlowpoints, selectedReward]);
 
     const giftCardDiscount = useMemo(() => {
         return selectedPaymentMethod === 'giftcard' && giftCardStatus?.valid
@@ -1771,56 +1768,84 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             )}
                                                         </div>
 
-                                                        {/* Glowpoints Section */}
-                                                        {isCustomerLoggedIn && salon.acceptsGlowpoints && availableGlowpoints > 0 && (
+                                                        {/* Glowpoints Payment / Discount Section */}
+                                                        {salon?.acceptsGlowpoints && (
                                                             <div className="space-y-4 pt-6 border-t border-border mt-6">
                                                                 <div className="flex items-center justify-between">
                                                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-                                                                        <Coins size={14} /> Använd dina Glowpoints
+                                                                        <Coins size={14} /> Betala med Glowpoints
                                                                     </h4>
-                                                                    <span className="text-[10px] font-bold text-foreground/40">{availableGlowpoints} poäng tillgängliga</span>
+                                                                    {isCustomerLoggedIn && (
+                                                                        <span className="text-[10px] font-bold text-foreground/50">{availableGlowpoints} poäng tillgängliga</span>
+                                                                    )}
                                                                 </div>
 
-                                                                <div className="grid grid-cols-1 gap-3">
-                                                                    {((salon.custom_rewards && Array.isArray(salon.custom_rewards) && salon.custom_rewards.length > 0 ? salon.custom_rewards : REWARD_TIERS) as typeof REWARD_TIERS).filter(tier => availableGlowpoints >= tier.pointsCost).map(tier => (
-                                                                        <div key={tier.pointsCost} className="space-y-2">
-                                                                            {tier.options.map(option => (
-                                                                                <div
-                                                                                    key={option.id}
-                                                                                    onClick={() => {
-                                                                                        if (selectedReward?.id === option.id) {
-                                                                                            setSelectedReward(null);
-                                                                                            setUseGlowpoints(false);
-                                                                                        } else {
-                                                                                            setSelectedReward({ ...option, pointsCost: tier.pointsCost });
-                                                                                            setUseGlowpoints(true);
-                                                                                        }
-                                                                                    }}
-                                                                                    className={clsx(
-                                                                                        "p-3 rounded-2xl border transition-all cursor-pointer flex items-center gap-3",
-                                                                                        selectedReward?.id === option.id
-                                                                                            ? "border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500"
-                                                                                            : "border-border bg-card hover:border-emerald-500/20"
-                                                                                    )}
-                                                                                >
-                                                                                    <div className={clsx(
-                                                                                        "w-8 h-8 rounded-lg flex items-center justify-center text-sm",
-                                                                                        selectedReward?.id === option.id ? "bg-emerald-500 text-white" : "bg-emerald-500/10 text-emerald-600"
-                                                                                    )}>
-                                                                                        <Star size={14} />
-                                                                                    </div>
-                                                                                    <div className="flex-1">
-                                                                                        <div className="flex justify-between items-center">
-                                                                                            <h5 className="font-bold text-xs">{option.label}</h5>
-                                                                                            <span className="text-[9px] font-black text-emerald-600">{tier.pointsCost}p</span>
+                                                                {isCustomerLoggedIn ? (
+                                                                    salonRewards.filter(tier => availableGlowpoints >= tier.pointsCost).length > 0 ? (
+                                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                            {salonRewards.filter(tier => availableGlowpoints >= tier.pointsCost).map(tier => {
+                                                                                const isSelected = selectedReward?.pointsCost === tier.pointsCost;
+                                                                                return (
+                                                                                    <div
+                                                                                        key={tier.pointsCost}
+                                                                                        onClick={() => {
+                                                                                            if (isSelected) {
+                                                                                                setSelectedReward(null);
+                                                                                                setUseGlowpoints(false);
+                                                                                            } else {
+                                                                                                setSelectedReward(tier);
+                                                                                                setUseGlowpoints(true);
+                                                                                            }
+                                                                                        }}
+                                                                                        className={clsx(
+                                                                                            "p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between",
+                                                                                            isSelected
+                                                                                                ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500 shadow-md"
+                                                                                                : "border-border bg-card hover:border-emerald-500/30"
+                                                                                        )}
+                                                                                    >
+                                                                                        <div className="space-y-0.5">
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <h5 className="font-bold text-xs text-foreground">{tier.discountAmount} kr rabatt</h5>
+                                                                                                <span className="text-[9px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">{tier.pointsCost}p</span>
+                                                                                            </div>
+                                                                                            <p className="text-[10px] text-foreground/40">Dras av direkt från totalsumman</p>
                                                                                         </div>
-                                                                                        <p className="text-[9px] text-foreground/40">{option.description}</p>
+                                                                                        <div className={clsx(
+                                                                                            "w-5 h-5 rounded-full border flex items-center justify-center text-xs transition-all",
+                                                                                            isSelected
+                                                                                                ? "border-emerald-600 bg-emerald-600 text-white"
+                                                                                                : "border-foreground/20 text-transparent"
+                                                                                        )}>
+                                                                                            ✓
+                                                                                        </div>
                                                                                     </div>
-                                                                                </div>
-                                                                            ))}
+                                                                                );
+                                                                            })}
                                                                         </div>
-                                                                    ))}
-                                                                </div>
+                                                                    ) : (
+                                                                        <div className="p-4 bg-emerald-500/[0.04] border border-emerald-500/20 rounded-2xl text-xs text-foreground/60 leading-relaxed">
+                                                                            Du har <strong>{availableGlowpoints} poäng</strong> hos {salon.name}. 
+                                                                            När du når <strong>{salonRewards[0]?.pointsCost || 200} poäng</strong> låser du upp <strong>{salonRewards[0]?.discountAmount || 50} kr rabatt</strong>!
+                                                                        </div>
+                                                                    )
+                                                                ) : (
+                                                                    <div className="p-4 bg-foreground/[0.03] border border-border rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                                        <p className="text-xs text-foreground/60 leading-relaxed">
+                                                                            Har du Glowpoints hos {salon.name}? Logga in för att lösa in dina poäng och få rabatt.
+                                                                        </p>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                sessionStorage.setItem('glowbook_redirect_after_login', window.location.pathname);
+                                                                                window.location.href = `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+                                                                            }}
+                                                                            className="px-4 py-2 bg-foreground text-background text-xs font-bold rounded-xl whitespace-nowrap hover:bg-[#C2A26A] transition-all"
+                                                                        >
+                                                                            Logga in
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
@@ -1863,6 +1888,13 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                 <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest">{selectedPractitioner?.name || 'Utförare'}</p>
                                                             </div>
                                                         </div>
+
+                                                        {useGlowpoints && selectedReward && (
+                                                            <div className="pt-4 border-t border-border/50 flex justify-between items-center text-xs text-emerald-600 font-bold">
+                                                                <span>Glowpoints rabatt ({selectedReward.pointsCost}p)</span>
+                                                                <span>-{Number(selectedReward.discountAmount) || 50} {salon.currency || 'kr'}</span>
+                                                            </div>
+                                                        )}
 
                                                         {giftCardDiscount > 0 && (
                                                             <div className="pt-4 border-t border-border/50 flex justify-between items-center text-xs text-green-600 font-bold">

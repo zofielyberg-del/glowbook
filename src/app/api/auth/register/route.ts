@@ -17,26 +17,40 @@ export async function POST(req: Request) {
         // 1. Check if profile already exists (case-insensitive check)
         const existingProfile = await prisma.profile.findFirst({
              where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
-             select: { id: true }
+             select: { id: true, password_hash: true, first_name: true, last_name: true, phone: true, role: true }
         });
 
-        if (existingProfile) {
-            return NextResponse.json({ error: 'User already exists' }, { status: 400 });
+        if (existingProfile && existingProfile.password_hash) {
+            return NextResponse.json({ error: 'Det finns redan ett konto med denna e-postadress. Vänligen logga in.' }, { status: 400 });
         }
 
-        // 2. Create Profile
+        // 2. Create or Update Profile
         let profile;
         try {
-            profile = await prisma.profile.create({
-                data: {
-                    email: normalizedEmail,
-                    first_name: firstName,
-                    last_name: lastName,
-                    phone,
-                    role,
-                    password_hash: password ? hashPassword(password) : null
-                }
-            });
+            if (existingProfile) {
+                // Profile exists from guest booking (no password set yet) - activate it
+                profile = await prisma.profile.update({
+                    where: { id: existingProfile.id },
+                    data: {
+                        first_name: firstName || existingProfile.first_name,
+                        last_name: lastName || existingProfile.last_name,
+                        phone: phone || existingProfile.phone,
+                        role: role || existingProfile.role || 'customer',
+                        password_hash: password ? hashPassword(password) : null
+                    }
+                });
+            } else {
+                profile = await prisma.profile.create({
+                    data: {
+                        email: normalizedEmail,
+                        first_name: firstName,
+                        last_name: lastName,
+                        phone,
+                        role,
+                        password_hash: password ? hashPassword(password) : null
+                    }
+                });
+            }
         } catch (profileError) {
             console.error('Profile creation error:', profileError);
             return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 });

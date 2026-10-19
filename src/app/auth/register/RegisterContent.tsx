@@ -14,13 +14,21 @@ export default function RegisterContent() {
     const { language, t, setLanguage, setCurrency } = useLanguage();
     const searchParams = useSearchParams();
     const initialRole = searchParams.get('role') === 'provider' ? 'provider' : 'customer';
+    const queryEmail = searchParams.get('email') || '';
+    const queryName = searchParams.get('name') || '';
+    const queryPhone = searchParams.get('phone') || '';
+    
+    const nameParts = queryName.trim().split(/\s+/);
+    const initialFirst = nameParts[0] || '';
+    const initialLast = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
     const [role, setRole] = useState<'customer' | 'provider'>(initialRole as any);
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState(queryEmail);
+    const [phone, setPhone] = useState(queryPhone);
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
+    const [firstName, setFirstName] = useState(initialFirst);
+    const [lastName, setLastName] = useState(initialLast);
     const [selectedCountry, setSelectedCountry] = useState(NORDIC_COUNTRIES[0]);
     const [selectedMunicipality, setSelectedMunicipality] = useState('');
     const [error, setError] = useState('');
@@ -152,6 +160,16 @@ export default function RegisterContent() {
                                 <Briefcase size={16} /> {t('role_provider')}
                             </button>
                         </div>
+
+                        {queryEmail && (
+                            <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-foreground text-xs leading-relaxed flex items-start gap-3">
+                                <span className="text-lg">✨</span>
+                                <div>
+                                    <h4 className="font-bold text-amber-700 dark:text-amber-400 mb-0.5">Aktivera ditt konto</h4>
+                                    <p className="text-foreground/70">Välj ett lösenord nedan för att slutföra ditt konto och låsa upp dina intjänade Glowpoints!</p>
+                                </div>
+                            </div>
+                        )}
 
                         <form onSubmit={handleRegister} className="space-y-4">
                             <div className="flex gap-4">

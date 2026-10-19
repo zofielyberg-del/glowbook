@@ -291,22 +291,35 @@ export async function POST(req: Request) {
                 } catch { }
             }
 
-            // Deduct redeemed points if used
+            // Deduct redeemed points if used (and not already spent via /api/loyalty/spend)
             if (rewardInfo && rewardInfo.pointsCost && profileId && sid) {
                 try {
-                    await prisma.loyaltyBalance.updateMany({
-                        where: { profile_id: profileId, salon_id: sid },
-                        data: { current_points: { decrement: rewardInfo.pointsCost } }
-                    });
-                    await prisma.pointTransaction.create({
-                        data: {
+                    const fifteenSecondsAgo = new Date(Date.now() - 15000);
+                    const alreadySpent = await prisma.pointTransaction.findFirst({
+                        where: {
                             profile_id: profileId,
                             salon_id: sid,
-                            amount: -rewardInfo.pointsCost,
                             type: 'spent',
-                            description: `Inlösen: ${rewardInfo.reward?.label || rewardInfo.reward || 'Rabatt'}`
+                            amount: rewardInfo.pointsCost,
+                            created_at: { gte: fifteenSecondsAgo }
                         }
                     });
+
+                    if (!alreadySpent) {
+                        await prisma.loyaltyBalance.updateMany({
+                            where: { profile_id: profileId, salon_id: sid },
+                            data: { current_points: { decrement: rewardInfo.pointsCost } }
+                        });
+                        await prisma.pointTransaction.create({
+                            data: {
+                                profile_id: profileId,
+                                salon_id: sid,
+                                amount: rewardInfo.pointsCost,
+                                type: 'spent',
+                                description: `Inlösen: ${rewardInfo.label || `${rewardInfo.discountAmount || 50} kr rabatt`}`
+                            }
+                        });
+                    }
                 } catch (redeemErr) {
                     console.error('[Confirm] Error deducting redeemed loyalty points:', redeemErr);
                 }
