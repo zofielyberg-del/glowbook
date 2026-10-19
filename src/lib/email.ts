@@ -7,6 +7,71 @@ const resend = new Resend(process.env.RESEND_API_KEY || 're_mockKey1234567890');
 const FROM_EMAIL = 'support@glowbook.se'; 
 
 /**
+ * Safe email sender that attempts the official verified domain first,
+ * and if Resend returns a validation/domain error (e.g., domain not verified, SPF/DKIM pending, or sandbox mode),
+ * automatically falls back to onboarding@resend.dev so the email is safely delivered without failure.
+ */
+async function sendWithFallback({
+    fromName = 'Glowbook',
+    to,
+    replyTo,
+    subject,
+    html
+}: {
+    fromName?: string;
+    to: string;
+    replyTo?: string;
+    subject: string;
+    html: string;
+}): Promise<{ success: boolean; data?: any; error?: any }> {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey || apiKey.startsWith('re_mock')) {
+        console.warn(`[Email] RESEND_API_KEY is not configured or is a mock key. Email '${subject}' to <${to}> was suppressed.`);
+        return { success: false, error: 'RESEND_API_KEY is missing or invalid' };
+    }
+
+    try {
+        const payload: any = {
+            from: `${fromName} <${FROM_EMAIL}>`,
+            to,
+            subject,
+            html
+        };
+        if (replyTo) payload.replyTo = replyTo;
+
+        const primaryRes = await resend.emails.send(payload);
+
+        if (!primaryRes.error) {
+            console.log(`[Email] Successfully delivered '${subject}' to <${to}> via ${FROM_EMAIL}`);
+            return { success: true, data: primaryRes.data };
+        }
+
+        console.warn(`[Email] Primary send from ${FROM_EMAIL} failed (${primaryRes.error.message || JSON.stringify(primaryRes.error)}). Retrying with onboarding@resend.dev fallback...`);
+
+        const fallbackPayload: any = {
+            from: `${fromName} <onboarding@resend.dev>`,
+            to,
+            subject,
+            html
+        };
+        if (replyTo) fallbackPayload.replyTo = replyTo;
+
+        const fallbackRes = await resend.emails.send(fallbackPayload);
+
+        if (fallbackRes.error) {
+            console.error('[Email] Fallback send failed:', fallbackRes.error);
+            return { success: false, error: fallbackRes.error };
+        }
+
+        console.log(`[Email] Successfully delivered '${subject}' via fallback onboarding@resend.dev to <${to}>`);
+        return { success: true, data: fallbackRes.data };
+    } catch (err: any) {
+        console.error('[Email] Exception during sendWithFallback:', err);
+        return { success: false, error: err };
+    }
+}
+
+/**
  * Premium HTML Wrapper for all Glowbook emails with a fixed natural cream background
  */
 export const getHtmlWrapper = (content: string) => `
@@ -185,24 +250,12 @@ export const sendProviderWelcomeEmail = async (email: string, firstName: string)
         <p style="color:#2D2B2A;margin:0;">Med vänliga hälsningar,<br/><strong style="color:#1A1918;">Team Glowbook</strong></p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook <${FROM_EMAIL}>`,
-            to: email,
-            subject: 'Välkommen till Glowbook',
-            html: getHtmlWrapper(htmlContent),
-        });
-        
-        if (error) {
-            console.error('Resend API Error (Welcome):', error);
-            return { success: false, error };
-        }
-        
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error sending welcome email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook',
+        to: email,
+        subject: 'Välkommen till Glowbook',
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -237,24 +290,12 @@ export const sendCustomerWelcomeEmail = async (email: string, firstName: string)
         <p style="color:#2D2B2A;margin:0;">Bästa hälsningar,<br/><strong style="color:#1A1918;">Team Glowbook</strong></p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook <${FROM_EMAIL}>`,
-            to: email,
-            subject: 'Välkommen till Glowbook',
-            html: getHtmlWrapper(htmlContent),
-        });
-        
-        if (error) {
-            console.error('Resend API Error (Customer Welcome):', error);
-            return { success: false, error };
-        }
-        
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error sending customer welcome email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook',
+        to: email,
+        subject: 'Välkommen till Glowbook',
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -339,24 +380,12 @@ export const sendCustomerBookingConfirmation = async (
         ` : ''}
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook Bokning <${FROM_EMAIL}>`,
-            to: email,
-            subject: `Din bokning hos ${salonName} är bekräftad`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        
-        if (error) {
-            console.error('Resend API Error (Customer):', error);
-            return { success: false, error };
-        }
-        
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error sending customer confirmation:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook Bokning',
+        to: email,
+        subject: `Din bokning hos ${salonName} är bekräftad`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -379,18 +408,12 @@ export const sendCustomerCancellationEmail = async (
         <p>Vänliga hälsningar,<br/><strong>${salonName}</strong></p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook Bokning <${FROM_EMAIL}>`,
-            to: email,
-            subject: `Avbokningsbekräftelse: ${serviceName} hos ${salonName}`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        return { success: !error, error };
-    } catch (error) {
-        console.error('Error sending customer cancellation email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook Bokning',
+        to: email,
+        subject: `Avbokningsbekräftelse: ${serviceName} hos ${salonName}`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -413,18 +436,12 @@ export const sendCustomerCancellationByProviderEmail = async (
         <p>Vänliga hälsningar,<br/><strong>${salonName}</strong></p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook Bokning <${FROM_EMAIL}>`,
-            to: email,
-            subject: `Din bokning hos ${salonName} är avbokad`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        return { success: !error, error };
-    } catch (error) {
-        console.error('Error sending provider-initiated customer cancellation email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook Bokning',
+        to: email,
+        subject: `Din bokning hos ${salonName} är avbokad`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -449,18 +466,12 @@ export const sendCustomerRescheduleEmail = async (
         <p>Vänliga hälsningar,<br/><strong>${salonName}</strong></p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook Bokning <${FROM_EMAIL}>`,
-            to: email,
-            subject: `Ombokningsbekräftelse: ${serviceName} hos ${salonName}`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        return { success: !error, error };
-    } catch (error) {
-        console.error('Error sending customer reschedule email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook Bokning',
+        to: email,
+        subject: `Ombokningsbekräftelse: ${serviceName} hos ${salonName}`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -496,18 +507,12 @@ export const sendProviderCancellationEmail = async (
         </div>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook System <${FROM_EMAIL}>`,
-            to: providerEmail,
-            subject: `Avbokning: ${serviceName} - ${customerName}`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        return { success: !error, error };
-    } catch (error) {
-        console.error('Error sending provider cancellation email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook System',
+        to: providerEmail,
+        subject: `Avbokning: ${serviceName} - ${customerName}`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -549,24 +554,12 @@ export const sendProviderBookingNotification = async (
         </div>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook System <${FROM_EMAIL}>`,
-            to: providerEmail,
-            subject: `Ny bokning: ${serviceName} med ${customerName}`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        
-        if (error) {
-            console.error('Resend API Error (Provider):', error);
-            return { success: false, error };
-        }
-        
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error sending provider notification:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook System',
+        to: providerEmail,
+        subject: `Ny bokning: ${serviceName} med ${customerName}`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -611,24 +604,12 @@ export const sendGiftCardEmail = async (
         </p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook <${FROM_EMAIL}>`,
-            to: email,
-            subject: `Du har fått ett digitalt presentkort!`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        
-        if (error) {
-            console.error('Resend API Error (Gift Card):', error);
-            return { success: false, error };
-        }
-        
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error sending gift card email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook',
+        to: email,
+        subject: `Du har fått ett digitalt presentkort!`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -667,24 +648,12 @@ export const sendGiftCardUsageEmail = async (
         <p>Bästa hälsningar,<br/><strong>Team Glowbook</strong></p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook <${FROM_EMAIL}>`,
-            to: email,
-            subject: `Ditt presentkort har använts hos ${salonName}`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        
-        if (error) {
-            console.error('Resend API Error (Gift Card Usage):', error);
-            return { success: false, error };
-        }
-        
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error sending gift card usage email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook',
+        to: email,
+        subject: `Ditt presentkort har använts hos ${salonName}`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -727,25 +696,13 @@ export const sendCancellationEmail = async (
         </p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook <${FROM_EMAIL}>`,
-            to: email,
-            replyTo: 'hej@glowbook.se',
-            subject: `Vi ses snart igen, ${firstName} 💛`,
-            html: getHtmlWrapper(htmlContent),
-        });
-
-        if (error) {
-            console.error('Resend API Error (Cancellation):', error);
-            return { success: false, error };
-        }
-
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error sending cancellation email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook',
+        to: email,
+        replyTo: 'hej@glowbook.se',
+        subject: `Vi ses snart igen, ${firstName} 💛`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -803,24 +760,12 @@ export const sendProviderReceiptEmail = async (
         </p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook <${FROM_EMAIL}>`,
-            to: email,
-            subject: `Betalningsbekräftelse: Glowbook ${tierName.toUpperCase()} ✨`,
-            html: getHtmlWrapper(htmlContent),
-        });
-
-        if (error) {
-            console.error('Resend API Error (Receipt):', error);
-            return { success: false, error };
-        }
-
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error sending receipt email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook',
+        to: email,
+        subject: `Betalningsbekräftelse: Glowbook ${tierName.toUpperCase()} ✨`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -856,24 +801,12 @@ export const sendCustomerFeedbackRequestEmail = async (
         </p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook Bokning <${FROM_EMAIL}>`,
-            to: email,
-            subject: `Tack för ditt besök hos ${salonName} ✨`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        
-        if (error) {
-            console.error('Resend API Error (Feedback Request):', error);
-            return { success: false, error };
-        }
-        
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error sending feedback request email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook Bokning',
+        to: email,
+        subject: `Tack för ditt besök hos ${salonName} ✨`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -902,19 +835,13 @@ export const sendSalonContactEmail = async (
         <p style="color:#6B6965;margin:0;">Vänliga hälsningar,<br/><strong style="color:#1A1918;">Glowbook Support</strong></p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook Kontakt <${FROM_EMAIL}>`,
-            to: salonEmail,
-            replyTo: customerEmail,
-            subject: `Kundkontakt: ${subject}`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        return { success: !error, error };
-    } catch (error) {
-        console.error('Error sending salon contact email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook Kontakt',
+        to: salonEmail,
+        replyTo: customerEmail,
+        subject: `Kundkontakt: ${subject}`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 
 /**
@@ -951,17 +878,11 @@ export const sendPunchCardWelcomeEmail = async (
         </p>
     `;
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: `Glowbook <${FROM_EMAIL}>`,
-            to: email,
-            subject: `Ditt klippkort hos ${salonName} ✨`,
-            html: getHtmlWrapper(htmlContent),
-        });
-        return { success: !error, error };
-    } catch (error) {
-        console.error('Error sending punchcard welcome email:', error);
-        return { success: false, error };
-    }
+    return await sendWithFallback({
+        fromName: 'Glowbook',
+        to: email,
+        subject: `Ditt klippkort hos ${salonName} ✨`,
+        html: getHtmlWrapper(htmlContent),
+    });
 };
 

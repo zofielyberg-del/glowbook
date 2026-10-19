@@ -19,7 +19,8 @@ export async function POST(req: Request) {
             paymentMethod,
             status = 'confirmed',
             start_time, // Exact UTC string from frontend
-            end_time    // Exact UTC string from frontend
+            end_time,   // Exact UTC string from frontend
+            rewardInfo
         } = await req.json();
 
         if (!salonId || !serviceName || !customerInfo?.email || !date || !startTime) {
@@ -151,12 +152,14 @@ export async function POST(req: Request) {
         let salonName = 'Salongen';
         let providerEmail = '';
         let messageTemplates: any = null;
+        let isRewardsEnabled = false;
         if (sid) {
             try {
                 const salonDetails = await prisma.salon.findUnique({
                     where: { id: sid },
                     select: {
                         name: true,
+                        is_rewards_enabled: true,
                         message_templates: true,
                         owner: {
                             select: { email: true }
@@ -166,6 +169,7 @@ export async function POST(req: Request) {
                 if (salonDetails) {
                     salonName = salonDetails.name;
                     providerEmail = salonDetails.owner?.email || '';
+                    isRewardsEnabled = !!salonDetails.is_rewards_enabled;
                     if (salonDetails.message_templates) {
                         messageTemplates = typeof salonDetails.message_templates === 'string'
                             ? JSON.parse(salonDetails.message_templates)
@@ -272,6 +276,90 @@ export async function POST(req: Request) {
         // 4. Send Email Notifications (Only for non-Stripe direct payments like onsite/giftcard)
         // Stripe payments will receive confirmations via webhook after successful payment.
         if (paymentMethod !== 'stripe') {
+            const amount = Number(price) || 0;
+            const pointsEarned = Math.floor(amount / 10) * 5;
+
+            // Check if customer profile exists
+            let isCustomerRegistered = false;
+            if (customerInfo.email) {
+                try {
+                    const existingProfile = await prisma.profile.findUnique({
+                        where: { email: customerInfo.email },
+                        select: { id: true }
+                    });
+                    isCustomerRegistered = !!existingProfile;
+                } catch { }
+            }
+
+            // Deduct redeemed points if used
+            if (rewardInfo && rewardInfo.pointsCost && profileId && sid) {
+                try {
+                    await prisma.loyaltyBalance.updateMany({
+                        where: { profile_id: profileId, salon_id: sid },
+                        data: { current_points: { decrement: rewardInfo.pointsCost } }
+                    });
+                    await prisma.pointTransaction.create({
+                        data: {
+                            profile_id: profileId,
+                            salon_id: sid,
+                            amount: -rewardInfo.pointsCost,
+                            type: 'spent',
+                            description: `Inlösen: ${rewardInfo.reward?.label || rewardInfo.reward || 'Rabatt'}`
+                        }
+                    });
+                } catch (redeemErr) {
+                    console.error('[Confirm] Error deducting redeemed loyalty points:', redeemErr);
+                }
+            }
+
+            // Award loyalty points if salon has rewards enabled and customer has account
+            if (isRewardsEnabled && pointsEarned > 0 && profileId && sid) {
+                try {
+                    // 1. Update or create Salon-specific loyalty balance
+                    await prisma.loyaltyBalance.upsert({
+                        where: {
+                            profile_id_salon_id: {
+                                profile_id: profileId,
+                                salon_id: sid
+                            }
+                        },
+                        update: {
+                            current_points: { increment: pointsEarned },
+                            total_earned: { increment: pointsEarned },
+                            updated_at: new Date()
+                        },
+                        create: {
+                            profile_id: profileId,
+                            salon_id: sid,
+                            current_points: pointsEarned,
+                            total_earned: pointsEarned
+                        }
+                    });
+
+                    // 2. Add transaction record
+                    await prisma.pointTransaction.create({
+                        data: {
+                            profile_id: profileId,
+                            salon_id: sid,
+                            amount: pointsEarned,
+                            type: 'earned',
+                            description: `Bokning: ${serviceName} (${amount} SEK)`
+                        }
+                    });
+
+                    // 3. Update global points across Glowbook
+                    await prisma.profile.update({
+                        where: { id: profileId },
+                        data: {
+                            total_points_earned: { increment: pointsEarned }
+                        }
+                    });
+                    console.log(`[Confirm] Granted ${pointsEarned} loyalty points to customer ${profileId} for salon ${sid}`);
+                } catch (loyaltyErr) {
+                    console.error('[Confirm] Error granting loyalty points:', loyaltyErr);
+                }
+            }
+
             try {
                 if (customerInfo.email) {
                     await sendCustomerBookingConfirmation(
@@ -283,7 +371,12 @@ export async function POST(req: Request) {
                         startTime,
                         `${price} SEK`,
                         appointment.id,
-                        messageTemplates
+                        messageTemplates,
+                        {
+                            pointsEarned,
+                            isRegistered: isCustomerRegistered,
+                            salonHasRewards: isRewardsEnabled
+                        }
                     );
                 }
             } catch (customerEmailErr) {
