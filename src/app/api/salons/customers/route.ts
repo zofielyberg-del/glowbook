@@ -13,6 +13,17 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'Salongs-ID saknas' }, { status: 400 });
         }
 
+        // Fetch salon settings to check for hidden/removed customers (e.g. spam/test)
+        const salon = await prisma.salon.findUnique({
+            where: { id: salonId },
+            select: { availability: true }
+        });
+
+        const currentAvail: any[] = Array.isArray(salon?.availability) ? salon.availability : [];
+        const hiddenBlock: any = currentAvail.find((a: any) => a && a.type === 'hidden_customers');
+        const hiddenEmails = new Set(((hiddenBlock?.emails || []) as string[]).map((e: string) => (e || '').toLowerCase().trim()));
+        const hiddenIds = new Set(((hiddenBlock?.ids || []) as (string | number)[]).map((id: any) => String(id)));
+
         // Fetch all appointments for this salon to build the customer directory
         const appointments = await prisma.appointment.findMany({
             where: { salon_id: salonId },
@@ -34,6 +45,13 @@ export async function GET(req: Request) {
         for (const apt of appointments) {
             const rawEmail = apt.customer_email || '';
             const emailKey = rawEmail.toLowerCase().trim();
+            const customerIdStr = apt.customer_id ? String(apt.customer_id) : '';
+
+            // Skip customer if salon provider has removed them from this salon's directory
+            if (hiddenEmails.has(emailKey) || (customerIdStr && hiddenIds.has(customerIdStr))) {
+                continue;
+            }
+
             const key = emailKey || apt.customer_phone || apt.id;
             if (!key) continue;
 
@@ -71,5 +89,59 @@ export async function GET(req: Request) {
     } catch (error: any) {
         console.error('Error fetching salon customers:', error);
         return NextResponse.json({ error: 'Kunde inte hämta kunder.' }, { status: 500 });
+    }
+}
+
+export async function DELETE(req: Request) {
+    try {
+        const { salonId, email, customerId } = await req.json();
+
+        if (!salonId || (!email && !customerId)) {
+            return NextResponse.json({ error: 'salonId och email eller customerId krävs' }, { status: 400 });
+        }
+
+        const salon = await prisma.salon.findUnique({
+            where: { id: salonId },
+            select: { availability: true }
+        });
+
+        if (!salon) {
+            return NextResponse.json({ error: 'Salong hittades inte' }, { status: 404 });
+        }
+
+        const currentAvail: any[] = Array.isArray(salon.availability) ? salon.availability : [];
+        const existingBlock: any = currentAvail.find((a: any) => a && a.type === 'hidden_customers');
+        const existingEmails: string[] = Array.isArray(existingBlock?.emails) ? existingBlock.emails : [];
+        const existingIds: string[] = Array.isArray(existingBlock?.ids) ? existingBlock.ids : [];
+
+        const normalizedEmail = (email || '').toLowerCase().trim();
+        const updatedEmails = Array.from(new Set([...existingEmails, normalizedEmail])).filter(Boolean);
+        const updatedIds = customerId ? Array.from(new Set([...existingIds, String(customerId)])) : existingIds;
+
+        const otherBlocks = currentAvail.filter((a: any) => !a || a.type !== 'hidden_customers');
+        const newAvailability = [
+            ...otherBlocks,
+            {
+                type: 'hidden_customers',
+                emails: updatedEmails,
+                ids: updatedIds,
+                updated_at: new Date().toISOString()
+            }
+        ];
+
+        await prisma.salon.update({
+            where: { id: salonId },
+            data: {
+                availability: newAvailability
+            }
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: 'Kunden har tagits bort från salongens register.'
+        });
+    } catch (error: any) {
+        console.error('Error removing customer from salon:', error);
+        return NextResponse.json({ error: error.message || 'Kunde inte ta bort kunden.' }, { status: 500 });
     }
 }

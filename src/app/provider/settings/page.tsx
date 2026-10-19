@@ -639,6 +639,7 @@ function SettingsContent() {
                     subscription_status: 'canceling'
                 };
                 setSalonData(updated as any);
+                localStorage.setItem('glowbook_salon', JSON.stringify(updated));
                 sessionStorage.setItem('glowbook_salon', JSON.stringify(updated));
                 window.dispatchEvent(new Event('glowbook_update'));
                 
@@ -1627,7 +1628,7 @@ function SettingsContent() {
                                             </div>
                                             <h3 className="text-2xl font-bold text-foreground">Avsluta Medlemskap</h3>
                                             <p className="text-sm text-foreground/50 leading-relaxed">
-                                                Vi är trista att se dig gå. Din uppsägning kommer att registreras och medlemskapet avslutas automatiskt efter din bindningstid på {salonData.duration} Månader.
+                                                Din uppsägning registreras direkt hos Stripe och ditt medlemskap avslutas. Du debiteras inte efter din 3-månaders provperiod och inga framtida avgifter dras.
                                             </p>
                                         </div>
 

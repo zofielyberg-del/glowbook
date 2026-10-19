@@ -442,7 +442,7 @@ export default function Home() {
                   className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/50 hover:text-champagne-600 transition-colors inline-flex items-center gap-2 group"
                 >
                   <span>Driver du salong?</span>
-                  <span className="text-champagne-600 underline underline-offset-4 group-hover:text-champagne-700">Anslut kostnadsfritt med 0% provision &rarr;</span>
+                  <span className="text-champagne-600 underline underline-offset-4 group-hover:text-champagne-700">Prova 3 månader gratis med 0% provision &rarr;</span>
                 </Link>
               </div>
             </div>
@@ -543,44 +543,44 @@ export default function Home() {
 
             <div className="relative z-10 max-w-3xl">
               <span className="text-[10px] font-bold text-champagne-400 tracking-[0.25em] uppercase inline-block mb-3">
-                För frisörer, terapeuter & kliniker
+                För alla som driver salong • enskilda verksamheter, studios & kliniker
               </span>
               
               <h2 className="font-heading text-3xl sm:text-5xl lg:text-6xl font-normal text-white leading-tight mb-6">
-                0% provision. <br />
-                <span className="italic font-light text-champagne-400">100% din salong.</span>
+                3 månader gratis. <br />
+                <span className="italic font-light text-champagne-400">Avsluta när du vill.</span>
               </h2>
 
               <p className="text-white/60 text-sm sm:text-base md:text-lg font-light leading-relaxed max-w-2xl mb-10">
-                Ett bokningssystem med prestige. Byggt för självständiga salonger och skönhetsterapeuter som vill ha en elegant bokningsupplevelse utan att betala dyra avgifter på sina egna stamkunder.
+                Ett bokningssystem med prestige skapat för alla som driver salong – från enskilda frisörer och terapeuter till etablerade kliniker. Njut av 3 månaders fri provperiod med full kontroll och 0% provision på dina egna stamkunder.
               </p>
 
               {/* 3 Pillars */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10 pt-4 border-t border-white/10">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 text-champagne-400 font-semibold text-xs tracking-wider uppercase">
-                    <Check size={14} /> 0 kr startavgift
+                    <Check size={14} /> 3 månader gratis
                   </div>
                   <p className="text-xs text-white/50 leading-relaxed">
-                    Inga bindningstider eller dolda kostnader. Kom igång på några minuter.
+                    Testa alla premiumfunktioner helt kostnadsfritt i 90 dagar.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 text-champagne-400 font-semibold text-xs tracking-wider uppercase">
-                    <Check size={14} /> Egen profilsida
+                    <Check size={14} /> Avsluta när du vill
                   </div>
                   <p className="text-xs text-white/50 leading-relaxed">
-                    En lyxig bokningssida som speglar kvaliteten i ditt hantverk.
+                    Ingen bindningstid. Avsluta smidigt med ett klick direkt i inställningarna.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 text-champagne-400 font-semibold text-xs tracking-wider uppercase">
-                    <Check size={14} /> Full frihet
+                    <Check size={14} /> Full frihet & 0%
                   </div>
                   <p className="text-xs text-white/50 leading-relaxed">
-                    Kalender, kundregister, SMS-påminnelser och direktbetalning på ett ställe.
+                    Kalender, kundregister, SMS-påminnelser och direktbetalningar på ett ställe.
                   </p>
                 </div>
               </div>
@@ -591,11 +591,11 @@ export default function Home() {
                   href="/auth/register?role=provider"
                   className="bg-champagne-500 hover:bg-champagne-400 text-black px-8 py-4 rounded-xl font-bold text-xs uppercase tracking-[0.2em] transition-all flex items-center gap-3 shadow-lg hover:shadow-champagne-500/20 active:scale-95"
                 >
-                  <span>Skapa salongskonto kostnadsfritt</span>
+                  <span>Starta 3 månader gratis</span>
                   <ArrowRight size={16} />
                 </Link>
                 <span className="text-xs text-white/40 font-light">
-                  Inga kortuppgifter krävs för att starta
+                  3 månaders fri provperiod • Avsluta när du vill
                 </span>
               </div>
             </div>

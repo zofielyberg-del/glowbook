@@ -27,7 +27,7 @@ const NavLink = ({ href, label, active }: { href: string; label: string; active?
     <Link
         href={href}
         className={clsx(
-            "relative text-[11px] xl:text-[12px] font-medium tracking-[0.12em] uppercase transition-colors duration-200 py-1 shrink-0 whitespace-nowrap",
+            "relative text-[10.5px] xl:text-[11.5px] 2xl:text-[12px] font-medium tracking-[0.08em] xl:tracking-[0.12em] uppercase transition-colors duration-200 py-1 shrink-0 whitespace-nowrap",
             active 
                 ? "text-[#C2A26A]" 
                 : "text-foreground/60 hover:text-[#C2A26A]"
@@ -90,8 +90,8 @@ export default function Header() {
                         <LocationSelector dark={theme === 'dark'} className="hidden 2xl:flex" />
                     </div>
 
-                    {/* Center: Navigation Links (Perfectly centered on the viewport/container) */}
-                    <nav className="hidden lg:flex items-center gap-5 xl:gap-7 2xl:gap-8 absolute left-1/2 -translate-x-1/2">
+                    {/* Center: Navigation Links */}
+                    <nav className="hidden lg:flex items-center justify-center gap-3 xl:gap-5 2xl:gap-7 flex-1 min-w-0 mx-2 xl:mx-6">
                         {showLoggedInUI ? (
                             isProviderPortal ? (
                                 <>

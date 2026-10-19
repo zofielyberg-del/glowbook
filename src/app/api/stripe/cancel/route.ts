@@ -5,7 +5,7 @@ import { sendCancellationEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
     try {
-        const { salonId } = await req.json();
+        const { salonId, immediate = false } = await req.json();
 
         if (!salonId) {
             return NextResponse.json({ error: 'salonId krävs' }, { status: 400 });
@@ -21,19 +21,27 @@ export async function POST(req: Request) {
         }
 
         if (salon.stripe_subscription_id) {
-            // Cancel at period end — immediately signals Stripe not to charge again,
-            // and lets trial periods run to their natural end.
-            await stripe.subscriptions.update(salon.stripe_subscription_id, {
-                cancel_at_period_end: true,
-            });
+            try {
+                if (immediate) {
+                    await stripe.subscriptions.cancel(salon.stripe_subscription_id);
+                } else {
+                    // Cancel at period end — immediately signals Stripe not to charge again,
+                    // and ensures 3-month trial periods run to their end without any debiting.
+                    await stripe.subscriptions.update(salon.stripe_subscription_id, {
+                        cancel_at_period_end: true,
+                    });
+                }
+            } catch (stripeErr: any) {
+                console.error('[Stripe Cancel] Error updating subscription in Stripe:', stripeErr);
+            }
         } else {
             console.log(`[API] Salon ${salonId} has no Stripe subscription ID. Performing local database cancellation only.`);
         }
 
-        // Update DB to reflect pending cancellation
+        // Update DB to reflect cancellation status
         await prisma.salon.update({
             where: { id: salonId },
-            data: { subscription_status: 'canceling' }
+            data: { subscription_status: immediate ? 'canceled' : 'canceling' }
         });
 
         // Send farewell email

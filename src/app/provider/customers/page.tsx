@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Search, UserPlus, Mail, Phone, Calendar, MoreVertical, Filter, Users, X, Check, ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { Search, UserPlus, Mail, Phone, Calendar, MoreVertical, Filter, Users, X, Check, ArrowUpRight, CheckCircle2, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import Header from "@/components/layout/Header";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,6 +26,8 @@ export default function CustomersPage() {
     const [invitePhone, setInvitePhone] = useState('');
     const [inviteSent, setInviteSent] = useState(false);
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+    const [isDeletingCustomer, setIsDeletingCustomer] = useState(false);
 
     const loadCustomers = async () => {
         const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
@@ -189,6 +191,60 @@ export default function CustomersPage() {
         }, 2000);
     };
 
+    const handleDeleteCustomer = async () => {
+        if (!customerToDelete) return;
+        setIsDeletingCustomer(true);
+
+        try {
+            const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+            let localSalonId = '';
+            if (saved) {
+                const data = JSON.parse(saved);
+                localSalonId = data.id || '';
+
+                if (Array.isArray(data.customers)) {
+                    data.customers = data.customers.filter((c: any) => 
+                        c.id !== customerToDelete.id && 
+                        (!customerToDelete.email || (c.email || '').toLowerCase().trim() !== customerToDelete.email.toLowerCase().trim())
+                    );
+                }
+                if (Array.isArray(data.appointments)) {
+                    data.appointments = data.appointments.filter((apt: any) => {
+                        const aptEmail = (apt.customer_email || apt.clientEmail || '').toLowerCase().trim();
+                        return !customerToDelete.email || aptEmail !== customerToDelete.email.toLowerCase().trim();
+                    });
+                }
+
+                localStorage.setItem('glowbook_salon', JSON.stringify(data));
+                sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
+            }
+
+            if (localSalonId) {
+                await fetch('/api/salons/customers', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        salonId: localSalonId,
+                        email: customerToDelete.email,
+                        customerId: customerToDelete.id
+                    })
+                });
+            }
+
+            setCustomers(prev => prev.filter(c => 
+                c.id !== customerToDelete.id && 
+                (!customerToDelete.email || c.email.toLowerCase().trim() !== customerToDelete.email.toLowerCase().trim())
+            ));
+
+            window.dispatchEvent(new Event('glowbook_update'));
+            setCustomerToDelete(null);
+        } catch (error) {
+            console.error('Kunde inte ta bort kunden:', error);
+        } finally {
+            setIsDeletingCustomer(false);
+        }
+    };
+
     const filteredCustomers = customers.filter(c =>
         `${c.firstName} ${c.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.phone.includes(searchTerm) ||
@@ -267,6 +323,7 @@ export default function CustomersPage() {
                                         <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-center">Bokningar</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-center">Avbokningar</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-right">Status</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-right">Åtgärd</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/60">
@@ -307,6 +364,15 @@ export default function CustomersPage() {
                                                 <span className="px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 rounded-full text-[10px] font-black uppercase tracking-wider">
                                                     Aktiv
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-5 text-right">
+                                                <button
+                                                    onClick={() => setCustomerToDelete(c)}
+                                                    title="Ta bort från kundöversikt"
+                                                    className="p-2 text-foreground/30 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all inline-flex items-center justify-center cursor-pointer"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -403,6 +469,57 @@ export default function CustomersPage() {
                                         </>
                                     )}
                                 </form>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+
+                {/* Delete Confirmation Modal */}
+                <AnimatePresence>
+                    {customerToDelete && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => !isDeletingCustomer && setCustomerToDelete(null)}
+                                className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100]"
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-[440px] bg-card border border-border shadow-2xl rounded-3xl z-[101] overflow-hidden flex flex-col p-6"
+                            >
+                                <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mb-4">
+                                    <Trash2 size={24} />
+                                </div>
+                                <h3 className="text-lg font-bold text-foreground">Ta bort kund från listan?</h3>
+                                <p className="text-foreground/60 text-sm mt-2 leading-relaxed">
+                                    Vill du ta bort <strong className="text-foreground">{customerToDelete.firstName} {customerToDelete.lastName}</strong> ({customerToDelete.email || customerToDelete.phone}) från din salongs kundöversikt?
+                                </p>
+                                <div className="mt-4 p-3 bg-foreground/[0.03] border border-border/60 rounded-xl text-xs text-foreground/50 leading-relaxed">
+                                    💡 Detta rensar kunden från din salong (perfekt för att ta bort spam och testkonton). Kundens eventuella personliga Glowbook-profil och samlade lojalitetspoäng påverkas inte.
+                                </div>
+
+                                <div className="flex items-center gap-3 mt-6">
+                                    <button
+                                        type="button"
+                                        disabled={isDeletingCustomer}
+                                        onClick={() => setCustomerToDelete(null)}
+                                        className="flex-1 py-3 px-4 rounded-xl border border-border font-bold text-xs uppercase tracking-wider text-foreground/70 hover:bg-foreground/5 transition-all disabled:opacity-50 cursor-pointer"
+                                    >
+                                        Avbryt
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={isDeletingCustomer}
+                                        onClick={handleDeleteCustomer}
+                                        className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                                    >
+                                        {isDeletingCustomer ? 'Tar bort...' : 'Ja, ta bort'}
+                                    </button>
+                                </div>
                             </motion.div>
                         </>
                     )}
