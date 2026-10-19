@@ -456,7 +456,7 @@ export default function Home() {
               <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-champagne-600">Upptäck</span>
               <h2 className="text-3xl sm:text-4xl font-heading font-normal text-foreground">{t('popular_categories')}</h2>
             </div>
-            <Link href="/explore" className="text-xs font-bold uppercase tracking-widest text-foreground/40 hover:text-champagne-600 transition-colors inline-flex items-center gap-1">
+            <Link href="/categories" className="text-xs font-bold uppercase tracking-widest text-foreground/40 hover:text-champagne-600 transition-colors inline-flex items-center gap-1">
               {t('view_all')} <ArrowRight size={14} />
             </Link>
           </div>
@@ -492,10 +492,15 @@ export default function Home() {
         </section>
 
         {/* All Other Categories */}
-        <section className="px-6 lg:px-20 py-12 max-w-screen-xl mx-auto">
-          <div className="mb-10 text-center lg:text-left">
-            <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-champagne-600">Brett utbud</span>
-            <h2 className="text-2xl sm:text-3xl font-heading font-normal text-foreground mt-1">{t('more_categories')}</h2>
+        <section id="alla-kategorier" className="px-6 lg:px-20 py-12 max-w-screen-xl mx-auto">
+          <div className="flex justify-between items-end mb-10 pb-4 border-b border-black/5 dark:border-white/5">
+            <div className="space-y-1 text-left">
+              <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-champagne-600">Brett utbud</span>
+              <h2 className="text-2xl sm:text-3xl font-heading font-normal text-foreground mt-1">{t('more_categories')}</h2>
+            </div>
+            <Link href="/categories" className="text-xs font-bold uppercase tracking-widest text-foreground/40 hover:text-champagne-600 transition-colors inline-flex items-center gap-1">
+              Se alla kategorier <ArrowRight size={14} />
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
