@@ -15,12 +15,12 @@ import LocationSelector from '@/components/LocationSelector';
 import { useAuth } from '@/hooks/useAuth';
 
 const LANGUAGES = [
-    { id: 'Svenska' as const, code: 'SV', label: 'Svenska', native: 'Sverige', flag: '🇸🇪' },
-    { id: 'English' as const, code: 'EN', label: 'English', native: 'English', flag: '🇬🇧' },
-    { id: 'Finska' as const, code: 'FI', label: 'Suomi', native: 'Finska', flag: '🇫🇮' },
-    { id: 'Norska' as const, code: 'NO', label: 'Norsk', native: 'Norska', flag: '🇳🇴' },
-    { id: 'Danska' as const, code: 'DA', label: 'Dansk', native: 'Danska', flag: '🇩🇰' },
-    { id: 'Isländska' as const, code: 'IS', label: 'Íslenska', native: 'Isländska', flag: '🇮🇸' },
+    { id: 'Svenska' as const, code: 'SV', label: 'Svenska' },
+    { id: 'English' as const, code: 'EN', label: 'English' },
+    { id: 'Norska' as const, code: 'NO', label: 'Norsk' },
+    { id: 'Danska' as const, code: 'DK', label: 'Dansk' },
+    { id: 'Finska' as const, code: 'FI', label: 'Suomi' },
+    { id: 'Isländska' as const, code: 'IS', label: 'Íslenska' },
 ];
 
 const NavLink = ({ href, label, active }: { href: string; label: string; active?: boolean }) => (
@@ -86,25 +86,21 @@ export default function Header() {
                             </span>
                         </Link>
 
-                        {/* Language Selector beside logo */}
+                        {/* Language Selector directly beside Glowbook logo */}
                         <div className="relative">
                             <button
                                 onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
                                 aria-label="Byt språk / Change language"
-                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-foreground/5 transition-all text-foreground/70 hover:text-foreground border border-foreground/10 hover:border-[#C2A26A]/40 shrink-0 h-7"
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-foreground/5 transition-all text-foreground/75 hover:text-foreground border border-foreground/15 hover:border-[#C2A26A]/50 shrink-0 h-7"
                             >
-                                <span className="text-xs sm:text-sm leading-none select-none">{currentLang.flag}</span>
-                                <span className="text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase text-foreground/85">{currentLang.code}</span>
-                                <ChevronDown size={10} className={clsx("transition-transform opacity-40", isLanguageDropdownOpen && "rotate-180")} />
+                                <span className="text-[11px] font-bold text-foreground/85 uppercase tracking-wider">{currentLang.code}</span>
+                                <ChevronDown size={11} className={clsx("transition-transform opacity-50", isLanguageDropdownOpen && "rotate-180")} />
                             </button>
 
                             {isLanguageDropdownOpen && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setIsLanguageDropdownOpen(false)} />
-                                    <div className="absolute left-0 mt-2.5 w-52 bg-background/95 dark:bg-[#121214]/95 border border-border/80 dark:border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150">
-                                        <div className="px-3 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-foreground/40 border-b border-border/40 mb-1">
-                                            Språk / Language
-                                        </div>
+                                    <div className="absolute left-0 mt-2 w-44 bg-background/95 dark:bg-[#121214]/95 border border-border/80 dark:border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150">
                                         <div className="space-y-0.5">
                                             {LANGUAGES.map((lang) => {
                                                 const isSelected = language === lang.id;
@@ -119,17 +115,12 @@ export default function Header() {
                                                             "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all",
                                                             isSelected
                                                                 ? "bg-[#C2A26A]/15 text-[#C2A26A] font-bold"
-                                                                : "text-foreground/70 hover:text-foreground hover:bg-foreground/5 text-xs font-medium"
+                                                                : "text-foreground/75 hover:text-foreground hover:bg-foreground/5 text-xs font-medium"
                                                         )}
                                                     >
                                                         <span className="flex items-center gap-2.5">
-                                                            <span className="text-base leading-none select-none">{lang.flag}</span>
-                                                            <span className="text-xs">
-                                                                {lang.label}
-                                                                {lang.label !== lang.native && (
-                                                                    <span className="text-[10px] text-foreground/40 ml-1.5 font-normal">({lang.native})</span>
-                                                                )}
-                                                            </span>
+                                                            <span className="text-[10px] font-bold tracking-wider text-foreground/40 w-5">{lang.code}</span>
+                                                            <span className="text-xs">{lang.label}</span>
                                                         </span>
                                                         {isSelected && <Check size={14} className="text-[#C2A26A] shrink-0" />}
                                                     </button>
@@ -140,13 +131,10 @@ export default function Header() {
                                 </>
                             )}
                         </div>
-
-                        {/* Location - desktop wide screens */}
-                        <LocationSelector dark={theme === 'dark'} className="hidden 2xl:flex" />
                     </div>
 
-                    {/* Center: Navigation Links */}
-                    <nav className="hidden lg:flex items-center justify-center gap-3 xl:gap-5 2xl:gap-7 flex-1 min-w-0 mx-2 xl:mx-6">
+                    {/* Center: Navigation Links (Strictly Centered in Header) */}
+                    <nav className="hidden lg:flex items-center justify-center gap-4 xl:gap-6 2xl:gap-8 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
                         {showLoggedInUI ? (
                             isProviderPortal ? (
                                 <>
@@ -180,7 +168,7 @@ export default function Header() {
                     </nav>
 
                     {/* Right side buttons */}
-                    <div className="flex items-center gap-2.5 xl:gap-3 shrink-0 z-10">
+                    <div className="flex items-center gap-2.5 xl:gap-3 shrink-0 z-10 ml-auto">
                         {user?.isImpersonated && (
                             <button
                                 onClick={() => {
@@ -409,10 +397,11 @@ export default function Header() {
                                                 onClick={() => setLanguage(lang.id)}
                                                 style={{
                                                     display: 'flex',
+                                                    flexDirection: 'column',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    gap: '6px',
-                                                    padding: '10px 8px',
+                                                    gap: '2px',
+                                                    padding: '8px 4px',
                                                     borderRadius: '12px',
                                                     border: isSelected ? '1px solid #C2A26A' : (theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)'),
                                                     background: isSelected ? 'rgba(194, 162, 106, 0.12)' : 'transparent',
@@ -422,8 +411,8 @@ export default function Header() {
                                                     cursor: 'pointer'
                                                 }}
                                             >
-                                                <span>{lang.flag}</span>
-                                                <span>{lang.code}</span>
+                                                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}>{lang.code}</span>
+                                                <span style={{ fontSize: '9px', opacity: 0.6 }}>{lang.label}</span>
                                             </button>
                                         );
                                     })}
