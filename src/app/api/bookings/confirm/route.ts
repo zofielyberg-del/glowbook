@@ -279,15 +279,15 @@ export async function POST(req: Request) {
             const amount = Number(price) || 0;
             const pointsEarned = Math.floor(amount / 10) * 5;
 
-            // Check if customer profile exists
+            // Check if customer actually has a registered account (password_hash exists) vs guest booking profile
             let isCustomerRegistered = false;
             if (customerInfo.email) {
                 try {
                     const existingProfile = await prisma.profile.findUnique({
                         where: { email: customerInfo.email },
-                        select: { id: true }
+                        select: { id: true, password_hash: true }
                     });
-                    isCustomerRegistered = !!existingProfile;
+                    isCustomerRegistered = Boolean(existingProfile?.password_hash);
                 } catch { }
             }
 
