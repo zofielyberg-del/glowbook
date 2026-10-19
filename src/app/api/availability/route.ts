@@ -174,7 +174,7 @@ export async function GET(req: Request) {
                                 qualifiedPractitioners = salon.practitioners!; 
                             }
 
-                            const availablePractitioners = qualifiedPractitioners.filter(p => {
+                            let availablePractitioners = qualifiedPractitioners.filter(p => {
                                 const schedule = p.schedule as any || {};
                                 const dayData = schedule[dayIndex];
                                 if (!dayData || dayData.active !== true) return false;
@@ -218,6 +218,30 @@ export async function GET(req: Request) {
 
                                 return true;
                             });
+
+                            // Fallback: If no practitioner's weekly recurring template had this day/time active,
+                            // but the salon explicitly opened this slot in their calendar (salon.availability),
+                            // check if any qualified practitioner is free from appointment conflicts
+                            if (availablePractitioners.length === 0) {
+                                availablePractitioners = qualifiedPractitioners.filter(p => {
+                                    const hasAptOverlap = salon.appointments.some(apt => {
+                                        if (apt.id === excludeAppointmentId) return false;
+                                        if (apt.practitioner_id !== p.id && apt.practitioner_id !== 'any') return false;
+
+                                        const aptDateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(apt.start_time);
+                                        if (aptDateStr !== dateStr) return false;
+
+                                        const startParts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hour12: false }).format(apt.start_time).split(':').map(Number);
+                                        const aptStartMins = startParts[0] * 60 + startParts[1];
+                                        const duration = apt.end_time ? Math.round((new Date(apt.end_time).getTime() - new Date(apt.start_time).getTime()) / 60000) : 30;
+                                        const aptEndMins = aptStartMins + duration;
+
+                                        return (startMins < aptEndMins && endMins > aptStartMins);
+                                    });
+
+                                    return !hasAptOverlap;
+                                });
+                            }
 
                             if (availablePractitioners.length === 0) {
                                 isAvailable = false;
