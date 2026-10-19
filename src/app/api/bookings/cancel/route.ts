@@ -62,6 +62,71 @@ export async function POST(req: Request) {
             data: { status: 'cancelled' }
         });
 
+        // 2b. Revert loyalty points earned for this appointment (Avbokade tider ger inga poäng!)
+        if (appointment.salon?.is_rewards_enabled && appointment.total_price) {
+            const amount = Number(appointment.total_price) || 0;
+            const pointsToRevert = Math.floor(amount / 10) * 5;
+
+            if (pointsToRevert > 0) {
+                try {
+                    // Find customer profile by email or customer_id
+                    const customerProfile = appointment.customer_email
+                        ? await prisma.profile.findUnique({ where: { email: appointment.customer_email } })
+                        : (appointment.customer_id ? await prisma.profile.findUnique({ where: { id: appointment.customer_id } }) : null);
+
+                    if (customerProfile && appointment.salon_id) {
+                        // 1. Revert salon-specific balance
+                        const balance = await prisma.loyaltyBalance.findUnique({
+                            where: {
+                                profile_id_salon_id: {
+                                    profile_id: customerProfile.id,
+                                    salon_id: appointment.salon_id
+                                }
+                            }
+                        });
+
+                        if (balance) {
+                            const newCurrent = Math.max(0, (balance.current_points || 0) - pointsToRevert);
+                            const newTotal = Math.max(0, (balance.total_earned || 0) - pointsToRevert);
+
+                            await prisma.loyaltyBalance.update({
+                                where: { id: balance.id },
+                                data: {
+                                    current_points: newCurrent,
+                                    total_earned: newTotal,
+                                    updated_at: new Date()
+                                }
+                            });
+                        }
+
+                        // 2. Revert global profile total points
+                        const currentGlobal = customerProfile.total_points_earned || 0;
+                        await prisma.profile.update({
+                            where: { id: customerProfile.id },
+                            data: {
+                                total_points_earned: Math.max(0, currentGlobal - pointsToRevert)
+                            }
+                        });
+
+                        // 3. Log point transaction record for cancellation
+                        await prisma.pointTransaction.create({
+                            data: {
+                                profile_id: customerProfile.id,
+                                salon_id: appointment.salon_id,
+                                amount: -pointsToRevert,
+                                type: 'cancelled',
+                                description: `Avbokad tid: ${appointment.service_name || 'Behandling'} (-${pointsToRevert} poäng)`
+                            }
+                        });
+
+                        console.log(`[Cancel] Successfully reverted ${pointsToRevert} loyalty points for customer ${customerProfile.id} due to appointment cancellation`);
+                    }
+                } catch (loyaltyRevokeErr) {
+                    console.error('[Cancel] Error reverting loyalty points on cancellation:', loyaltyRevokeErr);
+                }
+            }
+        }
+
         // 3. Format Date & Time for email notifications (defensively locked to Sweden/Stockholm timezone to prevent UTC offsets)
         const bookingDateStr = appointment.booking_date
             ? new Date(appointment.booking_date).toLocaleDateString('sv-SE', {
