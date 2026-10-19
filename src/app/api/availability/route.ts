@@ -79,11 +79,11 @@ export async function GET(req: Request) {
         const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
 
         const isLuxe = (salon.membership_tier || 'bas').toLowerCase() === 'luxe';
+        const isSolo = (salon.practitioners?.length || 0) <= 1;
         
         let salonAvailability: any[] = Array.isArray(salon.availability) ? salon.availability : [];
-        if (!salonAvailability || salonAvailability.length === 0) {
-            // Fallback: If no salon availability is found (e.g., they downgraded from Luxe where schedule was on practitioner),
-            // try to build salonAvailability from the first active practitioner's schedule
+        if ((!salonAvailability || salonAvailability.length === 0) && !isSolo) {
+            // Only for multi-practitioner salons: fallback to practitioner schedules if salon availability is empty
             const firstP = salon.practitioners?.find(p => p.schedule && Object.values(p.schedule as any).some((day: any) => day && day.active));
             if (firstP && firstP.schedule) {
                 const sched = firstP.schedule as any;
@@ -157,99 +157,12 @@ export async function GET(req: Request) {
                         if (dateStr === todayStr && startMins < currentMins + 15) return;
 
                         let isAvailable = true;
-                        let availablePractitionerId = 'owner';
+                        let availablePractitionerId = salon.practitioners?.[0]?.id || 'owner';
 
-                        // Check if any practitioner has an active schedule overall
-                        const anyPractitionerHasSchedule = isLuxe && salon.practitioners && salon.practitioners.some(p => {
-                            return p.schedule && Object.values(p.schedule as any).some((day: any) => day && day.active);
-                        });
-
-                        if (anyPractitionerHasSchedule) {
-                            let qualifiedPractitioners = salon.practitioners!.filter(p => {
-                                if (targetPractitionerId && targetPractitionerId !== 'any' && p.id !== targetPractitionerId) return false;
-                                return true;
-                            });
-
-                            if (qualifiedPractitioners.length === 0) {
-                                qualifiedPractitioners = salon.practitioners!; 
-                            }
-
-                            let availablePractitioners = qualifiedPractitioners.filter(p => {
-                                const schedule = p.schedule as any || {};
-                                const dayData = schedule[dayIndex];
-                                if (!dayData || dayData.active !== true) return false;
-
-                                const slots = dayData.slots || [];
-                                if (slots.length === 0 && dayData.start && dayData.end) {
-                                    slots.push({ start: dayData.start, end: dayData.end });
-                                }
-
-                                const isWithinPractitionerSlot = slots.some((slot: any) => {
-                                    const pStart = timeToMins(slot.start);
-                                    const pEnd = timeToMins(slot.end);
-                                    return (startMins >= pStart && endMins <= pEnd);
-                                });
-                                if (!isWithinPractitionerSlot) return false;
-
-                                const breaks = dayData.breaks || [];
-                                const hasBreakOverlap = breaks.some((brk: any) => {
-                                    const brkStart = timeToMins(brk.start);
-                                    const brkEnd = brkStart + brk.duration;
-                                    return (startMins < brkEnd && endMins > brkStart);
-                                });
-                                if (hasBreakOverlap) return false;
-
-                                const hasAptOverlap = salon.appointments.some(apt => {
-                                    if (apt.id === excludeAppointmentId) return false; 
-                                    if (apt.practitioner_id !== p.id && apt.practitioner_id !== 'any') return false;
-                                    
-                                    const aptDateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(apt.start_time);
-                                    if (aptDateStr !== dateStr) return false;
-
-                                    const startParts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hour12: false }).format(apt.start_time).split(':').map(Number);
-                                    const aptStartMins = startParts[0] * 60 + startParts[1];
-                                    const duration = apt.end_time ? Math.round((new Date(apt.end_time).getTime() - new Date(apt.start_time).getTime()) / 60000) : 30;
-                                    const aptEndMins = aptStartMins + duration;
-
-                                    return (startMins < aptEndMins && endMins > aptStartMins);
-                                });
-
-                                if (hasAptOverlap) return false;
-
-                                return true;
-                            });
-
-                            // Fallback: If no practitioner's weekly recurring template had this day/time active,
-                            // but the salon explicitly opened this slot in their calendar (salon.availability),
-                            // check if any qualified practitioner is free from appointment conflicts
-                            if (availablePractitioners.length === 0) {
-                                availablePractitioners = qualifiedPractitioners.filter(p => {
-                                    const hasAptOverlap = salon.appointments.some(apt => {
-                                        if (apt.id === excludeAppointmentId) return false;
-                                        if (apt.practitioner_id !== p.id && apt.practitioner_id !== 'any') return false;
-
-                                        const aptDateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(apt.start_time);
-                                        if (aptDateStr !== dateStr) return false;
-
-                                        const startParts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hour12: false }).format(apt.start_time).split(':').map(Number);
-                                        const aptStartMins = startParts[0] * 60 + startParts[1];
-                                        const duration = apt.end_time ? Math.round((new Date(apt.end_time).getTime() - new Date(apt.start_time).getTime()) / 60000) : 30;
-                                        const aptEndMins = aptStartMins + duration;
-
-                                        return (startMins < aptEndMins && endMins > aptStartMins);
-                                    });
-
-                                    return !hasAptOverlap;
-                                });
-                            }
-
-                            if (availablePractitioners.length === 0) {
-                                isAvailable = false;
-                            } else {
-                                availablePractitionerId = targetPractitionerId === 'any' ? availablePractitioners[0].id : availablePractitioners[0].id;
-                            }
-                        } else {
-                            // Standard Salon Logic (Fallback for BAS/PRO, OR Luxe if no practitioners have schedules)
+                        if (isSolo) {
+                            // 🌟 SOLO PROVIDER RULE:
+                            // When Essi / the provider is alone, ONLY the times posted in her official calendar exist.
+                            // We do NOT filter by practitioner shift templates. We only check for appointment collision.
                             const hasAptOverlap = salon.appointments.some(apt => {
                                 if (apt.id === excludeAppointmentId) return false;
                                 const aptDateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(apt.start_time);
@@ -264,6 +177,112 @@ export async function GET(req: Request) {
                             });
 
                             if (hasAptOverlap) isAvailable = false;
+                        } else {
+                            // MULTI-PRACTITIONER SALONS (2+ staff members with individual shifts):
+                            const anyPractitionerHasSchedule = isLuxe && salon.practitioners && salon.practitioners.some(p => {
+                                return p.schedule && Object.values(p.schedule as any).some((day: any) => day && day.active);
+                            });
+
+                            if (anyPractitionerHasSchedule) {
+                                let qualifiedPractitioners = salon.practitioners!.filter(p => {
+                                    if (targetPractitionerId && targetPractitionerId !== 'any' && p.id !== targetPractitionerId) return false;
+                                    return true;
+                                });
+
+                                if (qualifiedPractitioners.length === 0) {
+                                    qualifiedPractitioners = salon.practitioners!; 
+                                }
+
+                                let availablePractitioners = qualifiedPractitioners.filter(p => {
+                                    const schedule = p.schedule as any || {};
+                                    const dayData = schedule[dayIndex];
+                                    if (!dayData || dayData.active !== true) return false;
+
+                                    const slots = dayData.slots || [];
+                                    if (slots.length === 0 && dayData.start && dayData.end) {
+                                        slots.push({ start: dayData.start, end: dayData.end });
+                                    }
+
+                                    const isWithinPractitionerSlot = slots.some((slot: any) => {
+                                        const pStart = timeToMins(slot.start);
+                                        const pEnd = timeToMins(slot.end);
+                                        return (startMins >= pStart && endMins <= pEnd);
+                                    });
+                                    if (!isWithinPractitionerSlot) return false;
+
+                                    const breaks = dayData.breaks || [];
+                                    const hasBreakOverlap = breaks.some((brk: any) => {
+                                        const brkStart = timeToMins(brk.start);
+                                        const brkEnd = brkStart + brk.duration;
+                                        return (startMins < brkEnd && endMins > brkStart);
+                                    });
+                                    if (hasBreakOverlap) return false;
+
+                                    const hasAptOverlap = salon.appointments.some(apt => {
+                                        if (apt.id === excludeAppointmentId) return false; 
+                                        if (apt.practitioner_id !== p.id && apt.practitioner_id !== 'any') return false;
+                                        
+                                        const aptDateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(apt.start_time);
+                                        if (aptDateStr !== dateStr) return false;
+
+                                        const startParts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hour12: false }).format(apt.start_time).split(':').map(Number);
+                                        const aptStartMins = startParts[0] * 60 + startParts[1];
+                                        const duration = apt.end_time ? Math.round((new Date(apt.end_time).getTime() - new Date(apt.start_time).getTime()) / 60000) : 30;
+                                        const aptEndMins = aptStartMins + duration;
+
+                                        return (startMins < aptEndMins && endMins > aptStartMins);
+                                    });
+
+                                    if (hasAptOverlap) return false;
+
+                                    return true;
+                                });
+
+                                // Fallback: If no practitioner's weekly recurring template had this day/time active,
+                                // but the salon explicitly opened this slot in their calendar (salon.availability),
+                                // check if any qualified practitioner is free from appointment conflicts
+                                if (availablePractitioners.length === 0) {
+                                    availablePractitioners = qualifiedPractitioners.filter(p => {
+                                        const hasAptOverlap = salon.appointments.some(apt => {
+                                            if (apt.id === excludeAppointmentId) return false;
+                                            if (apt.practitioner_id !== p.id && apt.practitioner_id !== 'any') return false;
+
+                                            const aptDateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(apt.start_time);
+                                            if (aptDateStr !== dateStr) return false;
+
+                                            const startParts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hour12: false }).format(apt.start_time).split(':').map(Number);
+                                            const aptStartMins = startParts[0] * 60 + startParts[1];
+                                            const duration = apt.end_time ? Math.round((new Date(apt.end_time).getTime() - new Date(apt.start_time).getTime()) / 60000) : 30;
+                                            const aptEndMins = aptStartMins + duration;
+
+                                            return (startMins < aptEndMins && endMins > aptStartMins);
+                                        });
+
+                                        return !hasAptOverlap;
+                                    });
+                                }
+
+                                if (availablePractitioners.length === 0) {
+                                    isAvailable = false;
+                                } else {
+                                    availablePractitionerId = targetPractitionerId === 'any' ? availablePractitioners[0].id : availablePractitioners[0].id;
+                                }
+                            } else {
+                                const hasAptOverlap = salon.appointments.some(apt => {
+                                    if (apt.id === excludeAppointmentId) return false;
+                                    const aptDateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(apt.start_time);
+                                    if (aptDateStr !== dateStr) return false;
+
+                                    const startParts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hour12: false }).format(apt.start_time).split(':').map(Number);
+                                    const aptStartMins = startParts[0] * 60 + startParts[1];
+                                    const duration = apt.end_time ? Math.round((new Date(apt.end_time).getTime() - new Date(apt.start_time).getTime()) / 60000) : 30;
+                                    const aptEndMins = aptStartMins + duration;
+
+                                    return (startMins < aptEndMins && endMins > aptStartMins);
+                                });
+
+                                if (hasAptOverlap) isAvailable = false;
+                            }
                         }
 
                         if (isAvailable) {
