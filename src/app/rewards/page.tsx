@@ -8,8 +8,10 @@ import Link from "next/link";
 import { Gift, Gem, Star, ArrowRight, Trophy, Check, Sparkles, ShoppingBag, Store, Calendar as CalendarIcon } from "lucide-react";
 import { MEMBER_LEVELS } from "@/lib/loyalty";
 import clsx from "clsx";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function RewardsInfoPage() {
+    const { t } = useLanguage();
     // Glowpoints are personal - only show stats when properly authenticated
     // For now, always show the informational/promotional view
     const isLoggedIn = false;
@@ -18,6 +20,27 @@ export default function RewardsInfoPage() {
     const currentLevel = MEMBER_LEVELS.find(l => points >= l.threshold) || MEMBER_LEVELS[0];
     const nextLevel = MEMBER_LEVELS.find(l => l.threshold > points);
     const progress = nextLevel ? (points / nextLevel.threshold) * 100 : 100;
+
+    const steps = [
+        {
+            step: '1',
+            icon: ShoppingBag,
+            title: t('rewards_step1_title'),
+            desc: t('rewards_step1_desc'),
+        },
+        {
+            step: '2',
+            icon: Star,
+            title: t('rewards_step2_title'),
+            desc: t('rewards_step2_desc'),
+        },
+        {
+            step: '3',
+            icon: Store,
+            title: t('rewards_step3_title'),
+            desc: t('rewards_step3_desc'),
+        },
+    ];
 
     return (
         <div className="min-h-screen bg-background text-foreground font-body transition-colors duration-500">
@@ -100,13 +123,13 @@ export default function RewardsInfoPage() {
                                     className="text-center space-y-4"
                                 >
                                     <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-champagne-500/10 border border-champagne-500/20 rounded-full text-champagne-600 text-[10px] font-bold uppercase tracking-[0.2em]">
-                                        <Star size={12} className="fill-champagne-500" /> Lojalitetsprogram
+                                        <Star size={12} className="fill-champagne-500" /> {t('rewards_badge')}
                                     </div>
                                     <h1 className="text-4xl md:text-5xl font-heading font-bold tracking-tight text-foreground">
-                                        Glowbook <span className="text-champagne-600">Rewards</span>
+                                        Glowbook <span className="text-champagne-600">{t('rewards_title')}</span>
                                     </h1>
                                     <p className="text-foreground/60 dark:text-white/60 text-lg max-w-xl mx-auto leading-relaxed">
-                                        Tjäna poäng automatiskt vid varje bokning. Lös in belöningar hos utförare som accepterar poäng. Helt gratis – inga köp krävs.
+                                        {t('rewards_subtitle')}
                                     </p>
                                 </motion.div>
                             )}
@@ -118,30 +141,11 @@ export default function RewardsInfoPage() {
                 <section className="px-6 mb-24">
                     <div className="max-w-4xl mx-auto">
                         <div className="text-center mb-10">
-                            <h2 className="text-2xl font-heading font-bold text-foreground">Så fungerar det</h2>
-                            <p className="text-foreground/40 dark:text-white/40 text-sm mt-2">Enkelt som det ska vara</p>
+                            <h2 className="text-2xl font-heading font-bold text-foreground">{t('rewards_how_it_works_title')}</h2>
+                            <p className="text-foreground/40 dark:text-white/40 text-sm mt-2">{t('rewards_how_it_works_sub')}</p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {[
-                                {
-                                    step: '1',
-                                    icon: ShoppingBag,
-                                    title: 'Boka & betala',
-                                    desc: 'Du tjänar poäng automatiskt varje gång du genomför och betalar en bokning som inloggad kund.',
-                                },
-                                {
-                                    step: '2',
-                                    icon: Star,
-                                    title: 'Samla poäng',
-                                    desc: 'Poängen sparas på ditt kundkonto och din medlemsnivå växer. Du behöver vara registrerad för att spara dina poäng.',
-                                },
-                                {
-                                    step: '3',
-                                    icon: Store,
-                                    title: 'Lös in hos utförare',
-                                    desc: 'Använd dina poäng hos utförare som accepterar rewards. Se vilka som deltar vid bokning.',
-                                },
-                            ].map((item, i) => (
+                            {steps.map((item, i) => (
                                 <motion.div
                                     key={i}
                                     initial={{ opacity: 0, y: 20 }}
@@ -167,7 +171,7 @@ export default function RewardsInfoPage() {
                             className="mt-8 bg-champagne-500/5 dark:bg-champagne-500/[0.03] border border-champagne-500/10 rounded-2xl p-6 text-center"
                         >
                             <p className="text-sm text-foreground/60 dark:text-white/50 font-medium leading-relaxed">
-                                <span className="font-bold text-champagne-700 dark:text-champagne-400">Observera:</span> Poäng kan inte köpas, överföras eller ges bort. De tjänas enbart genom genomförda bokningar och kan användas hos utförare som har aktiverat rewards i sitt system.
+                                <span className="font-bold text-champagne-700 dark:text-champagne-400">{t('rewards_note_prefix')}</span> {t('rewards_note_body')}
                             </p>
                         </motion.div>
                     </div>
@@ -177,8 +181,8 @@ export default function RewardsInfoPage() {
                 <section className="px-6 mb-24">
                     <div className="max-w-4xl mx-auto space-y-8">
                         <div className="text-center max-w-2xl mx-auto space-y-2">
-                            <h2 className="text-2xl font-heading font-bold text-foreground">Medlemsnivåer</h2>
-                            <p className="text-foreground/45 dark:text-white/45 text-sm">Din status visas i din profil och fungerar som ett bevis på din lojalitet. Poängen används som rabatt (likt ett stämpelkort) hos de specifika salonger du har besökt sedan tidigare, förutsatt att de har poängsystemet aktiverat.</p>
+                            <h2 className="text-2xl font-heading font-bold text-foreground">{t('rewards_levels_title')}</h2>
+                            <p className="text-foreground/45 dark:text-white/45 text-sm">{t('rewards_levels_desc')}</p>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             {MEMBER_LEVELS.map((level, i) => (
@@ -202,11 +206,11 @@ export default function RewardsInfoPage() {
                                     )}
                                     <div className="text-4xl mb-3">{level.badgeEmoji}</div>
                                     <h3 className="font-bold font-heading text-lg mb-1" style={{ color: level.color }}>{level.label}</h3>
-                                    <p className="text-[10px] text-foreground/40 dark:text-white/40 uppercase tracking-widest font-black mb-3">{level.threshold}+ poäng</p>
+                                    <p className="text-[10px] text-foreground/40 dark:text-white/40 uppercase tracking-widest font-black mb-3">{level.threshold}+ {t('rewards_points_suffix')}</p>
                                     <div className="space-y-1.5">
                                         {level.perks.map((perk, j) => (
                                             <p key={j} className="text-[10px] text-foreground/60 dark:text-white/50 flex items-start gap-1.5 text-left font-medium">
-                                                <Check size={10} className="mt-0.5 shrink-0 text-champagne-500" /> {perk}
+                                                <Check size={10} className="mt-0.5 shrink-0 text-champagne-500" /> {t(`rewards_perk_${level.key}_${j + 1}`) || perk}
                                             </p>
                                         ))}
                                     </div>
@@ -228,18 +232,18 @@ export default function RewardsInfoPage() {
                                 <div className="relative z-10 space-y-6">
                                     <Sparkles size={40} className="text-champagne-400 mx-auto" />
                                     <h2 className="text-3xl md:text-4xl font-heading font-bold flex flex-col gap-2">
-                                        <span>Börja samla poäng idag</span>
+                                        <span>{t('rewards_cta_title')}</span>
                                         <span className="text-champagne-500 text-lg md:text-xl font-medium tracking-[0.3em] uppercase">Glowbook Rewards</span>
                                     </h2>
                                     <p className="text-white/60 max-w-sm mx-auto leading-relaxed">
-                                        Skapa ett gratis konto och tjäna poäng automatiskt vid varje bokning. Helt kostnadsfritt.
+                                        {t('rewards_cta_desc')}
                                     </p>
                                     <div className="pt-4">
                                         <Link
                                             href="/auth/register"
                                             className="inline-flex items-center gap-3 px-10 py-4 bg-white text-black rounded-full font-bold hover:bg-champagne-600 hover:text-white hover:scale-105 transition-all shadow-xl active:scale-[0.98]"
                                         >
-                                            Skapa mitt konto <ArrowRight size={18} />
+                                            {t('rewards_cta_btn')} <ArrowRight size={18} />
                                         </Link>
                                     </div>
                                 </div>
