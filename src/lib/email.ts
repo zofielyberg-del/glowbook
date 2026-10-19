@@ -269,7 +269,8 @@ export const sendCustomerBookingConfirmation = async (
     timeStr: string,
     priceStr: string,
     appointmentId?: string,
-    messageTemplates?: { directions?: string; policy?: string; preparation?: string }
+    messageTemplates?: { directions?: string; policy?: string; preparation?: string },
+    loyaltyInfo?: { pointsEarned: number; isRegistered: boolean; salonHasRewards: boolean }
 ) => {
     const htmlContent = `
         <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Bokningsbekräftelse</h1>
@@ -311,6 +312,21 @@ export const sendCustomerBookingConfirmation = async (
             ` : ''}
         </div>
         ` : ''}
+        
+        ${loyaltyInfo?.salonHasRewards && loyaltyInfo?.pointsEarned > 0 ? (
+            !loyaltyInfo.isRegistered ? `
+            <div style="background: linear-gradient(135deg, #1C1B1A 0%, #111112 100%); border: 1px solid #C2A26A; border-radius: 16px; padding: 24px; margin: 0 0 32px 0; text-align: center; color: #FFFFFF;">
+                <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #C2A26A; margin: 0 0 8px 0;">🎉 Lojalitetsbelöning</p>
+                <h4 style="font-size: 18px; font-weight: 700; margin: 0 0 8px 0; color: #FFFFFF;">Du tjänade just ${loyaltyInfo.pointsEarned} poäng på denna bokning!</h4>
+                <p style="font-size: 13px; color: rgba(255,255,255,0.75); margin: 0 0 16px 0; line-height: 1.5;">Skapa ett gratis konto med denna e-post för att låsa upp dina poäng och använda dem som rabatt vid nästa besök hos ${salonName}.</p>
+                <a href="https://glowbook.se/auth/register?email=${encodeURIComponent(email)}" style="display: inline-block; background-color: #C2A26A; color: #111112; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; padding: 12px 24px; border-radius: 9999px; text-decoration: none;">Skapa konto & lås upp mina poäng</a>
+            </div>
+            ` : `
+            <div style="background: #F3F1ED; border: 1px solid #C2A26A; border-radius: 16px; padding: 18px 24px; margin: 0 0 32px 0;">
+                <p style="margin: 0; font-size: 14px; color: #1A1918;"><strong style="color: #C2A26A;">+${loyaltyInfo.pointsEarned} poäng intjänade!</strong> Poängen har sparats på ditt Glowbook-konto och är giltiga i 24 månader mot rabatter hos ${salonName}.</p>
+            </div>
+            `
+        ) : ''}
         
         <p style="color:#2D2B2A;margin:0 0 24px 0;font-size:15px;font-family:Arial,Helvetica,sans-serif;">Vi ser fram emot att välkomna dig ✨</p>
         

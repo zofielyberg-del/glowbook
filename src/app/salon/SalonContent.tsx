@@ -669,7 +669,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 profileImage: s.logo_url || s.profileImage,
                 backgroundImage: s.banner_url || s.backgroundImage,
                 tier: (s.membership_tier || s.tier || 'bas').toLowerCase(),
-                acceptsGlowpoints: loyaltyActive,
+                acceptsGlowpoints: s.is_rewards_enabled !== undefined ? Boolean(s.is_rewards_enabled) : loyaltyActive,
+                custom_rewards: s.custom_rewards || s.customRewards || null,
                 isVerified: s.is_verified !== undefined ? s.is_verified : (s.isVerified || false),
                 is_verified: s.is_verified !== undefined ? s.is_verified : (s.isVerified || false),
                 verifiedCategories: s.verified_categories || s.verifiedCategories || []
@@ -730,7 +731,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         setStatus('ready');
                         return;
                     }
-                    let loyaltyActive = false;
+                    let loyaltyActive = found.is_rewards_enabled ?? false;
                     try {
                         const loyaltyRaw = localStorage.getItem(`glowbook_loyalty_config_${found.id}`);
                         if (loyaltyRaw) loyaltyActive = JSON.parse(loyaltyRaw).enabled === true;
@@ -1781,7 +1782,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                 </div>
 
                                                                 <div className="grid grid-cols-1 gap-3">
-                                                                    {REWARD_TIERS.filter(tier => availableGlowpoints >= tier.pointsCost).map(tier => (
+                                                                    {((salon.custom_rewards && Array.isArray(salon.custom_rewards) && salon.custom_rewards.length > 0 ? salon.custom_rewards : REWARD_TIERS) as typeof REWARD_TIERS).filter(tier => availableGlowpoints >= tier.pointsCost).map(tier => (
                                                                         <div key={tier.pointsCost} className="space-y-2">
                                                                             {tier.options.map(option => (
                                                                                 <div

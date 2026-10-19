@@ -60,6 +60,7 @@ model Salon {
   onboarding_progress Json?
   message_templates   Json?
   is_rewards_enabled  Boolean?           @default(false)
+  custom_rewards      Json?
   created_at          DateTime?          @default(now())
   disclaimer          String?
   instagram_url       String?

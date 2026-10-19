@@ -6,10 +6,12 @@ import Header from '@/components/layout/Header';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Calendar, MapPin, Share2, ArrowRight, Star, Sparkles, Heart } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
 
 import { Suspense } from 'react';
 
 function BookingSuccessContent() {
+    const { isLoggedIn } = useAuth();
     const searchParams = useSearchParams();
     const salonName = searchParams.get('salon') || 'Salongen';
     const serviceName = searchParams.get('service') || 'Behandling';
@@ -127,12 +129,12 @@ function BookingSuccessContent() {
                                 <div className="flex items-center gap-2 text-champagne-400 font-black text-[10px] uppercase tracking-[0.2em]">
                                     <Star size={12} fill="currentColor" /> Lojalitetsprogram
                                 </div>
-                                <h3 className="text-xl font-bold">Denna bokning gav dig <span className="text-champagne-400">150 poäng!</span></h3>
+                                <h3 className="text-xl font-bold">Denna bokning gav dig lojalitetspoäng!</h3>
                                 <p className="text-white/40 text-xs leading-relaxed">
-                                    Du är nu bara 450 poäng ifrån en gratis behandling hos {salonName}. Fortsätt samla för fler förmåner!
+                                    {isLoggedIn ? `Dina poäng är sparade på ditt konto och är giltiga i 24 månader mot rabatter hos ${salonName}.` : `Skapa ett konto för att låsa upp dina poäng och använda dem som rabatt vid nästa besök hos ${salonName}!`}
                                 </p>
-                                <Link href="/rewards" className="inline-flex items-center gap-2 text-champagne-400 text-xs font-bold hover:gap-3 transition-all pt-2">
-                                    Se dina rewards <ArrowRight size={14} />
+                                <Link href={isLoggedIn ? "/profile" : "/auth/register"} className="inline-flex items-center gap-2 text-champagne-400 text-xs font-bold hover:gap-3 transition-all pt-2">
+                                    {isLoggedIn ? 'Se dina rewards' : 'Skapa konto & spara poäng'} <ArrowRight size={14} />
                                 </Link>
                             </div>
                         </div>

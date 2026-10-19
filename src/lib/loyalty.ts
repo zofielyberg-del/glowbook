@@ -255,8 +255,18 @@ export function calculateLoyaltyStatus(state: ProviderLoyaltyState, now: Date): 
 // Points only earned on: completed + paid bookings
 // No points on: cancellation, no-show, refund
 // On refund: points are automatically removed
+// Points expire 24 months from the date they were earned
 // IMPORTANT: Points are PER PROVIDER – earned at Provider X, only redeemable at Provider X
 // Points do NOT apply globally across all providers
+
+export const POINTS_EXPIRATION_MONTHS = 24;
+
+export function isTransactionExpired(date: string | Date, now = new Date()): boolean {
+    const txDate = new Date(date);
+    const expirationDate = new Date(txDate);
+    expirationDate.setMonth(expirationDate.getMonth() + POINTS_EXPIRATION_MONTHS);
+    return now.getTime() > expirationDate.getTime();
+}
 
 export interface PointTransaction {
     id: string;
@@ -308,7 +318,12 @@ export function getProvidersWithPoints(loyalty: CustomerLoyaltyData): ProviderPo
 }
 
 // Get available rewards at a specific provider
-export function getAvailableRewardsAtProvider(loyalty: CustomerLoyaltyData, providerId: string): RewardTier[] {
+export function getAvailableRewardsAtProvider(
+    loyalty: CustomerLoyaltyData, 
+    providerId: string, 
+    customRewards?: RewardTier[] | null
+): RewardTier[] {
     const points = getProviderPoints(loyalty, providerId);
-    return REWARD_TIERS.filter(t => points >= t.pointsCost);
+    const tiers = (customRewards && Array.isArray(customRewards) && customRewards.length > 0) ? customRewards : REWARD_TIERS;
+    return tiers.filter(t => points >= t.pointsCost);
 }

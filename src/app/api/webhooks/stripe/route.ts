@@ -162,7 +162,9 @@ export async function POST(req: Request) {
                 include: {
                     salon: {
                         select: {
+                            id: true,
                             name: true,
+                            is_rewards_enabled: true,
                             message_templates: true,
                             owner: {
                                 select: { email: true }
@@ -206,7 +208,19 @@ export async function POST(req: Request) {
                         : appointment.salon.message_templates;
                 }
 
-                // Send Customer Booking Confirmation
+                // Check if customer profile exists
+                let isCustomerRegistered = false;
+                if (appointment.customer_email) {
+                    try {
+                        const existingProfile = await prisma.profile.findUnique({
+                            where: { email: appointment.customer_email },
+                            select: { id: true }
+                        });
+                        isCustomerRegistered = !!existingProfile;
+                    } catch { }
+                }
+
+                // Send Customer Booking Confirmation with Loyalty Callout
                 if (appointment.customer_email) {
                     try {
                         await sendCustomerBookingConfirmation(
@@ -218,7 +232,12 @@ export async function POST(req: Request) {
                             startTimeStr,
                             `${appointment.total_price || amount} SEK`,
                             appointment.id,
-                            messageTemplates
+                            messageTemplates,
+                            {
+                                pointsEarned: points,
+                                isRegistered: isCustomerRegistered,
+                                salonHasRewards: !!appointment.salon?.is_rewards_enabled
+                            }
                         );
                         console.log(`[Webhook] Booking confirmation email sent to customer: ${appointment.customer_email}`);
                     } catch (err) {
@@ -261,31 +280,33 @@ export async function POST(req: Request) {
                         data: { total_points_earned: { increment: points } }
                     });
 
-                    // Update Salon Specific Points
-                    await prisma.loyaltyBalance.upsert({
-                        where: { profile_id_salon_id: { profile_id: profile.id, salon_id: salonId } },
-                        update: {
-                            current_points: { increment: points },
-                            total_earned: { increment: points }
-                        },
-                        create: {
-                            profile_id: profile.id,
-                            salon_id: salonId,
-                            current_points: points,
-                            total_earned: points
-                        }
-                    });
+                    // Update Salon Specific Points (only if salon has rewards enabled)
+                    if (appointment.salon?.is_rewards_enabled) {
+                        await prisma.loyaltyBalance.upsert({
+                            where: { profile_id_salon_id: { profile_id: profile.id, salon_id: salonId } },
+                            update: {
+                                current_points: { increment: points },
+                                total_earned: { increment: points }
+                            },
+                            create: {
+                                profile_id: profile.id,
+                                salon_id: salonId,
+                                current_points: points,
+                                total_earned: points
+                            }
+                        });
 
-                    // Record Transaction
-                    await prisma.pointTransaction.create({
-                        data: {
-                            profile_id: profile.id,
-                            salon_id: salonId,
-                            type: 'earned',
-                            amount: points,
-                            description: 'Bokning via Glowbook'
-                        }
-                    });
+                        // Record Transaction
+                        await prisma.pointTransaction.create({
+                            data: {
+                                profile_id: profile.id,
+                                salon_id: salonId,
+                                type: 'earned',
+                                amount: points,
+                                description: 'Bokning via Glowbook'
+                            }
+                        });
+                    }
                 }
             }
         }

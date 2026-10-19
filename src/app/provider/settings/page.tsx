@@ -13,6 +13,7 @@ import { NORDIC_COUNTRIES, getMunicipalities } from "@/data/nordic-data";
 import {
     getDefaultLoyaltyState, calculateLoyaltyStatus,
     LOYALTY_COOLDOWN_DAYS, LOYALTY_MIN_ACTIVE_DAYS,
+    REWARD_TIERS, type RewardTier,
     type ProviderLoyaltyState, type LoyaltyStatus
 } from "@/lib/loyalty";
 
@@ -127,8 +128,13 @@ function SettingsContent() {
             directions: '',
             policy: '',
             preparation: ''
-        } as { directions: string; policy: string; preparation: string }
+        } as { directions: string; policy: string; preparation: string },
+        is_rewards_enabled: false,
+        custom_rewards: null as RewardTier[] | null
     });
+    const [customRewards, setCustomRewards] = useState<RewardTier[]>(REWARD_TIERS);
+    const [isSavingRewards, setIsSavingRewards] = useState(false);
+    const [rewardsSaveSuccess, setRewardsSaveSuccess] = useState(false);
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
     const [isSubmittingVerification, setIsSubmittingVerification] = useState(false);
     const [isAddPractitionerModalOpen, setIsAddPractitionerModalOpen] = useState(false);
@@ -219,7 +225,9 @@ function SettingsContent() {
                         directions: parsedTemplates.directions || '',
                         policy: parsedTemplates.policy || '',
                         preparation: parsedTemplates.preparation || ''
-                    }
+                    },
+                    is_rewards_enabled: Boolean(salon.is_rewards_enabled),
+                    custom_rewards: salon.custom_rewards || salon.customRewards || null
                 };
             };
 
@@ -241,6 +249,9 @@ function SettingsContent() {
                             }
                             return { ...prev, ...parsedFresh };
                         });
+                        if (parsedFresh.custom_rewards && Array.isArray(parsedFresh.custom_rewards) && parsedFresh.custom_rewards.length > 0) {
+                            setCustomRewards(parsedFresh.custom_rewards);
+                        }
                         setComparisonDuration(parsedFresh.duration || 1);
                         if (parsedFresh.category) {
                             setVerificationCategory(parsedFresh.category);
@@ -267,6 +278,9 @@ function SettingsContent() {
                     }
                     return { ...prev, ...parsedLocal };
                 });
+                if (parsedLocal.custom_rewards && Array.isArray(parsedLocal.custom_rewards) && parsedLocal.custom_rewards.length > 0) {
+                    setCustomRewards(parsedLocal.custom_rewards);
+                }
                 setComparisonDuration(parsedLocal.duration || 1);
 
                 if (parsedLocal.category) {
@@ -577,6 +591,43 @@ function SettingsContent() {
                 console.error('Failed to sync is_rewards_enabled:', err);
             }
         }
+    };
+
+    const handleUpdateTierReward = (tierCost: number, optionIndex: number, field: 'label' | 'description', value: string) => {
+        setCustomRewards(prev => prev.map(tier => {
+            if (tier.pointsCost !== tierCost) return tier;
+            const newOptions = [...tier.options];
+            if (newOptions[optionIndex]) {
+                newOptions[optionIndex] = { ...newOptions[optionIndex], [field]: value };
+            }
+            return { ...tier, options: newOptions };
+        }));
+    };
+
+    const handleSaveCustomRewards = async () => {
+        if (!salonData.id) return;
+        setIsSavingRewards(true);
+        try {
+            await fetch('/api/salons/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: salonData.id,
+                    custom_rewards: customRewards
+                })
+            });
+            setSalonData(prev => ({ ...prev, custom_rewards: customRewards }));
+            setRewardsSaveSuccess(true);
+            setTimeout(() => setRewardsSaveSuccess(false), 3000);
+        } catch (err) {
+            console.error('Failed to save custom rewards:', err);
+        } finally {
+            setIsSavingRewards(false);
+        }
+    };
+
+    const handleResetRewardsToDefault = () => {
+        setCustomRewards(REWARD_TIERS);
     };
 
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -1773,6 +1824,91 @@ function SettingsContent() {
                                             <p className="text-sm text-foreground/60">{loyaltyInfo.message}</p>
                                         </div>
                                     )}
+                                </section>
+
+                                {/* Skräddarsy dina belöningar */}
+                                <section className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-6">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-champagne-50 dark:bg-champagne-950 text-champagne-700 dark:text-champagne-400 rounded-lg">
+                                                <Sparkles size={20} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-foreground">Skräddarsy dina belöningar</h3>
+                                                <p className="text-foreground/60 text-xs">Anpassa vad dina kunder kan lösa in sina intjänade poäng mot hos dig.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={handleResetRewardsToDefault}
+                                                className="px-3 py-1.5 text-xs font-semibold text-foreground/50 hover:text-foreground transition-colors"
+                                            >
+                                                Återställ standard
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleSaveCustomRewards}
+                                                disabled={isSavingRewards}
+                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C2A26A] hover:bg-[#b09058] text-[#111] font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50"
+                                            >
+                                                {isSavingRewards ? (
+                                                    <RefreshCw size={14} className="animate-spin" />
+                                                ) : rewardsSaveSuccess ? (
+                                                    <Check size={14} className="text-green-900" />
+                                                ) : (
+                                                    <Save size={14} />
+                                                )}
+                                                <span>{rewardsSaveSuccess ? 'Sparat!' : 'Spara belöningar'}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {rewardsSaveSuccess && (
+                                        <div className="p-3 bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 rounded-xl text-xs font-medium flex items-center gap-2">
+                                            <CheckCircle2 size={16} />
+                                            <span>Dina skräddarsydda belöningar har sparats och gäller nu för dina kunder vid bokning!</span>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                                        {customRewards.map((tier) => (
+                                            <div key={tier.pointsCost} className="bg-background/80 p-5 rounded-2xl border border-border/60 space-y-3">
+                                                <div className="flex items-center justify-between pb-2 border-b border-border/40">
+                                                    <span className="text-xs font-black uppercase tracking-wider text-champagne-600 dark:text-champagne-400">
+                                                        {tier.label}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">
+                                                        Kräver {tier.pointsCost}p
+                                                    </span>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    {tier.options.map((option, optIdx) => (
+                                                        <div key={option.id || optIdx} className="space-y-1.5 bg-card/60 p-3 rounded-xl border border-border/30">
+                                                            <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 block">
+                                                                Belöning #{optIdx + 1}
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={option.label}
+                                                                onChange={(e) => handleUpdateTierReward(tier.pointsCost, optIdx, 'label', e.target.value)}
+                                                                placeholder="T.ex. 50 kr rabatt, Gratis hårolja..."
+                                                                className="w-full px-3 py-1.5 text-xs font-semibold bg-background border border-border rounded-lg text-foreground focus:border-[#C2A26A] outline-none"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={option.description}
+                                                                onChange={(e) => handleUpdateTierReward(tier.pointsCost, optIdx, 'description', e.target.value)}
+                                                                placeholder="Kort beskrivning (t.ex. Gäller valfri behandling)..."
+                                                                className="w-full px-3 py-1 text-[11px] bg-background border border-border/60 rounded-lg text-foreground/70 focus:border-[#C2A26A] outline-none"
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </section>
 
                                 {/* How it works */}

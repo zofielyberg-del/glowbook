@@ -77,7 +77,12 @@ export async function POST(req: Request) {
                     ? Boolean(salonInfo.is_rewards_enabled) 
                     : (salonInfo.isRewardsEnabled !== undefined 
                         ? Boolean(salonInfo.isRewardsEnabled) 
-                        : (existing ? existing.is_rewards_enabled : false))
+                        : (existing ? existing.is_rewards_enabled : false)),
+                custom_rewards: salonInfo.custom_rewards !== undefined 
+                    ? salonInfo.custom_rewards 
+                    : (salonInfo.customRewards !== undefined 
+                        ? salonInfo.customRewards 
+                        : (existing ? (existing as any).custom_rewards : null))
             };
 
             if (existing) {
