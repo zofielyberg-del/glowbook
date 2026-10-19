@@ -356,17 +356,17 @@ export const sendCustomerBookingConfirmation = async (
         
         ${loyaltyInfo?.salonHasRewards && loyaltyInfo?.pointsEarned > 0 ? (
             !loyaltyInfo.isRegistered ? `
-            <div style="background: linear-gradient(135deg, #1C1B1A 0%, #111112 100%); border: 1px solid #C2A26A; border-radius: 16px; padding: 26px 24px; margin: 0 0 32px 0; text-align: center; color: #FFFFFF;">
-                <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #C2A26A; margin: 0 0 8px 0;">🎉 Lojalitetsbelöning</p>
-                <h4 style="font-size: 20px; font-weight: 700; margin: 0 0 8px 0; color: #FFFFFF;">Du tjänade just ${loyaltyInfo.pointsEarned} poäng på denna bokning!</h4>
-                <p style="font-size: 14px; color: rgba(255,255,255,0.85); margin: 0 0 20px 0; line-height: 1.5;">Skapa ett gratis konto med denna e-postadress för att låsa upp dina poäng och använda dem som rabatt vid nästa besök hos ${salonName}.</p>
-                <a href="https://glowbook.se/auth/register?email=${encodeURIComponent(email)}" style="display: inline-block; background-color: #C2A26A; color: #111112; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; padding: 14px 28px; border-radius: 9999px; text-decoration: none;">Skapa konto & lås upp mina poäng</a>
+            <div style="background-color: #161514 !important; background: #161514 !important; border: 1px solid #C2A26A !important; border-radius: 16px !important; padding: 26px 24px !important; margin: 0 0 32px 0 !important; text-align: center !important;">
+                <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 8px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">🎉 Lojalitetsbelöning</p>
+                <h4 style="font-size: 20px !important; font-weight: 700 !important; margin: 0 0 8px 0 !important; color: #FFFFFF !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Du tjänade just ${loyaltyInfo.pointsEarned} poäng på denna bokning!</h4>
+                <p style="font-size: 14px !important; color: #E8E6E1 !important; margin: 0 0 20px 0 !important; line-height: 1.6 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Skapa ett gratis konto med denna e-postadress för att låsa upp dina poäng och använda dem som rabatt vid nästa besök hos <strong style="color: #C2A26A !important; font-weight: 700 !important;">${salonName}</strong>.</p>
+                <a href="https://glowbook.se/auth/register?email=${encodeURIComponent(email)}" style="display: inline-block !important; background-color: #C2A26A !important; color: #111112 !important; font-weight: 800 !important; font-size: 13px !important; text-transform: uppercase !important; letter-spacing: 1px !important; padding: 14px 28px !important; border-radius: 9999px !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Skapa konto & lås upp mina poäng</a>
             </div>
             ` : `
-            <div style="background: linear-gradient(135deg, #1C1B1A 0%, #111112 100%); border: 1px solid #C2A26A; border-radius: 16px; padding: 22px 24px; margin: 0 0 32px 0; color: #FFFFFF;">
-                <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #C2A26A; margin: 0 0 6px 0;">✨ Glowpoints Intjänade</p>
-                <h4 style="font-size: 18px; font-weight: 700; margin: 0 0 8px 0; color: #FFFFFF;">+${loyaltyInfo.pointsEarned} poäng har registrerats på ditt konto!</h4>
-                <p style="font-size: 13px; color: rgba(255,255,255,0.8); margin: 0; line-height: 1.5;">Poängen har sparats på ditt Glowbook-konto och är giltiga i 24 månader för exklusiva rabatter hos <strong>${salonName}</strong>.</p>
+            <div style="background-color: #161514 !important; background: #161514 !important; border: 1px solid #C2A26A !important; border-radius: 16px !important; padding: 22px 24px !important; margin: 0 0 32px 0 !important;">
+                <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 6px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">✨ Glowpoints Intjänade</p>
+                <h4 style="font-size: 18px !important; font-weight: 700 !important; margin: 0 0 8px 0 !important; color: #FFFFFF !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">+${loyaltyInfo.pointsEarned} poäng har registrerats på ditt konto!</h4>
+                <p style="font-size: 13px !important; color: #E8E6E1 !important; margin: 0 !important; line-height: 1.6 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Poängen har sparats på ditt Glowbook-konto och är giltiga i 24 månader för exklusiva rabatter hos <strong style="color: #C2A26A !important; font-weight: 700 !important;">${salonName}</strong>.</p>
             </div>
             `
         ) : ''}
