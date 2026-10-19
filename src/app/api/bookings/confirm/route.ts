@@ -279,9 +279,12 @@ export async function POST(req: Request) {
             const amount = Number(price) || 0;
             const pointsEarned = Math.floor(amount / 10) * 5;
 
-            // Check if customer actually has a registered account (password_hash exists) vs guest booking profile
+            // Check if customer actually has a registered account and was logged in
             let isCustomerRegistered = false;
-            if (customerInfo.email) {
+            if (customerInfo.isLoggedIn === false) {
+                // Booked as guest without active customer login session
+                isCustomerRegistered = false;
+            } else if (customerInfo.email) {
                 try {
                     const existingProfile = await prisma.profile.findUnique({
                         where: { email: customerInfo.email },

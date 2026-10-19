@@ -508,7 +508,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     dayIndex: selectedTime.dayIndex,
                     duration: selectedService.duration || 30,
                     price: finalTotal,
-                    customerInfo,
+                    customerInfo: {
+                        ...customerInfo,
+                        isLoggedIn: isCustomerLoggedIn
+                    },
                     paymentMethod: actualPaymentMethod,
                     rewardInfo: useGlowpoints ? selectedReward : null,
                     status: isStripePayment ? 'pending_payment' : 'confirmed',
