@@ -146,7 +146,7 @@ export default function Header() {
                             ) : isProvider ? (
                                 <>
                                     <NavLink href="/explore" label={t('discover')} active={pathname === '/explore'} />
-                                    <NavLink href="/provider" label="Översikt" active={pathname === '/provider'} />
+                                    <NavLink href="/provider" label={t('nav_dashboard')} active={pathname === '/provider'} />
                                     <NavLink href="/provider/settings?tab=inbox" label={t('nav_inbox')} active={pathname?.includes('tab=inbox')} />
                                 </>
                             ) : (
@@ -200,7 +200,7 @@ export default function Header() {
                                     onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                                     className="bg-foreground text-background px-4 py-2 rounded-full text-[10px] xl:text-[11px] font-medium uppercase tracking-[0.12em] hover:bg-[#C2A26A] hover:text-[#0B0B0C] transition-all flex items-center gap-1.5 shadow-sm"
                                 >
-                                    {isProvider ? 'Översikt' : t('my_pages')}
+                                    {isProvider ? t('nav_dashboard') : t('my_pages')}
                                     <ChevronDown size={12} className={clsx("transition-transform", isUserDropdownOpen && "rotate-180")} />
                                 </button>
                                 {isUserDropdownOpen && (
@@ -212,7 +212,7 @@ export default function Header() {
                                                 onClick={() => setIsUserDropdownOpen(false)}
                                                 className="flex items-center gap-3 px-4 py-3 text-[11px] font-medium uppercase tracking-[0.12em] text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-xl transition-all"
                                             >
-                                                <User size={15} style={{ color: '#C2A26A' }} /> {isProvider ? 'Översikt' : t('my_pages')}
+                                                <User size={15} style={{ color: '#C2A26A' }} /> {isProvider ? t('nav_dashboard') : t('my_pages')}
                                             </Link>
                                             {isProvider && (
                                                 <Link
@@ -326,7 +326,7 @@ export default function Header() {
                                             { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
                                             { href: "/provider/settings", icon: Settings, label: t('nav_settings') },
                                         ] : isProvider ? [
-                                            { href: "/provider", icon: User, label: 'Översikt' },
+                                            { href: "/provider", icon: User, label: t('nav_dashboard') },
                                             { href: "/explore", icon: Compass, label: t('discover') },
                                             { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
                                             { href: "/provider/settings", icon: Settings, label: t('nav_settings') },
