@@ -3,21 +3,12 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gift, CreditCard, Send, CheckCircle2, Star, Sparkles, Heart, Mail, Copy, Check, ArrowRight } from 'lucide-react';
+import { Gift, CreditCard, CheckCircle2, Star, Sparkles, Heart, Mail, Copy, Check } from 'lucide-react';
 import clsx from 'clsx';
 import { useLanguage } from '@/context/LanguageContext';
 import Link from 'next/link';
 
 const VALUES = [500, 1000, 2000, 3000];
-
-// Generate a unique gift card code like GLOW-A3K9-M7X2
-// BULLSEYE: Core Gift Card Generation Logic
-function generateCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I confusion
-    const seg1 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-    const seg2 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-    return `GLOW-${seg1}-${seg2}`;
-}
 
 export type GiftCard = {
     id: string;
@@ -92,14 +83,14 @@ export default function GiftCardsPage() {
         return () => { active = false; };
     }, []);
 
-    // BULLSEYE: Gift Card Purchase Processor
+    // Gift Card Purchase Processor
     const handlePurchase = async () => {
         if (!recipient.email || !recipient.email.includes('@')) {
-            alert('Vänligen fyll i en giltig e-postadress.');
+            alert(t('giftcard_email_placeholder') || 'Vänligen fyll i en giltig e-postadress.');
             return;
         }
         if (!recipient.to.trim()) {
-            alert('Vänligen fyll i mottagarens namn.');
+            alert(t('giftcard_to_placeholder') || 'Vänligen fyll i mottagarens namn.');
             return;
         }
 
@@ -136,7 +127,7 @@ export default function GiftCardsPage() {
     const handleRedeem = async () => {
         const cleanCode = redeemCode.trim().toUpperCase();
         if (!cleanCode) {
-            setRedeemResult({ success: false, message: 'Ange en kod.' });
+            setRedeemResult({ success: false, message: t('giftcard_redeem_desc') || 'Ange en kod.' });
             return;
         }
 
@@ -152,13 +143,13 @@ export default function GiftCardsPage() {
             if (data.success) {
                 setRedeemResult({
                     success: true,
-                    message: `Presentkort giltigt! Saldo: ${data.card.remainingBalance} SEK`,
+                    message: `${data.card.remainingBalance} ${data.card.currency}`,
                     card: data.card,
                 });
             } else {
                 setRedeemResult({
                     success: false,
-                    message: data.error || 'Presentkortet kunde inte verifieras.'
+                    message: data.error || 'Kunde inte verifieras.'
                 });
             }
         } catch (error) {
@@ -190,7 +181,7 @@ export default function GiftCardsPage() {
                                 : 'text-foreground/40 hover:text-foreground'
                         )}
                     >
-                        <Gift size={16} /> Köp presentkort
+                        <Gift size={16} /> {t('giftcard_buy_tab')}
                     </button>
                     <button
                         onClick={() => { setActiveView('redeem'); setIsPurchased(false); }}
@@ -201,7 +192,7 @@ export default function GiftCardsPage() {
                                 : 'text-foreground/40 hover:text-foreground'
                         )}
                     >
-                        <CreditCard size={16} /> Lös in kod
+                        <CreditCard size={16} /> {t('giftcard_redeem_tab')}
                     </button>
                 </div>
 
@@ -209,8 +200,8 @@ export default function GiftCardsPage() {
                     <div className="flex flex-col items-center justify-center py-20 space-y-6">
                         <div className="w-12 h-12 border-4 border-champagne-500 border-t-transparent rounded-full animate-spin"></div>
                         <div className="text-center space-y-2">
-                            <h3 className="text-lg font-bold text-foreground">Hämtar ditt presentkort...</h3>
-                            <p className="text-foreground/40 text-xs">Vänligen vänta medan vi bekräftar ditt köp.</p>
+                            <h3 className="text-lg font-bold text-foreground">{t('giftcard_fetching')}</h3>
+                            <p className="text-foreground/40 text-xs">{t('giftcard_fetching_desc')}</p>
                         </div>
                     </div>
                 ) : (
@@ -226,13 +217,13 @@ export default function GiftCardsPage() {
                             className="max-w-lg mx-auto space-y-8"
                         >
                             <div className="text-center space-y-3">
-                                <h1 className="font-heading text-3xl font-bold text-foreground">Lös in presentkort</h1>
-                                <p className="text-foreground/50 text-sm">Ange din presentkortskod nedan för att kontrollera saldot.</p>
+                                <h1 className="font-heading text-3xl font-bold text-foreground">{t('giftcard_redeem_title')}</h1>
+                                <p className="text-foreground/50 text-sm">{t('giftcard_redeem_desc')}</p>
                             </div>
 
                             <div className="bg-card p-8 rounded-3xl border border-border shadow-sm space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Presentkortskod</label>
+                                    <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">{t('giftcard_code_label')}</label>
                                     <input
                                         type="text"
                                         value={redeemCode}
@@ -246,7 +237,7 @@ export default function GiftCardsPage() {
                                     onClick={handleRedeem}
                                     className="w-full h-14 bg-foreground text-background rounded-2xl font-bold text-sm hover:bg-champagne-600 hover:text-white transition-all shadow-lg"
                                 >
-                                    Kontrollera saldo
+                                    {t('giftcard_check_balance_btn')}
                                 </button>
 
                                 <AnimatePresence>
@@ -277,19 +268,19 @@ export default function GiftCardsPage() {
                                             {redeemResult.card && (
                                                 <div className="mt-4 space-y-2 text-left">
                                                     <div className="flex justify-between text-xs">
-                                                        <span className="text-foreground/40">Ursprungligt värde</span>
+                                                        <span className="text-foreground/40">{t('giftcard_original_value')}</span>
                                                         <span className="font-bold text-foreground">{redeemResult.card.value} {redeemResult.card.currency}</span>
                                                     </div>
                                                     <div className="flex justify-between text-xs">
-                                                        <span className="text-foreground/40">Kvarvarande saldo</span>
+                                                        <span className="text-foreground/40">{t('giftcard_remaining_balance')}</span>
                                                         <span className="font-bold text-green-600">{redeemResult.card.remainingBalance} {redeemResult.card.currency}</span>
                                                     </div>
                                                     <div className="flex justify-between text-xs">
-                                                        <span className="text-foreground/40">Giltigt t.o.m</span>
-                                                        <span className="font-bold text-foreground">{new Date(redeemResult.card.expiresAt).toLocaleDateString('sv-SE')}</span>
+                                                        <span className="text-foreground/40">{t('giftcard_valid_until')}</span>
+                                                        <span className="font-bold text-foreground">{new Date(redeemResult.card.expiresAt).toLocaleDateString()}</span>
                                                     </div>
                                                     <div className="flex justify-between text-xs">
-                                                        <span className="text-foreground/40">Till</span>
+                                                        <span className="text-foreground/40">{t('giftcard_card_to')}</span>
                                                         <span className="font-bold text-foreground">{redeemResult.card.recipientName}</span>
                                                     </div>
                                                 </div>
@@ -312,20 +303,19 @@ export default function GiftCardsPage() {
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2 text-champagne-600 font-bold uppercase tracking-widest text-[10px]">
                                         <Sparkles size={14} />
-                                        <span>Presentkort</span>
+                                        <span>{t('giftcard_badge')}</span>
                                     </div>
                                     <h1 className="font-heading text-4xl font-bold text-foreground leading-tight">
-                                        Ge bort lite <span className="text-champagne-600">glow</span> till någon du tycker om.
+                                        {t('giftcard_hero_title_prefix')} <span className="text-champagne-600">glow</span> {t('giftcard_hero_title_suffix')}
                                     </h1>
                                     <p className="text-foreground/60 leading-relaxed max-w-md">
-                                        Ett digitalt presentkort från Glowbook. Mottagaren får koden via e-post
-                                        och kan använda den hos alla anslutna salonger.
+                                        {t('giftcard_hero_desc')}
                                     </p>
                                 </div>
 
                                 {/* Value Selection */}
                                 <div className="space-y-4">
-                                    <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Välj belopp</h3>
+                                    <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">{t('giftcard_select_value')}</h3>
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                         {VALUES.map((val) => (
                                             <button
@@ -346,23 +336,23 @@ export default function GiftCardsPage() {
 
                                 {/* Recipient Info */}
                                 <div className="space-y-6 bg-card p-8 rounded-[32px] border border-border shadow-sm transition-all hover:shadow-md">
-                                    <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Mottagaruppgifter</h3>
+                                    <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">{t('giftcard_recipient_info')}</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-[11px] font-bold text-foreground/40 uppercase ml-2 tracking-widest">Till vem? *</label>
+                                            <label className="text-[11px] font-bold text-foreground/40 uppercase ml-2 tracking-widest">{t('giftcard_to_label')}</label>
                                             <input
                                                 type="text"
-                                                placeholder="Namn på mottagare"
+                                                placeholder={t('giftcard_to_placeholder')}
                                                 className="w-full h-12 px-5 rounded-2xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-champagne-600/20 focus:border-champagne-600 text-sm transition-all text-foreground font-medium"
                                                 value={recipient.to}
                                                 onChange={(e) => setRecipient({ ...recipient, to: e.target.value })}
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[11px] font-bold text-foreground/40 uppercase ml-2 tracking-widest">Från vem?</label>
+                                            <label className="text-[11px] font-bold text-foreground/40 uppercase ml-2 tracking-widest">{t('giftcard_from_label')}</label>
                                             <input
                                                 type="text"
-                                                placeholder="Ditt namn (valfritt)"
+                                                placeholder={t('giftcard_from_placeholder')}
                                                 className="w-full h-12 px-5 rounded-2xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-champagne-600/20 focus:border-champagne-600 text-sm transition-all text-foreground font-medium"
                                                 value={recipient.from}
                                                 onChange={(e) => setRecipient({ ...recipient, from: e.target.value })}
@@ -371,12 +361,12 @@ export default function GiftCardsPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[11px] font-bold text-foreground/40 uppercase ml-2 tracking-widest">Mottagarens E-post *</label>
+                                        <label className="text-[11px] font-bold text-foreground/40 uppercase ml-2 tracking-widest">{t('giftcard_email_label')}</label>
                                         <div className="relative">
                                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/20" size={16} />
                                             <input
                                                 type="email"
-                                                placeholder="e-post dit presentkortet skickas"
+                                                placeholder={t('giftcard_email_placeholder')}
                                                 className="w-full h-12 pl-12 pr-5 rounded-2xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-champagne-600/20 focus:border-champagne-600 text-sm transition-all text-foreground font-medium"
                                                 value={recipient.email}
                                                 onChange={(e) => setRecipient({ ...recipient, email: e.target.value })}
@@ -386,9 +376,9 @@ export default function GiftCardsPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[11px] font-bold text-foreground/40 uppercase ml-2 tracking-widest">Ett litet meddelande</label>
+                                        <label className="text-[11px] font-bold text-foreground/40 uppercase ml-2 tracking-widest">{t('giftcard_msg_label')}</label>
                                         <textarea
-                                            placeholder="Hoppas du njuter av din behandling! (Valfritt)"
+                                            placeholder={t('giftcard_msg_placeholder')}
                                             rows={3}
                                             className="w-full p-5 rounded-2xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-champagne-600/20 focus:border-champagne-600 text-sm transition-all resize-none text-foreground font-medium"
                                             value={recipient.message}
@@ -402,10 +392,10 @@ export default function GiftCardsPage() {
                                     className="w-full h-16 bg-foreground text-background rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl hover:bg-champagne-600 hover:text-white transition-all active:scale-[0.98]"
                                 >
                                     <Gift size={18} />
-                                    Köp presentkort — {selectedValue} {currency}
+                                    {t('giftcard_buy_btn')} — {selectedValue} {currency}
                                 </button>
                                 <p className="text-[10px] text-foreground/30 text-center -mt-6">
-                                    Presentkortet skickas via noreply@glowbook.se • Giltigt i 2 år
+                                    {t('giftcard_validity_note')}
                                 </p>
                             </motion.div>
 
@@ -415,7 +405,7 @@ export default function GiftCardsPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="lg:sticky lg:top-32 space-y-6"
                             >
-                                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider text-center lg:text-left">Förhandsgranskning</h3>
+                                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider text-center lg:text-left">{t('giftcard_preview_title')}</h3>
 
                                 <div className="relative aspect-[16/10] w-full max-w-[500px] mx-auto overflow-hidden rounded-[32px] shadow-2xl group border border-white/5">
                                     <div className="absolute inset-0 bg-[#0A0A0A] group-hover:scale-105 transition-transform duration-700">
@@ -437,7 +427,7 @@ export default function GiftCardsPage() {
                                         </div>
 
                                         <div className="space-y-1">
-                                            <p className="text-[10px] uppercase tracking-[0.2em] opacity-40">Värde</p>
+                                            <p className="text-[10px] uppercase tracking-[0.2em] opacity-40">{t('giftcard_card_value')}</p>
                                             <p className="text-5xl font-heading font-black tracking-tighter">
                                                 {selectedValue} <span className="text-xl opacity-60 font-sans">{currency}</span>
                                             </p>
@@ -445,11 +435,11 @@ export default function GiftCardsPage() {
 
                                         <div className="flex justify-between items-end border-t border-white/10 pt-6">
                                             <div className="space-y-1">
-                                                <p className="text-[9px] uppercase tracking-[0.2em] opacity-40 font-bold">Till</p>
-                                                <p className="font-bold text-sm truncate max-w-[150px] text-white/90">{recipient.to || 'Mottagarens namn'}</p>
+                                                <p className="text-[9px] uppercase tracking-[0.2em] opacity-40 font-bold">{t('giftcard_card_to')}</p>
+                                                <p className="font-bold text-sm truncate max-w-[150px] text-white/90">{recipient.to || t('giftcard_card_default_recipient')}</p>
                                             </div>
                                             <div className="space-y-1 text-right">
-                                                <p className="text-[9px] uppercase tracking-[0.2em] opacity-40 font-bold">Kod</p>
+                                                <p className="text-[9px] uppercase tracking-[0.2em] opacity-40 font-bold">{t('giftcard_card_code')}</p>
                                                 <p className="font-mono text-xs text-champagne-400 tracking-widest font-bold">GLOW-XXXX-XXXX</p>
                                             </div>
                                         </div>
@@ -461,7 +451,7 @@ export default function GiftCardsPage() {
 
                                 <div className="bg-card p-6 rounded-3xl border border-border shadow-sm text-center">
                                     <p className="text-xs text-foreground/50 leading-relaxed">
-                                        &quot;{recipient.message || 'Ditt personliga meddelande syns här på det digitala kortet.'}&quot;
+                                        &quot;{recipient.message || t('giftcard_card_default_msg')}&quot;
                                     </p>
                                 </div>
                             </motion.div>
@@ -480,9 +470,9 @@ export default function GiftCardsPage() {
                                 <CheckCircle2 size={48} />
                             </div>
                             <div className="space-y-4">
-                                <h1 className="text-4xl font-heading font-bold text-foreground tracking-tight">Presentkortet är skickat!</h1>
+                                <h1 className="text-4xl font-heading font-bold text-foreground tracking-tight">{t('giftcard_success_title')}</h1>
                                 <p className="text-foreground/60 leading-relaxed">
-                                    Presentkortet på <strong>{selectedValue} {currency}</strong> har skickats till <strong className="text-foreground">{recipient.email}</strong> via noreply@glowbook.se.
+                                    {selectedValue} {currency} — <strong className="text-foreground">{recipient.email}</strong>.
                                 </p>
                             </div>
 
@@ -492,7 +482,7 @@ export default function GiftCardsPage() {
 
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">Presentkortskod</p>
+                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">{t('giftcard_code_label')}</p>
                                         <p className="text-2xl font-mono font-black tracking-[0.15em] text-champagne-600">{generatedCode}</p>
                                     </div>
                                     <button
@@ -504,32 +494,32 @@ export default function GiftCardsPage() {
                                                 : "bg-foreground/5 text-foreground/60 border-border hover:border-champagne-500"
                                         )}
                                     >
-                                        {copied ? <><Check size={14} /> Kopierad!</> : <><Copy size={14} /> Kopiera kod</>}
+                                        {copied ? <><Check size={14} /> {t('giftcard_copied')}</> : <><Copy size={14} /> {t('giftcard_copy_code')}</>}
                                     </button>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
-                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">Belopp</p>
+                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">{t('giftcard_card_value')}</p>
                                         <p className="text-xl font-black text-foreground">{selectedValue} {currency}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">Till</p>
+                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">{t('giftcard_card_to')}</p>
                                         <p className="text-xl font-bold text-foreground">{recipient.to}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">Skickad till</p>
+                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">{t('giftcard_sent_to')}</p>
                                         <p className="text-sm font-bold text-foreground">{recipient.email}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">Giltigt t.o.m</p>
-                                        <p className="text-sm font-bold text-foreground">{new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toLocaleDateString('sv-SE')}</p>
+                                        <p className="text-[10px] text-foreground/40 uppercase font-black tracking-widest">{t('giftcard_valid_until')}</p>
+                                        <p className="text-sm font-bold text-foreground">{new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toLocaleDateString()}</p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-2 text-[10px] text-foreground/30 pt-2 border-t border-border">
                                     <Check size={12} className="text-green-500" />
-                                    Presentkortet har skickats via noreply@glowbook.se
+                                    {t('giftcard_validity_note')}
                                 </div>
                             </div>
 
@@ -538,13 +528,13 @@ export default function GiftCardsPage() {
                                     href="/"
                                     className="flex-1 h-14 border border-border text-foreground rounded-2xl font-bold hover:bg-foreground/5 transition-colors shadow-sm flex items-center justify-center"
                                 >
-                                    Tillbaka till startsidan
+                                    {t('giftcard_back_home')}
                                 </Link>
                                 <button
                                     onClick={handleReset}
                                     className="flex-1 h-14 bg-foreground text-background rounded-2xl font-bold hover:bg-champagne-600 hover:text-white transition-colors shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
                                 >
-                                    <Gift size={16} /> Köp ett till
+                                    <Gift size={16} /> {t('giftcard_buy_another')}
                                 </button>
                             </div>
                         </motion.div>
