@@ -2,6 +2,7 @@
 'use client';
 
 import Header from "@/components/layout/Header";
+import { useLanguage } from "@/context/LanguageContext";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -108,6 +109,7 @@ function DynamicIcon({ name, size = 20 }: { name: string; size?: number }) {
 
 export default function ProfilePage() {
     const router = useRouter();
+    const { t, language } = useLanguage();
     const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [profile, setProfile] = useState<CustomerProfile>({
         firstName: '',
@@ -215,7 +217,7 @@ export default function ProfilePage() {
         const updated = { ...profile, ...updates };
         setProfile(updated);
         sessionStorage.setItem('glowbook_customer', JSON.stringify(updated));
-        setSavedMsg('Ändringar sparade!');
+        setSavedMsg(t('profile_msg_saved'));
         setTimeout(() => setSavedMsg(''), 2000);
     };
 
@@ -285,21 +287,21 @@ export default function ProfilePage() {
 
     const handlePasswordChange = () => {
         if (!passwordData.current) {
-            setSavedMsg('Fyll i ditt nuvarande lösenord');
+            setSavedMsg(t('profile_msg_fill_current_pwd'));
             setTimeout(() => setSavedMsg(''), 3000);
             return;
         }
         if (passwordData.newPass !== passwordData.confirm) {
-            setSavedMsg('Lösenorden matchar inte');
+            setSavedMsg(t('profile_msg_pwd_mismatch'));
             setTimeout(() => setSavedMsg(''), 3000);
             return;
         }
         if (passwordData.newPass.length < 6) {
-            setSavedMsg('Lösenordet måste vara minst 6 tecken');
+            setSavedMsg(t('profile_msg_pwd_too_short'));
             setTimeout(() => setSavedMsg(''), 3000);
             return;
         }
-        setSavedMsg('Lösenord uppdaterat!');
+        setSavedMsg(t('profile_msg_pwd_updated'));
         setPasswordData({ current: '', newPass: '', confirm: '' });
         setTimeout(() => setSavedMsg(''), 3000);
     };
@@ -313,7 +315,7 @@ export default function ProfilePage() {
             });
             const data = await response.json();
             if (!data.success) {
-                alert('Kunde inte avboka: ' + data.error);
+                alert(t('profile_msg_cancel_failed') + data.error);
                 return;
             }
 
@@ -370,7 +372,7 @@ export default function ProfilePage() {
         const updated = rest as CustomerProfile;
         setProfile(updated);
         sessionStorage.setItem('glowbook_customer', JSON.stringify(updated));
-        setSavedMsg('Kortet har tagits bort');
+        setSavedMsg(t('profile_remove_card'));
         setTimeout(() => setSavedMsg(''), 3000);
     };
 
@@ -378,10 +380,10 @@ export default function ProfilePage() {
     const pastBookings = bookings.filter(b => b.status !== 'upcoming');
 
     const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
-        { key: 'overview', label: 'Översikt', icon: <Sparkles size={18} /> },
-        { key: 'bookings', label: 'Bokningar', icon: <Calendar size={18} /> },
-        { key: 'rewards', label: 'Rewards', icon: <Gift size={18} /> },
-        { key: 'settings', label: 'Inställningar', icon: <Settings size={18} /> },
+        { key: 'overview', label: t('profile_tab_overview'), icon: <Sparkles size={18} /> },
+        { key: 'bookings', label: t('profile_tab_bookings'), icon: <Calendar size={18} /> },
+        { key: 'rewards', label: t('profile_tab_rewards'), icon: <Gift size={18} /> },
+        { key: 'settings', label: t('profile_tab_settings'), icon: <Settings size={18} /> },
     ];
 
     const inputClass = "w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-champagne-500 outline-none transition-all text-sm font-medium text-foreground placeholder:text-foreground/20";
@@ -420,7 +422,7 @@ export default function ProfilePage() {
                             <div className="flex items-center gap-4 mt-2">
                                 <div className="flex items-center gap-1.5 text-champagne-600">
                                     <Star size={14} className="fill-champagne-500" />
-                                    <span className="text-sm font-bold">{totalCurrentPoints.toLocaleString()} poäng</span>
+                                    <span className="text-sm font-bold">{totalCurrentPoints.toLocaleString()} {t('profile_points_unit')}</span>
                                 </div>
                                 {nextLevel && (
                                     <>
@@ -491,14 +493,14 @@ export default function ProfilePage() {
                                                     <LevelIcon level={memberLevel.key} size={28} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">Medlemsnivå</p>
+                                                    <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">{t('profile_tier_level')}</p>
                                                     <h3 className="text-2xl font-heading font-bold" style={{ color: memberLevel.color }}>
                                                         {memberLevel.label} Member
                                                     </h3>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-white/30 text-[10px] uppercase tracking-widest">Poängsaldo</p>
+                                                <p className="text-white/30 text-[10px] uppercase tracking-widest">{t('profile_points_balance')}</p>
                                                 <p className="text-2xl font-bold text-white">{totalCurrentPoints.toLocaleString()}</p>
                                             </div>
                                         </div>
@@ -520,12 +522,12 @@ export default function ProfilePage() {
                                                     />
                                                 </div>
                                                 <p className="text-white/40 text-xs mt-2">
-                                                    {pointsToNext.toLocaleString()} poäng kvar till <span className="font-bold" style={{ color: nextLevel.color }}>{nextLevel.label}</span>
+                                                    {pointsToNext.toLocaleString()} {t('profile_pts_to_next')} <span className="font-bold" style={{ color: nextLevel.color }}>{nextLevel.label}</span>
                                                 </p>
                                             </div>
                                         ) : (
                                             <div className="bg-white/5 rounded-xl p-4 text-center">
-                                                <p className="text-white/60 text-sm">Du har nått den högsta nivån!</p>
+                                                <p className="text-white/60 text-sm">{t('profile_highest_tier')}</p>
                                             </div>
                                         )}
 
@@ -571,7 +573,7 @@ export default function ProfilePage() {
                                 {/* Upcoming Bookings */}
                                 <div className="space-y-3">
                                     <h3 className="text-lg font-bold text-black dark:text-white flex items-center gap-2">
-                                        <Clock size={18} className="text-champagne-500" /> Kommande bokningar
+                                        <Clock size={18} className="text-champagne-500" /> {t('profile_upcoming_bookings')}
                                     </h3>
                                     {upcomingBookings.length > 0 ? upcomingBookings.map(b => (
                                         <div key={b.id} className="bg-white dark:bg-[#141414] rounded-2xl p-5 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
@@ -586,15 +588,15 @@ export default function ProfilePage() {
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-bold text-black dark:text-white text-sm">{b.price} kr</p>
-                                                <span className="text-[10px] px-2 py-0.5 bg-champagne-500/10 text-champagne-600 rounded-full font-bold">Bokad</span>
+                                                <span className="text-[10px] px-2 py-0.5 bg-champagne-500/10 text-champagne-600 rounded-full font-bold">{t('profile_tab_bookings')}</span>
                                             </div>
                                         </div>
                                     )) : (
                                         <div className="bg-white dark:bg-[#141414] rounded-2xl p-8 border border-dashed border-black/10 dark:border-white/10 text-center">
                                             <Calendar size={32} className="text-black/10 dark:text-white/10 mx-auto mb-3" />
-                                            <p className="text-black/30 dark:text-white/30 text-sm">Inga kommande bokningar</p>
+                                            <p className="text-black/30 dark:text-white/30 text-sm">{t('profile_no_upcoming')}</p>
                                             <Link href="/explore" className="inline-flex items-center gap-1 text-champagne-600 text-sm font-bold mt-2 hover:underline">
-                                                Boka nu <ArrowRight size={12} />
+                                                {t('profile_book_time')} <ArrowRight size={12} />
                                             </Link>
                                         </div>
                                     )}
@@ -604,13 +606,13 @@ export default function ProfilePage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <Link href="/explore" className="bg-white dark:bg-[#141414] rounded-2xl p-5 border border-black/5 dark:border-white/10 shadow-sm hover:shadow-md transition-all group">
                                         <Calendar size={24} className="text-champagne-500 mb-3" />
-                                        <h4 className="font-bold text-black dark:text-white text-sm group-hover:text-champagne-600 transition-colors">Boka ny tid</h4>
-                                        <p className="text-black/30 dark:text-white/30 text-xs mt-1">Hitta och boka behandlingar</p>
+                                        <h4 className="font-bold text-black dark:text-white text-sm group-hover:text-champagne-600 transition-colors">{t('profile_book_time')}</h4>
+                                        <p className="text-black/30 dark:text-white/30 text-xs mt-1">{t('profile_explore_salons')}</p>
                                     </Link>
                                     <button onClick={() => setActiveTab('rewards')} className="bg-white dark:bg-[#141414] rounded-2xl p-5 border border-black/5 dark:border-white/10 shadow-sm hover:shadow-md transition-all group text-left">
                                         <Gift size={24} className="text-champagne-500 mb-3" />
                                         <h4 className="font-bold text-black dark:text-white text-sm group-hover:text-champagne-600 transition-colors">Mina rewards</h4>
-                                        <p className="text-black/30 dark:text-white/30 text-xs mt-1">{providersWithPoints.length} utförare med poäng</p>
+                                        <p className="text-black/30 dark:text-white/30 text-xs mt-1">{providersWithPoints.length} {t('profile_providers_with_points')}</p>
                                     </button>
                                 </div>
                             </motion.div>
@@ -620,7 +622,7 @@ export default function ProfilePage() {
                         {activeTab === 'bookings' && (
                             <motion.div key="bookings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                                 <div className="space-y-3">
-                                    <h3 className="text-sm font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Kommande</h3>
+                                    <h3 className="text-sm font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">{t('profile_upcoming_bookings')}</h3>
                                     {upcomingBookings.map(b => (
                                         <div key={b.id} className="bg-white dark:bg-[#141414] rounded-2xl p-5 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-between">
                                             <div className="flex items-center gap-4">
@@ -638,14 +640,14 @@ export default function ProfilePage() {
                                                     onClick={() => setCancellingBooking(b.id)}
                                                     className="text-[10px] text-red-400 hover:text-red-500 font-bold transition-colors"
                                                 >
-                                                    Avboka
+                                                    {t('profile_cancel_btn')}
                                                 </button>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                                 <div className="space-y-3">
-                                    <h3 className="text-sm font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Tidigare</h3>
+                                    <h3 className="text-sm font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">{t('profile_history')}</h3>
                                     {pastBookings.map(b => (
                                         <div key={b.id} className="bg-white dark:bg-[#141414] rounded-2xl p-5 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-between opacity-70">
                                             <div className="flex items-center gap-4">
@@ -661,7 +663,7 @@ export default function ProfilePage() {
                                                 <p className="font-bold text-black dark:text-white text-sm">{b.price} kr</p>
                                                 <div className="flex flex-col items-end gap-2">
                                                     <span className={clsx("text-[10px] px-2 py-0.5 rounded-full font-bold", b.status === 'completed' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
-                                                        {b.status === 'completed' ? 'Genomförd' : 'Avbokad'}
+                                                        {b.status === 'completed' ? t('profile_status_completed') : t('profile_status_cancelled')}
                                                     </span>
                                                     {b.status === 'completed' && (
                                                         <Link
@@ -690,7 +692,7 @@ export default function ProfilePage() {
                                             <Star size={24} className="text-champagne-400 fill-champagne-400" />
                                         </div>
                                         <div>
-                                            <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Tillgängliga poäng</p>
+                                            <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">{t('profile_available_points')}</p>
                                             <p className="text-3xl font-heading font-bold text-champagne-400">{totalCurrentPoints.toLocaleString()}</p>
                                         </div>
                                     </div>
@@ -708,7 +710,7 @@ export default function ProfilePage() {
                                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                                             <div className="bg-white dark:bg-[#141414] rounded-2xl border border-black/5 dark:border-white/10 shadow-sm overflow-hidden">
                                                 <div className="px-5 py-3 border-b border-black/5 dark:border-white/10">
-                                                    <h4 className="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Poänghistorik</h4>
+                                                    <h4 className="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">{t('profile_points_history')}</h4>
                                                 </div>
                                                 <div className="divide-y divide-black/5 dark:divide-white/5">
                                                     {allTransactions.map((tx: PointTransaction) => (
@@ -743,8 +745,8 @@ export default function ProfilePage() {
 
                                 {/* Per-Provider Point Balances */}
                                 <div className="space-y-4">
-                                    <h3 className="text-sm font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Poäng per utförare</h3>
-                                    <p className="text-xs text-black/40 dark:text-white/40 -mt-2">Dina poäng kan enbart lösas in hos den utförare där de tjänats</p>
+                                    <h3 className="text-sm font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">{t('profile_points_per_provider')}</h3>
+                                    <p className="text-xs text-black/40 dark:text-white/40 -mt-2">{t('profile_points_provider_note')}</p>
                                     {providersWithPoints.length > 0 ? providersWithPoints.map((balance: ProviderPointBalance) => {
                                         const providerRewards = getAvailableRewardsAtProvider(loyalty, balance.providerId);
                                         return (
@@ -759,7 +761,7 @@ export default function ProfilePage() {
                                                         </div>
                                                         <div>
                                                             <h4 className="font-bold text-black dark:text-white text-sm">{balance.providerName}</h4>
-                                                            <p className="text-[10px] text-black/30 dark:text-white/30">{balance.currentPoints} poäng tillgängliga · {providerRewards.length} rewards</p>
+                                                            <p className="text-[10px] text-black/30 dark:text-white/30">{balance.currentPoints} {t('profile_points_unit')} {t('profile_available_suffix')} · {providerRewards.length} {t('profile_tab_rewards')}</p>
                                                         </div>
                                                     </div>
                                                     <span className="text-lg font-heading font-bold text-champagne-600">{balance.currentPoints}p</span>
@@ -772,7 +774,7 @@ export default function ProfilePage() {
                                                             <div className="px-6 py-3 flex items-center justify-between">
                                                                 <span className="text-xs font-bold text-black dark:text-white">{tier.label}</span>
                                                                 {canAfford && (
-                                                                    <span className="text-[10px] px-2 py-0.5 bg-green-500/10 text-green-500 rounded-full font-bold">Tillgänglig</span>
+                                                                    <span className="text-[10px] px-2 py-0.5 bg-green-500/10 text-green-500 rounded-full font-bold">{t('profile_reward_available')}</span>
                                                                 )}
                                                             </div>
                                                             <div className="px-4 pb-3 grid grid-cols-3 gap-2">
@@ -806,7 +808,7 @@ export default function ProfilePage() {
                                     }) : (
                                         <div className="bg-white dark:bg-[#141414] rounded-2xl p-8 border border-dashed border-black/10 dark:border-white/10 text-center">
                                             <Gift size={32} className="text-black/10 dark:text-white/10 mx-auto mb-3" />
-                                            <p className="text-black/30 dark:text-white/30 text-sm">Du har inga poäng hos någon utförare ännu</p>
+                                            <p className="text-black/30 dark:text-white/30 text-sm">{t('profile_no_points_yet')}</p>
                                             <Link href="/explore" className="inline-flex items-center gap-1 text-champagne-600 text-sm font-bold mt-2 hover:underline">
                                                 Boka en behandling <ArrowRight size={12} />
                                             </Link>
@@ -816,14 +818,14 @@ export default function ProfilePage() {
 
                                 {/* Rules */}
                                 <div className="bg-white dark:bg-[#141414] rounded-2xl p-6 border border-black/5 dark:border-white/10 shadow-sm">
-                                    <h4 className="text-xs font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-4">Så fungerar poäng</h4>
+                                    <h4 className="text-xs font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-4">{t('profile_how_points_work')}</h4>
                                     <div className="space-y-3 text-xs text-black/50 dark:text-white/50">
-                                        <p><strong>10 kr = 5 poäng</strong> – tjänas automatiskt efter genomförd bokning</p>
-                                        <p>✦ Poäng registreras när bokning är genomförd och betald</p>
-                                        <p>✦ <strong>Poäng gäller enbart hos den utförare där de tjänats</strong></p>
-                                        <p>✦ Ingen poäng vid avbokning, no-show eller refund</p>
-                                        <p>✦ Poäng kan inte köpas, överföras eller delas</p>
-                                        <p>✦ Redan intjänade poäng kan alltid användas hos rätt utförare</p>
+                                        <p>{t('profile_rule_1')}</p>
+                                        <p>✦ {t('profile_rule_2')}</p>
+                                        <p>✦ <strong>{t('profile_rule_3')}</strong></p>
+                                        <p>✦ {t('profile_rule_4')}</p>
+                                        <p>✦ {t('profile_rule_5')}</p>
+                                        <p>✦ {t('profile_rule_6')}</p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -835,36 +837,36 @@ export default function ProfilePage() {
                                 {/* Personal Info */}
                                 <div className="bg-white dark:bg-[#141414] rounded-2xl border border-black/5 dark:border-white/10 shadow-sm overflow-hidden">
                                     <div className="px-6 py-4 border-b border-black/5 dark:border-white/10">
-                                        <h3 className="font-bold text-black dark:text-white flex items-center gap-2"><User size={16} /> Personuppgifter</h3>
-                                        <p className="text-black/30 dark:text-white/30 text-xs mt-1">Denna information syns inte för utförare</p>
+                                        <h3 className="font-bold text-black dark:text-white flex items-center gap-2"><User size={16} /> {t('profile_personal_info')}</h3>
+                                        <p className="text-black/30 dark:text-white/30 text-xs mt-1">{t('profile_info_hidden')}</p>
                                     </div>
                                     <div className="p-6 space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">Förnamn *</label>
+                                                <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">{t('profile_first_name')} *</label>
                                                 <input value={profile.firstName} onChange={e => setProfile(p => ({ ...p, firstName: e.target.value }))} className={inputClass} />
                                             </div>
                                             <div>
-                                                <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">Efternamn *</label>
+                                                <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">{t('profile_last_name')} *</label>
                                                 <input value={profile.lastName} onChange={e => setProfile(p => ({ ...p, lastName: e.target.value }))} className={inputClass} />
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">E-post *</label>
+                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">{t('profile_email')} *</label>
                                             <div className="flex items-center gap-2">
                                                 <Mail size={16} className="text-black/20 dark:text-white/20" />
                                                 <input type="email" value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} className={inputClass} />
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">Telefonnummer *</label>
+                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">{t('profile_phone')} *</label>
                                             <div className="flex items-center gap-2">
                                                 <Phone size={16} className="text-black/20 dark:text-white/20" />
                                                 <input type="tel" value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} className={inputClass} />
                                             </div>
                                         </div>
                                         <button onClick={() => saveProfile(profile)} className="w-full bg-black dark:bg-champagne-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-champagne-600 transition-all shadow-md">
-                                            Spara ändringar
+                                            {t('profile_save_changes')}
                                         </button>
                                     </div>
                                 </div>
@@ -873,7 +875,7 @@ export default function ProfilePage() {
                                 <div className="bg-white dark:bg-[#141414] rounded-2xl border border-black/5 dark:border-white/10 shadow-sm overflow-hidden">
                                     <div className="px-6 py-4 border-b border-black/5 dark:border-white/10">
                                         <h3 className="font-bold text-black dark:text-white flex items-center gap-2"><CreditCard size={16} /> Betaluppgifter</h3>
-                                        <p className="text-black/30 dark:text-white/30 text-xs mt-1">Smidiga och säkra betalningar</p>
+                                        <p className="text-black/30 dark:text-white/30 text-xs mt-1">{t('profile_saved_card')}</p>
                                     </div>
                                     <div className="p-6 space-y-4">
                                         {profile.bankDetails ? (
@@ -897,14 +899,14 @@ export default function ProfilePage() {
                                         ) : (
                                             <div className="border-2 border-dashed border-black/10 dark:border-white/10 rounded-2xl p-8 text-center">
                                                 <CreditCard size={32} className="text-black/10 dark:text-white/10 mx-auto mb-3" />
-                                                <p className="text-black/30 dark:text-white/30 text-sm">Inget kort tillagt än</p>
+                                                <p className="text-black/30 dark:text-white/30 text-sm">{t('profile_no_card')}</p>
                                             </div>
                                         )}
                                         <button
                                             onClick={() => profile.bankDetails ? handleRemoveCard() : setShowCardModal(true)}
                                             className="w-full bg-[#F5F3EE] dark:bg-white/5 text-black dark:text-white py-3 rounded-xl font-bold text-sm border border-black/10 dark:border-white/10 hover:border-champagne-500 transition-all"
                                         >
-                                            {profile.bankDetails ? 'Ta bort kort' : 'Lägg till kort'}
+                                            {profile.bankDetails ? t('profile_remove_card') : t('profile_add_card')}
                                         </button>
                                     </div>
                                 </div>
@@ -912,11 +914,11 @@ export default function ProfilePage() {
                                 {/* Password */}
                                 <div className="bg-white dark:bg-[#141414] rounded-2xl border border-black/5 dark:border-white/10 shadow-sm overflow-hidden">
                                     <div className="px-6 py-4 border-b border-black/5 dark:border-white/10">
-                                        <h3 className="font-bold text-black dark:text-white flex items-center gap-2"><Lock size={16} /> Byt lösenord</h3>
+                                        <h3 className="font-bold text-black dark:text-white flex items-center gap-2"><Lock size={16} /> {t('profile_change_pwd')}</h3>
                                     </div>
                                     <div className="p-6 space-y-4">
                                         <div>
-                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">Nuvarande lösenord</label>
+                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">{t('profile_current_pwd')}</label>
                                             <div className="relative">
                                                 <input type={showPassword ? 'text' : 'password'} value={passwordData.current} onChange={e => setPasswordData(p => ({ ...p, current: e.target.value }))} placeholder="••••••••" className={inputClass} />
                                                 <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-black/20 dark:text-white/20 hover:text-black dark:hover:text-white transition-colors">
@@ -925,15 +927,15 @@ export default function ProfilePage() {
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">Nytt lösenord</label>
-                                            <input type="password" value={passwordData.newPass} onChange={e => setPasswordData(p => ({ ...p, newPass: e.target.value }))} placeholder="Minst 6 tecken" className={inputClass} />
+                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">{t('profile_new_pwd')}</label>
+                                            <input type="password" value={passwordData.newPass} onChange={e => setPasswordData(p => ({ ...p, newPass: e.target.value }))} placeholder={t('profile_pwd_min_len')} className={inputClass} />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">Bekräfta nytt lösenord</label>
-                                            <input type="password" value={passwordData.confirm} onChange={e => setPasswordData(p => ({ ...p, confirm: e.target.value }))} placeholder="Upprepa lösenordet" className={inputClass} />
+                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest mb-1.5 block">{t('profile_confirm_pwd')}</label>
+                                            <input type="password" value={passwordData.confirm} onChange={e => setPasswordData(p => ({ ...p, confirm: e.target.value }))} placeholder={t('profile_pwd_repeat')} className={inputClass} />
                                         </div>
                                         <button onClick={handlePasswordChange} className="w-full bg-black dark:bg-champagne-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-champagne-600 transition-all shadow-md">
-                                            Uppdatera lösenord
+                                            {t('profile_update_pwd')}
                                         </button>
                                     </div>
                                 </div>
@@ -942,7 +944,7 @@ export default function ProfilePage() {
                                     onClick={handleLogout}
                                     className="w-full flex items-center justify-center gap-2 py-3 text-red-400 hover:text-red-500 text-sm font-bold transition-colors"
                                 >
-                                    <LogOut size={16} /> Logga ut
+                                    <LogOut size={16} /> {t('profile_logout')}
                                 </button>
                             </motion.div>
                         )}
@@ -976,25 +978,25 @@ export default function ProfilePage() {
                             </div>
                             <div className="p-6 space-y-4">
                                 <div className="flex items-center justify-between p-4 bg-champagne-500/5 rounded-xl border border-champagne-500/10">
-                                    <span className="text-sm text-black dark:text-white">Kostnad</span>
-                                    <span className="font-bold text-champagne-600">{selectedReward.tier.pointsCost} poäng</span>
+                                    <span className="text-sm text-black dark:text-white">{t('profile_redeem_cost')}</span>
+                                    <span className="font-bold text-champagne-600">{selectedReward.tier.pointsCost} {t('profile_points_unit')}</span>
                                 </div>
                                 <div className="flex items-center justify-between p-4 bg-black/5 dark:bg-white/5 rounded-xl">
-                                    <span className="text-sm text-black dark:text-white">Ditt saldo efter</span>
-                                    <span className="font-bold text-black dark:text-white">{totalCurrentPoints - selectedReward.tier.pointsCost} poäng</span>
+                                    <span className="text-sm text-black dark:text-white">{t('profile_balance_after')}</span>
+                                    <span className="font-bold text-black dark:text-white">{totalCurrentPoints - selectedReward.tier.pointsCost} {t('profile_points_unit')}</span>
                                 </div>
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => setShowRewardModal(false)}
                                         className="flex-1 py-3 rounded-xl border border-black/10 dark:border-white/10 text-sm font-bold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all"
                                     >
-                                        Avbryt
+                                        {t('profile_cancel_modal_btn')}
                                     </button>
                                     <button
                                         onClick={() => handleRedeemReward(selectedReward.tier, selectedReward.option, (selectedReward as any).providerId)}
                                         className="flex-1 py-3 rounded-xl bg-black dark:bg-champagne-600 text-white text-sm font-bold hover:bg-champagne-600 transition-all shadow-md"
                                     >
-                                        Lös in
+                                        {t('profile_redeem_modal_btn')}
                                     </button>
                                 </div>
                             </div>
@@ -1022,8 +1024,8 @@ export default function ProfilePage() {
                         >
                             <div className="bg-gradient-to-br from-[#111] to-[#1a1a1a] p-6 text-center">
                                 <CreditCard size={32} className="text-champagne-400 mx-auto mb-2" />
-                                <h3 className="text-lg font-heading font-bold text-white">Lägg till betalkort</h3>
-                                <p className="text-white/40 text-xs mt-1">Dina uppgifter lagras säkert och krypterat</p>
+                                <h3 className="text-lg font-heading font-bold text-white">{t('profile_add_card_title')}</h3>
+                                <p className="text-white/40 text-xs mt-1">{t('profile_info_hidden')}</p>
                             </div>
                             <div className="p-6 space-y-4">
                                 <div>
@@ -1051,7 +1053,7 @@ export default function ProfilePage() {
                                                 if (val.length > 2) val = val.slice(0, 2) + '/' + val.slice(2);
                                                 setCardForm(f => ({ ...f, expiry: val }));
                                             }}
-                                            placeholder="MM/ÅÅ"
+                                            placeholder="MM/YY"
                                             className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-champagne-500 outline-none transition-all text-sm font-mono text-foreground placeholder:text-foreground/20"
                                         />
                                     </div>
@@ -1072,7 +1074,7 @@ export default function ProfilePage() {
                                         type="text"
                                         value={cardForm.name}
                                         onChange={e => setCardForm(f => ({ ...f, name: e.target.value }))}
-                                        placeholder="Namn på kortet"
+                                        placeholder={t('profile_card_name')}
                                         className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-champagne-500 outline-none transition-all text-sm font-medium text-foreground placeholder:text-foreground/20"
                                     />
                                 </div>
@@ -1091,7 +1093,7 @@ export default function ProfilePage() {
                                     </button>
                                 </div>
                                 <p className="text-[10px] text-black/20 dark:text-white/20 text-center flex items-center justify-center gap-1">
-                                    <Shield size={10} /> SSL-krypterad anslutning
+                                    <Shield size={10} /> {t('profile_ssl_encrypted')}
                                 </p>
                             </div>
                         </motion.div>
@@ -1120,22 +1122,22 @@ export default function ProfilePage() {
                                 <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full mx-auto flex items-center justify-center">
                                     <AlertCircle size={32} />
                                 </div>
-                                <h3 className="text-lg font-heading font-bold text-black dark:text-white">Avboka behandling?</h3>
+                                <h3 className="text-lg font-heading font-bold text-black dark:text-white">{t('profile_cancel_title')}</h3>
                                 <p className="text-black/40 dark:text-white/40 text-sm">
-                                    Är du säker på att du vill avboka denna tid? Du kan alltid boka en ny tid efteråt.
+                                    {t('profile_cancel_desc')}
                                 </p>
                                 <div className="flex gap-3 pt-2">
                                     <button
                                         onClick={() => setCancellingBooking(null)}
                                         className="flex-1 py-3 rounded-xl border border-black/10 dark:border-white/10 text-sm font-bold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all"
                                     >
-                                        Behåll
+                                        {t('profile_keep_btn')}
                                     </button>
                                     <button
                                         onClick={() => handleCancelBooking(cancellingBooking)}
                                         className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-all shadow-md"
                                     >
-                                        Avboka
+                                        {t('profile_confirm_cancel_btn')}
                                     </button>
                                 </div>
                             </div>

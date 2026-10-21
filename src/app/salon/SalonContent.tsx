@@ -1535,8 +1535,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                 ) : (
                                     <div className="max-w-4xl mx-auto py-8 space-y-10">
                                         <div className="text-center space-y-4">
-                                            <h2 className="text-3xl font-heading font-bold text-foreground">Dina uppgifter</h2>
-                                            <p className="text-foreground/40 text-sm">Fyll i dina uppgifter för att slutföra bokningen hos {salon.name}.</p>
+                                            <h2 className="text-3xl font-heading font-bold text-foreground">{t('booking_your_info')}</h2>
+                                            <p className="text-foreground/40 text-sm">{t('booking_fill_info_desc')}</p>
                                         </div>
 
                                         {/* Elegant Provider Warning Banner */}
@@ -1544,7 +1544,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                             <div className="max-w-2xl mx-auto bg-amber-500/5 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-3xl p-5 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
                                                 <span className="text-xl">⚠️</span>
                                                 <div className="space-y-1 text-left">
-                                                    <h4 className="text-sm font-bold">Du är inloggad som salong/utförare</h4>
+                                                    <h4 className="text-sm font-bold">{t('booking_provider_warning_title')}</h4>
                                                     <p className="text-xs opacity-90 leading-relaxed">
                                                         Salongskonton kan inte boka tider hos andra salonger. För att testa bokningsflödet hela vägen, vänligen <strong>logga ut</strong> från din salongspanel först eller öppna den här sidan i ett <strong>inkognitofönster</strong>.
                                                     </p>
@@ -1556,8 +1556,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         {!isCustomerLoggedIn && (
                                             <div className="max-w-2xl mx-auto bg-champagne-500/5 border border-champagne-500/15 rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
                                                 <div className="space-y-1">
-                                                    <h4 className="text-sm font-bold text-foreground">Redan kund hos oss eller vill tjäna poäng?</h4>
-                                                    <p className="text-xs text-foreground/50 leading-relaxed">Logga in på ditt konto för att spara dina uppgifter och samla lojalitetspoäng.</p>
+                                                    <h4 className="text-sm font-bold text-foreground">{t('booking_customer_login_prompt')}</h4>
+                                                    <p className="text-xs text-foreground/50 leading-relaxed">{t('booking_customer_login_sub')}</p>
                                                 </div>
                                                 <Link
                                                     href="/auth/login"
@@ -1573,7 +1573,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                 <div className="lg:col-span-3 space-y-6">
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-2">
-                                                            <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">Förnamn</label>
+                                                            <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">{t('booking_first_name')}</label>
                                                             <input
                                                                 type="text"
                                                                 placeholder="Erik"
@@ -1586,7 +1586,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             />
                                                         </div>
                                                         <div className="space-y-2">
-                                                            <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">Efternamn</label>
+                                                            <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">{t('booking_last_name')}</label>
                                                             <input
                                                                 type="text"
                                                                 placeholder="Andersson"
@@ -1600,7 +1600,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                         </div>
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">E-post</label>
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">{t('booking_email')}</label>
                                                         <input
                                                             type="email"
                                                             placeholder="erik.a@example.com"
@@ -1613,7 +1613,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">Mobilnummer</label>
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">{t('booking_phone')}</label>
                                                         <input
                                                             type="tel"
                                                             placeholder="070-000 00 00"
@@ -1627,7 +1627,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                     </div>
 
                                                     <div className="space-y-4 pt-4">
-                                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">Betalsätt</h4>
+                                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">{t('booking_payment_method')}</h4>
                                                         <div className="grid grid-cols-1 gap-3">
                                                             <div
                                                                 onClick={() => setSelectedPaymentMethod('onsite')}
@@ -1662,16 +1662,16 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                     </div>
                                                                     <div className="flex-1">
                                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                                            <h5 className="font-bold text-sm">Betala med Stripe</h5>
+                                                                            <h5 className="font-bold text-sm">{t('booking_pay_stripe')}</h5>
                                                                             <span className="inline-flex items-center gap-1 text-[8px] bg-[#FFB3C7] text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                                                                                 <svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" className="inline-block">
                                                                                     <path d="M21.5 17a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM4.592 2v20H0V2h4.592zm11.46 0c0 4.194-1.583 8.105-4.415 11.068l-.278.283L17.702 22h-5.668l-6.893-9.4 1.779-1.332c2.858-2.14 4.535-5.378 4.637-8.924L11.562 2h4.49z" />
                                                                                 </svg>
                                                                                 Klarna
                                                                             </span>
-                                                                            <span className="text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black uppercase tracking-widest">Säker betalning</span>
+                                                                            <span className="text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black uppercase tracking-widest">{t('booking_secure_payment')}</span>
                                                                         </div>
-                                                                        <p className="text-[10px] text-foreground/40 font-medium">Betala direkt med kort, eller i din egen takt med Klarna.</p>
+                                                                        <p className="text-[10px] text-foreground/40 font-medium">{t('booking_pay_stripe_desc')}</p>
                                                                     </div>
                                                                 </div>
                                                             )}
@@ -1696,7 +1696,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
                                                             {selectedPaymentMethod === 'giftcard' && (
                                                                 <div className="p-4 rounded-2xl border border-champagne-500/20 bg-champagne-500/5 space-y-3">
-                                                                    <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30">Ange presentkortskod</label>
+                                                                    <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30">{t('booking_enter_giftcard_code')}</label>
                                                                     <div className="flex gap-2">
                                                                         <input
                                                                             type="text"
@@ -1776,10 +1776,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             <div className="space-y-4 pt-6 border-t border-border mt-6">
                                                                 <div className="flex items-center justify-between">
                                                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-                                                                        <Coins size={14} /> Betala med Glowpoints
+                                                                        <Coins size={14} /> {t('booking_pay_glowpoints')}
                                                                     </h4>
                                                                     {isCustomerLoggedIn && (
-                                                                        <span className="text-[10px] font-bold text-foreground/50">{availableGlowpoints} poäng tillgängliga</span>
+                                                                        <span className="text-[10px] font-bold text-foreground/50">{availableGlowpoints} {t('booking_points_available')}</span>
                                                                     )}
                                                                 </div>
 
@@ -1812,7 +1812,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                                                 <h5 className="font-bold text-xs text-foreground">{tier.discountAmount} kr rabatt</h5>
                                                                                                 <span className="text-[9px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">{tier.pointsCost}p</span>
                                                                                             </div>
-                                                                                            <p className="text-[10px] text-foreground/40">Dras av direkt från totalsumman</p>
+                                                                                            <p className="text-[10px] text-foreground/40">{t('booking_deducted_total')}</p>
                                                                                         </div>
                                                                                         <div className={clsx(
                                                                                             "w-5 h-5 rounded-full border flex items-center justify-center text-xs transition-all",
@@ -1857,11 +1857,11 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                 {/* Summary Sidebar */}
                                                 <div className="lg:col-span-2 space-y-6">
                                                     <div className="bg-foreground/[0.03] rounded-3xl p-6 border border-border sticky top-4 space-y-4">
-                                                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground/30 border-b border-border pb-4">Sammanfattning</h3>
+                                                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground/30 border-b border-border pb-4">{t('booking_summary')}</h3>
 
                                                         <div className="space-y-4">
                                                             <div>
-                                                                <p className="text-[10px] font-bold text-foreground/30 uppercase">Tjänst</p>
+                                                                <p className="text-[10px] font-bold text-foreground/30 uppercase">{t('booking_service')}</p>
                                                                 <p className="text-sm font-bold">{selectedService?.name}</p>
                                                             </div>
                                                             <div className="flex justify-between items-center text-xs">
@@ -1924,16 +1924,16 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             )}
                                                         >
                                                             {isBooking
-                                                                ? 'Bokar din tid...'
+                                                                ? t('booking_btn_booking')
                                                                 : !isFormValid
-                                                                    ? 'Fyll i dina uppgifter'
+                                                                    ? t('booking_btn_fill_info')
                                                                     : selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid
-                                                                        ? 'Validera presentkort först'
+                                                                        ? t('booking_btn_validate_gc')
                                                                         : `✓ ${t('salon_book_now')}`}
                                                         </button>
                                                         {!isFormValid && (
                                                             <p className="text-[10px] text-center text-red-500/60 font-medium">
-                                                                Vänligen fyll i alla fält för att boka
+                                                                {t('booking_validation_error')}
                                                             </p>
                                                         )}
 
@@ -1944,7 +1944,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                     onClick={() => setBookingType('none')}
                                                                     className="text-[10px] font-bold text-foreground/40 hover:text-champagne-600 transition-colors underline"
                                                                 >
-                                                                    Logga in istället
+                                                                    {t('booking_login_instead')}
                                                                 </button>
                                                             </div>
                                                         )}
@@ -1953,7 +1953,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                             </div>
 
                                         <p className="text-center text-[10px] text-foreground/20 max-w-sm mx-auto">
-                                            Genom att boka godkänner du våra användarvillkor. Vi sparar dina uppgifter för att kunna hantera din bokning.
+                                            {t('booking_terms_note')}
                                         </p>
                                     </div>
                                 )}

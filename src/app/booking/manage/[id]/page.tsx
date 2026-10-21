@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import Header from "@/components/layout/Header";
+import { useLanguage } from "@/context/LanguageContext";
 import { Clock, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, ArrowLeft, RefreshCw, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -9,8 +10,9 @@ import { useSearchParams } from "next/navigation";
 
 export default function ManageBookingPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: appointmentId } = use(params);
+    const { t, language } = useLanguage();
     const searchParams = useSearchParams();
-    const successMessage = searchParams.get('success') === 'rescheduled' ? 'Din tid har ombokats! Ett nytt bekräftelsemail har skickats.' : null;
+    const successMessage = searchParams.get('success') === 'rescheduled' ? t('manage_rescheduled_msg') : null;
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -126,7 +128,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                 {/* Back Button */}
                 <Link href="/explore" className="inline-flex items-center gap-2 text-foreground/60 hover:text-foreground text-sm font-bold transition-colors">
                     <ArrowLeft size={16} />
-                    Tillbaka till utforska
+                    {t('manage_back_explore')}
                 </Link>
 
                 {/* Success Banner */}
@@ -140,7 +142,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                         >
                             <CheckCircle2 className="flex-shrink-0 mt-0.5" />
                             <div>
-                                <h4 className="font-bold text-lg">Klart!</h4>
+                                <h4 className="font-bold text-lg">{t('manage_done_title')}</h4>
                                 <p className="text-sm mt-1">{successMessage}</p>
                             </div>
                         </motion.div>
@@ -153,35 +155,35 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                     <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-3xl text-xs font-black uppercase tracking-wider ${
                         isCancelled ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'
                     }`}>
-                        {isCancelled ? 'Avbokad' : 'Bekräftad'}
+                        {isCancelled ? t('manage_cancelled_badge') : t('manage_confirmed_badge')}
                     </div>
 
                     <div className="space-y-4">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-champagne-600">Bokningshantering</span>
-                        <h1 className="text-3xl md:text-4xl font-heading font-black text-foreground">Din bokning hos {appointment.salon?.name}</h1>
-                        <p className="text-foreground/50 text-sm">Här kan du hålla koll på, omboka eller avboka din behandling säkert.</p>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-champagne-600">{t('manage_page_tag')}</span>
+                        <h1 className="text-3xl md:text-4xl font-heading font-black text-foreground">{t('manage_booking_at')} {appointment.salon?.name}</h1>
+                        <p className="text-foreground/50 text-sm">{t('manage_booking_desc')}</p>
                     </div>
 
                     {/* Booking Details Card */}
                     <div className="p-6 md:p-8 bg-card-deep rounded-3xl border border-border/80 grid grid-cols-1 md:grid-cols-2 gap-6 relative">
                         <div className="space-y-4">
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">Behandling</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">{t('manage_service')}</span>
                                 <span className="text-lg font-bold text-foreground">{appointment.service_name}</span>
                             </div>
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">Pris</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">{t('manage_price')}</span>
                                 <span className="text-lg font-bold text-foreground highlight">{appointment.total_price} SEK</span>
                             </div>
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">Salong</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">{t('manage_salon')}</span>
                                 <span className="text-lg font-bold text-foreground">{appointment.salon?.name}</span>
                             </div>
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">Datum & Tid</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">{t('manage_datetime')}</span>
                                 <div className="flex items-center gap-2 mt-1">
                                     <CalendarIcon size={18} className="text-champagne-500" />
                                     <span className="font-bold text-foreground capitalize">{formattedDate}</span>
@@ -194,7 +196,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
 
                             {appointment.customer_name && (
                                 <div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">Bokad för</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 block mb-1">{t('manage_booked_for')}</span>
                                     <span className="font-bold text-foreground">{appointment.customer_name}</span>
                                 </div>
                             )}
@@ -226,13 +228,13 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                                 className="flex-1 py-4 bg-champagne-500 hover:bg-champagne-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-champagne-500/15 transition-all text-sm uppercase tracking-wider text-center"
                             >
                                 <RefreshCw size={16} />
-                                Omboka behandling
+                                {t('manage_reschedule_btn')}
                             </Link>
                             <button
                                 onClick={() => setShowCancelConfirm(true)}
                                 className="py-4 px-8 border border-rose-500/30 hover:border-rose-500 bg-rose-500/5 hover:bg-rose-500/10 text-rose-500 font-bold rounded-2xl transition-all text-sm uppercase tracking-wider"
                             >
-                                Avboka tid
+                                {t('manage_cancel_btn')}
                             </button>
                         </div>
                     )}

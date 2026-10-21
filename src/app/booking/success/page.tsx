@@ -3,6 +3,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/layout/Header';
+import { useLanguage } from '@/context/LanguageContext';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Calendar, MapPin, Share2, ArrowRight, Star, Sparkles, Heart } from 'lucide-react';
 import Link from 'next/link';
@@ -12,6 +13,7 @@ import { Suspense } from 'react';
 
 function BookingSuccessContent() {
     const { isLoggedIn } = useAuth();
+    const { t } = useLanguage();
     const searchParams = useSearchParams();
     const salonName = searchParams.get('salon') || 'Salongen';
     const serviceName = searchParams.get('service') || 'Behandling';
@@ -54,10 +56,10 @@ function BookingSuccessContent() {
                     {/* Title */}
                     <div className="space-y-4">
                         <h1 className="text-4xl md:text-5xl font-heading font-black text-foreground tracking-tight">
-                            Bokningen är <span className="text-champagne-600">bekräftad!</span>
+                            {t('success_title_prefix')} <span className="text-champagne-600">{t('success_title_highlight')}</span>
                         </h1>
                         <p className="text-foreground/40 text-lg max-w-md mx-auto leading-relaxed">
-                            Vi har skickat en bekräftelse till din e-post. Du kan nu luta dig tillbaka och se fram emot din glow up hos <span className="text-foreground/80 font-bold">{salonName}</span>.
+                            {t('success_desc')} <span className="text-foreground/80 font-bold">{salonName}</span>.
                         </p>
                     </div>
 
@@ -68,7 +70,7 @@ function BookingSuccessContent() {
                         <div className="p-10 space-y-8">
                             <div className="flex justify-between items-start">
                                 <div className="text-left space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Behandling</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">{t('success_treatment')}</p>
                                     <p className="text-xl font-bold text-foreground">{serviceName}</p>
                                 </div>
                                 <div className="text-right">
@@ -80,14 +82,14 @@ function BookingSuccessContent() {
 
                             <div className="grid grid-cols-2 gap-8 py-8 border-y border-border/50 border-dashed">
                                 <div className="text-left space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Datum & Tid</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">{t('success_datetime')}</p>
                                     <div className="flex items-center gap-2 text-foreground font-bold">
                                         <Calendar size={14} className="text-champagne-500" />
                                         <span>{date} kl {time}</span>
                                     </div>
                                 </div>
                                 <div className="text-left space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Plats</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">{t('success_location')}</p>
                                     <div className="flex items-center gap-2 text-foreground font-bold">
                                         <MapPin size={14} className="text-champagne-500" />
                                         <span>{salonName}</span>
@@ -109,13 +111,13 @@ function BookingSuccessContent() {
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
                         <button className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-foreground text-background rounded-full font-bold text-sm tracking-wide transition-all hover:bg-champagne-600 hover:text-white shadow-xl">
-                            Lägg till i kalender <Calendar size={16} />
+                            {t('success_add_calendar')} <Calendar size={16} />
                         </button>
                         <Link
                             href="/profile"
                             className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-card text-foreground border border-border rounded-full font-bold text-sm tracking-wide transition-all hover:border-foreground/20 shadow-sm"
                         >
-                            Mina bokningar <ArrowRight size={16} />
+                            {t('success_my_bookings')} <ArrowRight size={16} />
                         </Link>
                     </div>
 
@@ -129,12 +131,12 @@ function BookingSuccessContent() {
                                 <div className="flex items-center gap-2 text-champagne-400 font-black text-[10px] uppercase tracking-[0.2em]">
                                     <Star size={12} fill="currentColor" /> Lojalitetsprogram
                                 </div>
-                                <h3 className="text-xl font-bold">Denna bokning gav dig lojalitetspoäng!</h3>
+                                <h3 className="text-xl font-bold">{t('success_loyalty_title')}</h3>
                                 <p className="text-white/40 text-xs leading-relaxed">
-                                    {isLoggedIn ? `Dina poäng är sparade på ditt konto och är giltiga i 24 månader mot rabatter hos ${salonName}.` : `Skapa ett konto för att låsa upp dina poäng och använda dem som rabatt vid nästa besök hos ${salonName}!`}
+                                    {isLoggedIn ? t('success_loyalty_saved') : t('success_loyalty_register')}
                                 </p>
                                 <Link href={isLoggedIn ? "/profile" : "/auth/register"} className="inline-flex items-center gap-2 text-champagne-400 text-xs font-bold hover:gap-3 transition-all pt-2">
-                                    {isLoggedIn ? 'Se dina rewards' : 'Skapa konto & spara poäng'} <ArrowRight size={14} />
+                                    {isLoggedIn ? t('success_see_rewards') : t('success_create_account')} <ArrowRight size={14} />
                                 </Link>
                             </div>
                         </div>
