@@ -1091,8 +1091,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         <Clock size={18} className="text-champagne-500" />
                                         <span className="text-sm md:text-base">
                                             {hoursType === 'fixed' && customHours 
-                                                ? `Öppet · ${customHours}` 
-                                                : 'Öppet enligt tidsbokning'}
+                                                ? `${t('salon_hours_open') || 'Öppet'} · ${customHours}` 
+                                                : (t('salon_open_by_appointment') || 'Öppet enligt tidsbokning')}
                                         </span>
                                     </div>
                                 );
@@ -1546,7 +1546,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                 <div className="space-y-1 text-left">
                                                     <h4 className="text-sm font-bold">{t('booking_provider_warning_title')}</h4>
                                                     <p className="text-xs opacity-90 leading-relaxed">
-                                                        Salongskonton kan inte boka tider hos andra salonger. För att testa bokningsflödet hela vägen, vänligen <strong>logga ut</strong> från din salongspanel först eller öppna den här sidan i ett <strong>inkognitofönster</strong>.
+                                                        {t('booking_provider_warning_desc')}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1689,8 +1689,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                     <Coins size={20} />
                                                                 </div>
                                                                 <div className="flex-1">
-                                                                    <h5 className="font-bold text-sm">Presentkort</h5>
-                                                                    <p className="text-[10px] text-foreground/40 font-medium">Betala med Glowbook-presentkort</p>
+                                                                    <h5 className="font-bold text-sm">{t('booking_giftcard')}</h5>
+                                                                    <p className="text-[10px] text-foreground/40 font-medium">{t('booking_giftcard_desc')}</p>
                                                                 </div>
                                                             </div>
 
@@ -1726,7 +1726,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
                                                                     {giftCardStatus?.valid && finalTotal > 0 && (
                                                                         <div className="mt-4 pt-4 border-t border-champagne-500/10 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40">Välj betalsätt för resterande {finalTotal} {salon.currency || 'kr'}</p>
+                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40">{t('booking_payment_method')}: {finalTotal} {salon.currency || 'kr'}</p>
                                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                                                 <div
                                                                                     onClick={() => setGiftCardSecondaryMethod('onsite')}
@@ -1739,7 +1739,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                                 >
                                                                                     <Wallet size={16} />
                                                                                     <div className="text-left">
-                                                                                        <h6 className="font-bold text-xs">Betala på plats</h6>
+                                                                                        <h6 className="font-bold text-xs">{t('booking_pay_onsite')}</h6>
                                                                                     </div>
                                                                                 </div>
                                                                                 {salon.stripe_account_id && (
@@ -1754,7 +1754,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                                     >
                                                                                         <CreditCard size={16} />
                                                                                         <div className="text-left flex items-center gap-2 flex-wrap">
-                                                                                            <h6 className="font-bold text-xs">Betala med Stripe</h6>
+                                                                                            <h6 className="font-bold text-xs">{t('booking_pay_stripe')}</h6>
                                                                                             <span className="inline-flex items-center gap-1 text-[8px] bg-[#FFB3C7] text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-wider scale-90 origin-left">
                                                                                                 <svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" className="inline-block">
                                                                                                     <path d="M21.5 17a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM4.592 2v20H0V2h4.592zm11.46 0c0 4.194-1.583 8.105-4.415 11.068l-.278.283L17.702 22h-5.668l-6.893-9.4 1.779-1.332c2.858-2.14 4.535-5.378 4.637-8.924L11.562 2h4.49z" />
@@ -1809,7 +1809,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                                     >
                                                                                         <div className="space-y-0.5">
                                                                                             <div className="flex items-center gap-2">
-                                                                                                <h5 className="font-bold text-xs text-foreground">{tier.discountAmount} kr rabatt</h5>
+                                                                                                <h5 className="font-bold text-xs text-foreground">{tier.discountAmount} {salon.currency || 'kr'} {t('booking_discount_label')}</h5>
                                                                                                 <span className="text-[9px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">{tier.pointsCost}p</span>
                                                                                             </div>
                                                                                             <p className="text-[10px] text-foreground/40">{t('booking_deducted_total')}</p>
@@ -1828,14 +1828,13 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                         </div>
                                                                     ) : (
                                                                         <div className="p-4 bg-emerald-500/[0.04] border border-emerald-500/20 rounded-2xl text-xs text-foreground/60 leading-relaxed">
-                                                                            Du har <strong>{availableGlowpoints} poäng</strong> hos {salon.name}. 
-                                                                            När du når <strong>{salonRewards[0]?.pointsCost || 200} poäng</strong> låser du upp <strong>{salonRewards[0]?.discountAmount || 50} kr rabatt</strong>!
+                                                                            {t('booking_glowpoints_have')} <strong>{availableGlowpoints} {t('points_label') || 'poäng'}</strong> {t('booking_glowpoints_points_at')} {salon.name}. {t('booking_glowpoints_reach')} <strong>{salonRewards[0]?.pointsCost || 200} {t('points_label') || 'poäng'}</strong> {t('booking_glowpoints_unlock')} <strong>{salonRewards[0]?.discountAmount || 50} {salon.currency || 'kr'} {t('booking_discount_label')}</strong>!
                                                                         </div>
                                                                     )
                                                                 ) : (
                                                                     <div className="p-4 bg-foreground/[0.03] border border-border rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                                                         <p className="text-xs text-foreground/60 leading-relaxed">
-                                                                            Har du Glowpoints hos {salon.name}? Logga in för att lösa in dina poäng och få rabatt.
+                                                                            {t('booking_glowpoints_login_req')}
                                                                         </p>
                                                                         <button
                                                                             type="button"
@@ -1845,7 +1844,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                             }}
                                                                             className="px-4 py-2 bg-foreground text-background text-xs font-bold rounded-xl whitespace-nowrap hover:bg-[#C2A26A] transition-all"
                                                                         >
-                                                                            Logga in
+                                                                            {t('nav_login') || 'Logga in'}
                                                                         </button>
                                                                     </div>
                                                                 )}
@@ -1894,20 +1893,20 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
                                                         {useGlowpoints && selectedReward && (
                                                             <div className="pt-4 border-t border-border/50 flex justify-between items-center text-xs text-emerald-600 font-bold">
-                                                                <span>Glowpoints rabatt ({selectedReward.pointsCost}p)</span>
+                                                                <span>{t('booking_glowpoints_discount')} ({selectedReward.pointsCost}p)</span>
                                                                 <span>-{Number(selectedReward.discountAmount) || 50} {salon.currency || 'kr'}</span>
                                                             </div>
                                                         )}
 
                                                         {giftCardDiscount > 0 && (
                                                             <div className="pt-4 border-t border-border/50 flex justify-between items-center text-xs text-green-600 font-bold">
-                                                                <span>Presentkort ({giftCardCode})</span>
+                                                                <span>{t('booking_giftcard')} ({giftCardCode})</span>
                                                                 <span>-{giftCardDiscount} {salon.currency || 'kr'}</span>
                                                             </div>
                                                         )}
 
                                                         <div className="pt-4 border-t border-border flex justify-between items-end">
-                                                            <span className="text-[10px] font-bold text-foreground/30 uppercase">Totalt</span>
+                                                            <span className="text-[10px] font-bold text-foreground/30 uppercase">{t('booking_total_to_pay')}</span>
                                                             <span className="text-xl font-bold">
                                                                 {finalTotal} {salon.currency || 'kr'}
                                                             </span>
@@ -2014,11 +2013,11 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                      (successAppointment.payment_method === 'stripe' || successAppointment.payment_method === 'paid') ? 'Betald online (Kort/Klarna)' :
                                                      successAppointment.payment_method === 'klarna' ? 'Betald online (Klarna)' :
                                                      successAppointment.payment_method === 'card' ? 'Betald online (Kort)' :
-                                                     successAppointment.payment_method === 'giftcard' ? 'Presentkort' :
+                                                     successAppointment.payment_method === 'giftcard' ? t('booking_giftcard') :
                                                      'Betalas på plats'
                                                  ) : (
                                                      selectedPaymentMethod === 'stripe' ? 'Betald online (Kort/Klarna)' :
-                                                     selectedPaymentMethod === 'giftcard' ? 'Presentkort' :
+                                                     selectedPaymentMethod === 'giftcard' ? t('booking_giftcard') :
                                                      'Betalas på plats'
                                                  )}
                                             </span>
@@ -2040,7 +2039,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         }}
                                         className="w-full max-w-md py-5 bg-foreground text-background rounded-2xl font-bold hover:scale-[1.02] transition-transform"
                                     >
-                                        Stäng fönstret
+                                        {t('booking_close')}
                                     </button>
                                 </div>
                             )}
@@ -2111,7 +2110,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                 <span className="font-bold text-foreground">{reviewInfo.customer_name} (Verifierad)</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-foreground/40">Behandling:</span>
+                                                <span className="text-foreground/40">{t('success_treatment') || 'Behandling'}:</span>
                                                 <span className="font-bold text-foreground">{reviewInfo.service_name}</span>
                                             </div>
                                         </div>
