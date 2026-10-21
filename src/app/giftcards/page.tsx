@@ -8,7 +8,11 @@ import clsx from 'clsx';
 import { useLanguage } from '@/context/LanguageContext';
 import Link from 'next/link';
 
-const VALUES = [500, 1000, 2000, 3000];
+const getValuesForCurrency = (curr: string) => {
+    if (curr === 'EUR') return [50, 100, 150, 250];
+    if (curr === 'ISK') return [5000, 10000, 20000, 30000];
+    return [500, 1000, 2000, 3000];
+};
 
 export type GiftCard = {
     id: string;
@@ -28,7 +32,15 @@ export type GiftCard = {
 
 export default function GiftCardsPage() {
     const { t, currency } = useLanguage();
-    const [selectedValue, setSelectedValue] = useState<number>(1000);
+    const values = getValuesForCurrency(currency);
+    const [selectedValue, setSelectedValue] = useState<number>(() => getValuesForCurrency(currency)[1]);
+
+    useEffect(() => {
+        const currentValues = getValuesForCurrency(currency);
+        if (!currentValues.includes(selectedValue)) {
+            setSelectedValue(currentValues[1]);
+        }
+    }, [currency]);
     const [recipient, setRecipient] = useState({ to: '', from: '', email: '', message: '' });
     const [isPurchased, setIsPurchased] = useState(false);
     const [generatedCode, setGeneratedCode] = useState('');
@@ -317,7 +329,7 @@ export default function GiftCardsPage() {
                                 <div className="space-y-4">
                                     <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">{t('giftcard_select_value')}</h3>
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                        {VALUES.map((val) => (
+                                        {values.map((val) => (
                                             <button
                                                 key={val}
                                                 onClick={() => setSelectedValue(val)}

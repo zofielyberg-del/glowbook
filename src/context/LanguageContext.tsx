@@ -3478,9 +3478,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }, [language]);
 
     useEffect(() => {
+        if (language === 'English') {
+            setCurrency('EUR');
+            return;
+        }
         const matchingCountry = NORDIC_COUNTRIES.find(c => c.language === language);
         if (matchingCountry) {
             setCurrency(matchingCountry.currency);
+        } else {
+            setCurrency('EUR');
         }
     }, [language]);
 
