@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import Header from "@/components/layout/Header";
+import { useLanguage } from "@/context/LanguageContext";
 import { ArrowLeft, Clock, CalendarIcon, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Calendar from "@/components/dashboard/Calendar";
@@ -9,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function ReschedulePage({ params }: { params: Promise<{ id: string }> }) {
+    const { t } = useLanguage();
     const { id: appointmentId } = use(params);
     const router = useRouter();
 

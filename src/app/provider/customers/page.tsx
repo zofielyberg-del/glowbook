@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, UserPlus, Mail, Phone, Calendar, MoreVertical, Filter, Users, X, Check, ArrowUpRight, CheckCircle2, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import Header from "@/components/layout/Header";
+import { useLanguage } from "@/context/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Customer = {
@@ -19,6 +20,7 @@ type Customer = {
 };
 
 export default function CustomersPage() {
+    const { t } = useLanguage();
     const [searchTerm, setSearchTerm] = useState('');
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');

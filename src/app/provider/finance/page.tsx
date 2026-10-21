@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { Wallet, CreditCard, Banknote, CheckCircle2, AlertCircle, Filter, BarChart3 } from "lucide-react";
 import Header from "@/components/layout/Header";
+import { useLanguage } from "@/context/LanguageContext";
 import clsx from "clsx";
 
 // Mock Toggle
@@ -15,6 +16,7 @@ const MOCK_TRANSACTIONS = [
 ];
 
 export default function FinancePage() {
+    const { t } = useLanguage();
     const transactions = HAS_FINANCE_DATA ? MOCK_TRANSACTIONS : [];
 
     const handleMarkAsPaid = (id: string) => {
@@ -29,8 +31,8 @@ export default function FinancePage() {
             <Header />
             <main className="max-w-7xl mx-auto px-6 pt-24 pb-12">
                 <div className="mb-12">
-                    <h1 className="text-3xl font-heading font-bold text-premium-black">Ekonomi</h1>
-                    <p className="text-gray-500">Översikt av dina intäkter och transaktioner.</p>
+                    <h1 className="text-3xl font-heading font-bold text-premium-black">{t('provider_finance_title')}</h1>
+                    <p className="text-gray-500">{t('provider_finance_desc')}</p>
                 </div>
 
                 {/* Summary Cards */}
@@ -42,7 +44,7 @@ export default function FinancePage() {
                             </div>
                         </div>
                         <h3 className="text-4xl font-bold text-premium-black mb-1">{totalRevenue} kr</h3>
-                        <p className="text-sm text-gray-500">Total försäljning</p>
+                        <p className="text-sm text-gray-500">{t('provider_total_sales')}</p>
                     </div>
 
                     <div className="bg-white p-8 rounded-3xl border border-champagne-100 shadow-sm">
@@ -52,12 +54,12 @@ export default function FinancePage() {
                             </div>
                         </div>
                         <h3 className="text-4xl font-bold text-premium-black mb-1">{pendingRevenue} kr</h3>
-                        <p className="text-sm text-gray-500">Bokningar i kö</p>
+                        <p className="text-sm text-gray-500">{t('provider_pending_bookings')}</p>
                     </div>
 
                     <div className="bg-premium-black p-8 rounded-3xl shadow-xl text-white">
                         <h3 className="text-4xl font-bold mb-1">0 kr</h3>
-                        <p className="text-sm text-white/60 mb-6">Nästa utbetalning</p>
+                        <p className="text-sm text-white/60 mb-6">{t('provider_next_payout')}</p>
                         <div className="text-xs font-bold uppercase tracking-widest text-champagne-500">Hanteras av Klarna</div>
                     </div>
                 </div>
@@ -68,7 +70,7 @@ export default function FinancePage() {
                         <div className="w-20 h-20 bg-champagne-50 text-champagne-500 rounded-full flex items-center justify-center mx-auto mb-6">
                             <BarChart3 size={40} />
                         </div>
-                        <h2 className="text-2xl font-bold text-premium-black mb-2">Ingen statistik tillgänglig än</h2>
+                        <h2 className="text-2xl font-bold text-premium-black mb-2">{t('provider_no_stats_yet')}</h2>
                         <p className="text-gray-500 max-w-sm mx-auto mb-8">
                             Här kommer du att se din försäljningsstatistik, intäkter från Klarna och betalningshistorik så snart din första tjänst är genomförd.
                         </p>

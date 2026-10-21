@@ -354,8 +354,8 @@ export const sendCustomerBookingConfirmation = async (
         </div>
         ` : ''}
         
-        ${loyaltyInfo?.salonHasRewards && loyaltyInfo?.pointsEarned > 0 ? (
-            !loyaltyInfo.isRegistered ? `
+        ${!loyaltyInfo?.isRegistered ? (
+            loyaltyInfo?.pointsEarned && loyaltyInfo.pointsEarned > 0 ? `
             <div style="background-color: #161514 !important; background: #161514 !important; border: 1px solid #C2A26A !important; border-radius: 16px !important; padding: 26px 24px !important; margin: 0 0 32px 0 !important; text-align: center !important;">
                 <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 8px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">🎉 Lojalitetsbelöning</p>
                 <h4 style="font-size: 20px !important; font-weight: 700 !important; margin: 0 0 8px 0 !important; color: #FFFFFF !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Du tjänade just ${loyaltyInfo.pointsEarned} Glowpoints!</h4>
@@ -364,15 +364,25 @@ export const sendCustomerBookingConfirmation = async (
                 <p style="font-size: 12px !important; color: #A09E97 !important; margin: 16px 0 0 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Har du redan ett lösenord? <a href="https://glowbook.se/auth/login?email=${encodeURIComponent(email)}" style="color: #C2A26A !important; text-decoration: underline !important; font-weight: 600 !important;">Logga in här</a></p>
             </div>
             ` : `
+            <div style="background-color: #161514 !important; background: #161514 !important; border: 1px solid #C2A26A !important; border-radius: 16px !important; padding: 26px 24px !important; margin: 0 0 32px 0 !important; text-align: center !important;">
+                <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 8px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">✨ Aktivera ditt konto</p>
+                <h4 style="font-size: 20px !important; font-weight: 700 !important; margin: 0 0 8px 0 !important; color: #FFFFFF !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Välj ett lösenord för att spara dina bokningar</h4>
+                <p style="font-size: 14px !important; color: #E8E6E1 !important; margin: 0 0 20px 0 !important; line-height: 1.6 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Klicka på knappen nedan för att välja ett lösenord och aktivera ditt medlemskonto. Då kan du hålla koll på dina tider, boka om snabbt och samla lojalitetsförmåner hos <strong style="color: #C2A26A !important; font-weight: 700 !important;">${salonName}</strong>.</p>
+                <a href="https://glowbook.se/auth/register?email=${encodeURIComponent(email)}&name=${encodeURIComponent(customerName)}" style="display: inline-block !important; background-color: #C2A26A !important; color: #111112 !important; font-weight: 800 !important; font-size: 13px !important; text-transform: uppercase !important; letter-spacing: 1px !important; padding: 14px 28px !important; border-radius: 9999px !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Välj lösenord & aktivera konto</a>
+                <p style="font-size: 12px !important; color: #A09E97 !important; margin: 16px 0 0 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Har du redan ett lösenord? <a href="https://glowbook.se/auth/login?email=${encodeURIComponent(email)}" style="color: #C2A26A !important; text-decoration: underline !important; font-weight: 600 !important;">Logga in här</a></p>
+            </div>
+            `
+        ) : (
+            loyaltyInfo?.pointsEarned && loyaltyInfo.pointsEarned > 0 ? `
             <div style="background-color: #161514 !important; background: #161514 !important; border: 1px solid #C2A26A !important; border-radius: 16px !important; padding: 24px 24px !important; margin: 0 0 32px 0 !important; text-align: center !important;">
                 <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 6px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">✨ Glowpoints Intjänade</p>
                 <h4 style="font-size: 20px !important; font-weight: 700 !important; margin: 0 0 8px 0 !important; color: #FFFFFF !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">+${loyaltyInfo.pointsEarned} poäng har registrerats på ditt konto!</h4>
                 <p style="font-size: 14px !important; color: #E8E6E1 !important; margin: 0 0 20px 0 !important; line-height: 1.6 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Poängen har sparats på ditt Glowbook-konto och är giltiga i 24 månader för exklusiva rabatter hos <strong style="color: #C2A26A !important; font-weight: 700 !important;">${salonName}</strong>.</p>
                 <a href="https://glowbook.se/profile" style="display: inline-block !important; background-color: #C2A26A !important; color: #111112 !important; font-weight: 800 !important; font-size: 13px !important; text-transform: uppercase !important; letter-spacing: 1px !important; padding: 14px 28px !important; border-radius: 9999px !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Se dina poäng & belöningar</a>
-                <p style="font-size: 12px !important; color: #A09E97 !important; margin: 16px 0 0 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Vill du aktivera ditt konto eller välja lösenord? <a href="https://glowbook.se/auth/register?email=${encodeURIComponent(email)}&name=${encodeURIComponent(customerName)}" style="color: #C2A26A !important; text-decoration: underline !important; font-weight: 600 !important;">Klicka här för att välja lösenord</a></p>
+                <p style="font-size: 12px !important; color: #A09E97 !important; margin: 16px 0 0 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Vill du uppdatera ditt lösenord? <a href="https://glowbook.se/profile" style="color: #C2A26A !important; text-decoration: underline !important; font-weight: 600 !important;">Gå till din profil</a></p>
             </div>
-            `
-        ) : ''}
+            ` : ''
+        )}
         
         <p style="color:#2D2B2A;margin:0 0 24px 0;font-size:15px;font-family:Arial,Helvetica,sans-serif;">Vi ser fram emot att välkomna dig ✨</p>
         

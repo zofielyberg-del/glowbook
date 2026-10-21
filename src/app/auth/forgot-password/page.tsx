@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, Loader2, Mail } from 'lucide-react';
 import Header from "@/components/layout/Header";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function ForgotPasswordPage() {
+    const { t } = useLanguage();
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -48,8 +50,8 @@ export default function ForgotPasswordPage() {
                     className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden z-10"
                 >
                     <div className="bg-[#111] p-6 text-center">
-                        <h2 className="text-2xl font-heading font-bold text-white mb-1">Återställ lösenord</h2>
-                        <p className="text-white/60 text-xs">Fyll i din e-post så hjälper vi dig vidare</p>
+                        <h2 className="text-2xl font-heading font-bold text-white mb-1">{t('auth_forgot_title')}</h2>
+                        <p className="text-white/60 text-xs">{t('auth_forgot_subtitle')}</p>
                     </div>
 
                     <div className="p-8">
@@ -71,7 +73,7 @@ export default function ForgotPasswordPage() {
                                     className="w-full bg-[#111] dark:bg-white text-white dark:text-[#111] py-3.5 rounded-xl font-bold hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-colors shadow-lg flex items-center justify-center gap-2 text-sm"
                                 >
                                     <ArrowLeft className="w-4 h-4" />
-                                    Tillbaka till inloggning
+                                    {t('auth_back_to_login')}
                                 </Link>
                             </div>
                         ) : (

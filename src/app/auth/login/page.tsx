@@ -2,6 +2,7 @@
 'use client';
 
 import Header from "@/components/layout/Header";
+import { useLanguage } from "@/context/LanguageContext";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { User, Briefcase, Eye, EyeOff } from "lucide-react";
@@ -10,6 +11,7 @@ import clsx from "clsx";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+    const { t } = useLanguage();
     const [role, setRole] = useState<'customer' | 'provider'>('customer');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -138,8 +140,8 @@ export default function LoginPage() {
                     className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden"
                 >
                     <div className="bg-premium-black p-6 text-center">
-                        <h2 className="text-2xl font-heading font-bold text-white mb-2">Välkommen tillbaka</h2>
-                        <p className="text-white/60 text-sm">Logga in på ditt Glowbook konto</p>
+                        <h2 className="text-2xl font-heading font-bold text-white mb-2">{t('auth_login_title')}</h2>
+                        <p className="text-white/60 text-sm">{t('auth_login_subtitle')}</p>
                     </div>
 
                     <div className="p-8">
@@ -152,7 +154,7 @@ export default function LoginPage() {
                                     role === 'customer' ? "bg-background text-foreground shadow-sm" : "text-foreground/50 hover:text-foreground"
                                 )}
                             >
-                                <User size={16} /> Kund
+                                <User size={16} /> {t('auth_role_customer')}
                             </button>
                             <button
                                 onClick={() => setRole('provider')}
@@ -161,13 +163,13 @@ export default function LoginPage() {
                                     role === 'provider' ? "bg-background text-foreground shadow-sm" : "text-foreground/50 hover:text-foreground"
                                 )}
                             >
-                                <Briefcase size={16} /> Utförare
+                                <Briefcase size={16} /> {t('auth_role_provider')}
                             </button>
                         </div>
 
                         <form onSubmit={handleLogin} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-foreground mb-1">Email</label>
+                                <label className="block text-sm font-medium text-foreground mb-1">{t('auth_email')}</label>
                                 <input
                                     type="email"
                                     required
@@ -179,7 +181,7 @@ export default function LoginPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-foreground mb-1">Lösenord</label>
+                                <label className="block text-sm font-medium text-foreground mb-1">{t('auth_password')}</label>
                                 <div className="relative">
                                     <input
                                         type={showPassword ? "text" : "password"}
@@ -202,7 +204,7 @@ export default function LoginPage() {
                             </div>
 
                             <div className="flex justify-end">
-                                <Link href="/auth/forgot-password" className="text-xs text-champagne-600 hover:underline">Glömt lösenord?</Link>
+                                <Link href="/auth/forgot-password" className="text-xs text-champagne-600 hover:underline">{t('auth_forgot_password')}</Link>
                             </div>
 
                             <button
@@ -228,7 +230,7 @@ export default function LoginPage() {
 
                         <div className="mt-6 text-center space-y-4">
                             <p className="text-xs text-foreground/50 mt-4">
-                                Har du inget konto? <Link href="/auth/register" className="text-champagne-700 font-medium hover:underline">Registrera dig</Link>
+                                {t('auth_no_account')} <Link href="/auth/register" className="text-champagne-700 font-medium hover:underline">{t('auth_register_link')}</Link>
                             </p>
                         </div>
                     </div>
