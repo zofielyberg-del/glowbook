@@ -2,6 +2,7 @@
 'use client';
 
 import Header from "@/components/layout/Header";
+import { useLanguage } from "@/context/LanguageContext";
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Mail, MessageSquare, CheckCircle, Clock, ChevronLeft, User, ShieldCheck, Key, ArrowRight } from "lucide-react";
@@ -26,6 +27,7 @@ type Ticket = {
 };
 
 export default function SupportPage() {
+    const { t } = useLanguage();
     const [view, setView] = useState<'form' | 'auth' | 'tickets' | 'thread'>('form');
     const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
     const [allTickets, setAllTickets] = useState<Ticket[]>([]);
@@ -178,7 +180,7 @@ export default function SupportPage() {
                             animate={{ opacity: 1, y: 0 }}
                             className="text-3xl font-heading font-bold text-black dark:text-white"
                         >
-                            Hur kan vi <span className="text-champagne-600">hjälpa dig?</span>
+                            {t('support_hero_prefix')} <span className="text-champagne-600">{t('support_hero_highlight')}</span>
                         </motion.h1>
                         <div className="flex justify-center gap-3">
                             <button
@@ -217,8 +219,8 @@ export default function SupportPage() {
                                 {/* Form Header - always dark, works in both modes */}
                                 <div className="bg-[#111] p-8 text-center">
                                     <MessageSquare className="mx-auto mb-3 text-champagne-500" size={28} />
-                                    <h2 className="text-lg font-bold text-white">Starta en konversation</h2>
-                                    <p className="text-white/40 text-xs mt-1">Vi svarar vanligtvis inom några timmar.</p>
+                                    <h2 className="text-lg font-bold text-white">{t('support_start_conv')}</h2>
+                                    <p className="text-white/40 text-xs mt-1">{t('support_reply_time')}</p>
                                 </div>
 
                                 {/* Form */}
@@ -226,31 +228,31 @@ export default function SupportPage() {
                                     {!isAuthenticated && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-1.5 font-sans">
-                                                <label className="text-[10px] font-bold uppercase tracking-widest text-black/30 dark:text-white/30 ml-1">Ditt Namn</label>
+                                                <label className="text-[10px] font-bold uppercase tracking-widest text-black/30 dark:text-white/30 ml-1">{t('support_your_name')}</label>
                                                 <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder="Anna Svensson" />
                                             </div>
                                             <div className="space-y-1.5 font-sans">
-                                                <label className="text-[10px] font-bold uppercase tracking-widest text-black/30 dark:text-white/30 ml-1">Email</label>
+                                                <label className="text-[10px] font-bold uppercase tracking-widest text-black/30 dark:text-white/30 ml-1">{t('support_email')}</label>
                                                 <input required type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={inputClass} placeholder="din@email.com" />
                                             </div>
                                         </div>
                                     )}
                                     <div className="space-y-1.5 font-sans">
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-black/30 dark:text-white/30 ml-1">Ämne</label>
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-black/30 dark:text-white/30 ml-1">{t('support_subject')}</label>
                                         <select required value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} className={`${inputClass} appearance-none bg-no-repeat bg-[right_1.25rem_center] dark:bg-slate-900`}>
-                                            <option value="" className="bg-white dark:bg-black">Välj ämne...</option>
-                                            <option value="Bokning" className="bg-white dark:bg-black">Bokning &amp; Betalning</option>
-                                            <option value="Konto" className="bg-white dark:bg-black">Konto &amp; Inloggning</option>
-                                            <option value="Tekniskt" className="bg-white dark:bg-black">Tekniskt problem</option>
-                                            <option value="Övrigt" className="bg-white dark:bg-black">Övrigt</option>
+                                            <option value="" className="bg-white dark:bg-black">{t('support_select_subject')}</option>
+                                            <option value="Bokning" className="bg-white dark:bg-black">{t('support_subject_booking')}</option>
+                                            <option value="Konto" className="bg-white dark:bg-black">{t('support_subject_account')}</option>
+                                            <option value="Tekniskt" className="bg-white dark:bg-black">{t('support_subject_tech')}</option>
+                                            <option value="Övrigt" className="bg-white dark:bg-black">{t('support_subject_other')}</option>
                                         </select>
                                     </div>
                                     <div className="space-y-1.5 font-sans">
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-black/30 dark:text-white/30 ml-1">Beskrivning</label>
-                                        <textarea required rows={4} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} className={`${inputClass} resize-none`} placeholder="Beskriv ditt ärende..." />
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-black/30 dark:text-white/30 ml-1">{t('support_desc')}</label>
+                                        <textarea required rows={4} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} className={`${inputClass} resize-none`} placeholder={t('support_desc_placeholder')} />
                                     </div>
                                     <button type="submit" className="w-full bg-black dark:bg-champagne-600 text-white py-4 rounded-xl font-bold text-sm hover:bg-champagne-600 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98]">
-                                        Skicka meddelande <Send size={14} />
+                                        {t('support_send_btn')} <Send size={14} />
                                     </button>
                                 </form>
                             </motion.div>
@@ -266,8 +268,8 @@ export default function SupportPage() {
                                     <ShieldCheck size={32} />
                                 </div>
                                 <div className="space-y-1">
-                                    <h2 className="text-xl font-heading font-bold text-black dark:text-white">Säker inloggning</h2>
-                                    <p className="text-black/40 dark:text-white/40 text-sm">Verifiera din mail för att se dina ärenden.</p>
+                                    <h2 className="text-xl font-heading font-bold text-black dark:text-white">{t('support_auth_title')}</h2>
+                                    <p className="text-black/40 dark:text-white/40 text-sm">{t('support_auth_desc')}</p>
                                 </div>
 
                                 {!sentCode ? (
@@ -286,7 +288,7 @@ export default function SupportPage() {
                                             onClick={handleSendCode}
                                             className="w-full bg-champagne-600 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-champagne-700 transition-all flex items-center justify-center gap-2"
                                         >
-                                            Skicka kod <Send size={14} />
+                                            {t('support_send_code')} <Send size={14} />
                                         </button>
                                     </div>
                                 ) : (
@@ -296,7 +298,7 @@ export default function SupportPage() {
                                             <p className="font-bold text-black dark:text-white text-2xl tracking-[0.2em]">{sentCode}</p>
                                         </div>
                                         <div className="space-y-1.5 text-left">
-                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Ange verifieringskod</label>
+                                            <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest ml-1">{t('support_enter_code')}</label>
                                             <input
                                                 maxLength={4}
                                                 type="text"
@@ -310,9 +312,9 @@ export default function SupportPage() {
                                             onClick={verifyCode}
                                             className="w-full bg-black dark:bg-champagne-600 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-champagne-600 transition-all"
                                         >
-                                            Verifiera &amp; fortsätt
+                                            {t('support_verify_btn')}
                                         </button>
-                                        <button onClick={() => setSentCode(null)} className="text-xs text-black/30 dark:text-white/30 hover:text-black dark:hover:text-white transition-colors underline underline-offset-4">Byt emailadress</button>
+                                        <button onClick={() => setSentCode(null)} className="text-xs text-black/30 dark:text-white/30 hover:text-black dark:hover:text-white transition-colors underline underline-offset-4">{t('support_change_email')}</button>
                                     </div>
                                 )}
                             </motion.div>
@@ -330,11 +332,11 @@ export default function SupportPage() {
                                             <ShieldCheck size={18} />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest">Inloggad som</p>
+                                            <p className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest">{t('support_logged_in_as')}</p>
                                             <p className="font-bold text-black dark:text-white text-sm">{email}</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => { setIsAuthenticated(false); setView('auth'); }} className="text-xs text-black/30 dark:text-white/30 hover:text-red-500 transition-colors">Logga ut</button>
+                                    <button onClick={() => { setIsAuthenticated(false); setView('auth'); }} className="text-xs text-black/30 dark:text-white/30 hover:text-red-500 transition-colors">{t('support_logout')}</button>
                                 </div>
 
                                 <div className="space-y-3">
@@ -364,10 +366,10 @@ export default function SupportPage() {
                                                 <Mail size={28} />
                                             </div>
                                             <div className="space-y-1">
-                                                <h3 className="text-lg font-bold text-black/30 dark:text-white/30">Inga ärenden ännu</h3>
-                                                <p className="text-black/30 dark:text-white/30 text-xs max-w-xs mx-auto">När du skickar in ett ärende dyker det upp här.</p>
+                                                <h3 className="text-lg font-bold text-black/30 dark:text-white/30">{t('support_no_tickets')}</h3>
+                                                <p className="text-black/30 dark:text-white/30 text-xs max-w-xs mx-auto">{t('support_no_tickets_desc')}</p>
                                             </div>
-                                            <button onClick={() => setView('form')} className="px-5 py-2.5 bg-black dark:bg-champagne-600 text-white rounded-full font-bold text-xs hover:bg-champagne-600 transition-colors">Starta nytt ärende</button>
+                                            <button onClick={() => setView('form')} className="px-5 py-2.5 bg-black dark:bg-champagne-600 text-white rounded-full font-bold text-xs hover:bg-champagne-600 transition-colors">{t('support_start_new_ticket')}</button>
                                         </div>
                                     )}
                                 </div>
@@ -384,7 +386,7 @@ export default function SupportPage() {
                                 <div className="bg-[#111] p-5 flex items-center justify-between">
                                     <button onClick={() => setView('tickets')} className="flex items-center gap-2 text-white/50 hover:text-white transition-all">
                                         <ChevronLeft size={18} />
-                                        <span className="font-bold text-xs">Tillbaka</span>
+                                        <span className="font-bold text-xs">{t('support_back')}</span>
                                     </button>
                                     <div className="text-center">
                                         <h3 className="font-bold text-sm text-white">{selectedTicket?.subject}</h3>
@@ -422,7 +424,7 @@ export default function SupportPage() {
                                         <input
                                             value={newMessageText}
                                             onChange={e => setNewMessageText(e.target.value)}
-                                            placeholder="Skriv ditt svar..."
+                                            placeholder={t('support_write_reply')}
                                             className="flex-1 pl-5 pr-4 py-3 rounded-xl bg-[#F5F3EE] dark:bg-white/5 border border-black/10 dark:border-white/10 focus:border-champagne-500 outline-none transition-all text-sm font-medium text-black dark:text-white placeholder:text-black/20 dark:placeholder:text-white/20"
                                         />
                                         <button type="submit" className="p-3 bg-black dark:bg-champagne-600 text-white rounded-xl hover:bg-champagne-600 transition-all active:scale-95">
