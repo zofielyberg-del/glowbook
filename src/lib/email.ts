@@ -416,12 +416,23 @@ export const sendCustomerCancellationEmail = async (
     salonName: string, 
     serviceName: string, 
     dateStr: string, 
-    timeStr: string
+    timeStr: string,
+    refundInfo?: { refunded: boolean; amount?: number }
 ) => {
+    const refundBlock = refundInfo?.refunded ? `
+        <div style="background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 12px; padding: 14px 16px; margin: 18px 0;">
+            <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #065f46;">✓ Återbetalning genomförd</p>
+            <p style="margin: 0; font-size: 13px; color: #047857; line-height: 1.5;">
+                ${refundInfo.amount ? `${refundInfo.amount} kr` : 'Beloppet'} återbetalas automatiskt till ditt ursprungliga betalsätt (kort/Klarna). Det tar normalt 5–10 bankdagar innan pengarna syns på kontot.
+            </p>
+        </div>
+    ` : '';
+
     const htmlContent = `
         <h1 style="color: #1A1918;">Bokning avbokad</h1>
         <p>Hej ${customerName},</p>
         <p>Vi har nu registrerat din avbokning för <strong>${serviceName}</strong> den ${dateStr} kl. ${timeStr}.</p>
+        ${refundBlock}
         <p>Vi hoppas få välkomna dig tillbaka snart och du är alltid varmt välkommen att boka en ny tid när det passar dig.</p>
         <p>Har du några frågor är du självklart välkommen att höra av dig.</p>
         <p>Vänliga hälsningar,<br/><strong>${salonName}</strong></p>
@@ -444,12 +455,23 @@ export const sendCustomerCancellationByProviderEmail = async (
     salonName: string, 
     serviceName: string, 
     dateStr: string, 
-    timeStr: string
+    timeStr: string,
+    refundInfo?: { refunded: boolean; amount?: number }
 ) => {
+    const refundBlock = refundInfo?.refunded ? `
+        <div style="background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 12px; padding: 14px 16px; margin: 18px 0;">
+            <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #065f46;">✓ Återbetalning genomförd</p>
+            <p style="margin: 0; font-size: 13px; color: #047857; line-height: 1.5;">
+                ${refundInfo.amount ? `${refundInfo.amount} kr` : 'Beloppet'} återbetalas automatiskt till ditt ursprungliga betalsätt (kort/Klarna) inom 5–10 bankdagar.
+            </p>
+        </div>
+    ` : '';
+
     const htmlContent = `
         <h1 style="color: #1A1918;">Bokning avbokad</h1>
         <p>Hej ${customerName},</p>
         <p>Vi behöver tyvärr meddela att din bokning för <strong>${serviceName}</strong> den ${dateStr} kl. ${timeStr} har behövt avbokas från salongens sida.</p>
+        ${refundBlock}
         <p>Detta kan bero på sjukdom, schemaändringar eller andra oförutsedda omständigheter. Vi ber om ursäkt för besväret och hjälper dig gärna att hitta en ny tid som passar.</p>
         <p>Tack för din förståelse.</p>
         <p>Vänliga hälsningar,<br/><strong>${salonName}</strong></p>
@@ -502,8 +524,17 @@ export const sendProviderCancellationEmail = async (
     customerName: string, 
     serviceName: string, 
     dateStr: string, 
-    timeStr: string
+    timeStr: string,
+    refundInfo?: { refunded: boolean; amount?: number }
 ) => {
+    const refundNote = refundInfo?.refunded ? `
+        <div style="background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 12px; padding: 14px 16px; margin: 18px 0;">
+            <p style="margin: 0; font-size: 13px; color: #065f46; line-height: 1.5;">
+                <strong>Automatisk återbetalning:</strong> ${refundInfo.amount ? `${refundInfo.amount} kr` : 'Betalningen'} har automatiskt återbetalats till kunden via ert Stripe-konto eftersom bokningen avbokades enligt policy.
+            </p>
+        </div>
+    ` : '';
+
     const htmlContent = `
         <h1 style="color: #1A1918;">Avbokad tid</h1>
         <p>Hej ${salonName},</p>
@@ -519,7 +550,7 @@ export const sendProviderCancellationEmail = async (
             <div class="label">Avbokad Tid</div>
             <div class="value">${dateStr} kl ${timeStr}</div>
         </div>
-        
+        ${refundNote}
         <p>Denna tid har nu öppnats upp i din kalender så att andra kunder kan boka den.</p>
         <div style="text-align: center; margin-top: 24px;">
             <a href="https://glowbook.se/admin/calendar" class="btn">Gå till din Kalender</a>

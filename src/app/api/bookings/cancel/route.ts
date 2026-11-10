@@ -1,10 +1,104 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { stripe } from '@/lib/stripe';
 import { sendCustomerCancellationEmail, sendProviderCancellationEmail, sendCustomerCancellationByProviderEmail } from '@/lib/email';
 import { emitAvailabilityUpdate } from '@/lib/realtime';
+
+/**
+ * Refunds an online Stripe/Klarna Direct Charge on the salon's connected account
+ * when a paid booking is cancelled within policy (or cancelled by the salon).
+ */
+async function processStripeRefundIfPaid(appointment: {
+    id: string;
+    payment_id: string | null;
+    payment_method: string | null;
+    status: string | null;
+    salon: { stripe_account_id: string | null } | null;
+}): Promise<{ refunded: boolean; amount?: number; refundId?: string; skippedReason?: string }> {
+    const paymentId = appointment.payment_id;
+    const stripeAccountId = appointment.salon?.stripe_account_id;
+
+    if (!paymentId || !stripeAccountId) {
+        return { refunded: false, skippedReason: 'no_stripe_payment' };
+    }
+
+    if (!paymentId.startsWith('cs_') && !paymentId.startsWith('pi_')) {
+        return { refunded: false, skippedReason: 'non_stripe_payment_id' };
+    }
+
+    let paymentIntentId: string | undefined;
+
+    try {
+        if (paymentId.startsWith('cs_')) {
+            const session = await stripe.checkout.sessions.retrieve(
+                paymentId,
+                {},
+                { stripeAccount: stripeAccountId }
+            );
+            if (session.payment_status !== 'paid') {
+                return { refunded: false, skippedReason: 'session_unpaid' };
+            }
+            paymentIntentId = typeof session.payment_intent === 'string'
+                ? session.payment_intent
+                : session.payment_intent?.id;
+        } else {
+            paymentIntentId = paymentId;
+        }
+
+        if (!paymentIntentId) {
+            return { refunded: false, skippedReason: 'missing_payment_intent' };
+        }
+
+        const pi = await stripe.paymentIntents.retrieve(
+            paymentIntentId,
+            {},
+            { stripeAccount: stripeAccountId }
+        );
+
+        if (pi.status !== 'succeeded' || (pi.amount_received || 0) <= 0) {
+            return { refunded: false, skippedReason: 'intent_not_succeeded' };
+        }
+
+        const refundParams: {
+            payment_intent: string;
+            reason: 'requested_by_customer';
+            refund_application_fee?: boolean;
+        } = {
+            payment_intent: paymentIntentId,
+            reason: 'requested_by_customer',
+        };
+
+        if (pi.application_fee_amount && pi.application_fee_amount > 0) {
+            refundParams.refund_application_fee = true;
+        }
+
+        const refund = await stripe.refunds.create(refundParams, {
+            stripeAccount: stripeAccountId,
+            idempotencyKey: `refund_appointment_${appointment.id}`,
+        });
+
+        return {
+            refunded: true,
+            refundId: refund.id,
+            amount: Math.round((refund.amount || pi.amount_received || 0) / 100),
+        };
+    } catch (err: any) {
+        if (err?.code === 'charge_already_refunded') {
+            return { refunded: true, skippedReason: 'already_refunded' };
+        }
+        if (err?.code === 'resource_missing' && paymentId.startsWith('cs_test_')) {
+            console.warn(`[Cancel] Skipping refund for test session ${paymentId} in live mode`);
+            return { refunded: false, skippedReason: 'test_session_in_live_mode' };
+        }
+        throw err;
+    }
+}
+
 export async function POST(req: Request) {
     try {
-        const { appointmentId, bypassPolicy, providerId } = await req.json();
+        const body = await req.json();
+        const appointmentId = body.appointmentId || body.bookingId;
+        const { bypassPolicy, providerId, skipRefund } = body;
 
         if (!appointmentId) {
             return NextResponse.json({ error: 'Appointment ID is required' }, { status: 400 });
@@ -53,6 +147,22 @@ export async function POST(req: Request) {
                 return NextResponse.json({ 
                     error: `Avbokning nekad: Denna salong tillåter inte avbokningar mindre än ${windowHours} timmar innan besöket.` 
                 }, { status: 400 });
+            }
+        }
+
+        // 1b. Issue automatic Stripe/Klarna refund before cancelling in DB if paid online
+        let refundResult: { refunded: boolean; amount?: number; refundId?: string } = { refunded: false };
+        if (!skipRefund) {
+            try {
+                refundResult = await processStripeRefundIfPaid(appointment);
+                if (refundResult.refunded) {
+                    console.log(`[Cancel] Refunded ${refundResult.amount ?? ''} SEK for appointment ${appointmentId} (refund: ${refundResult.refundId || 'existing'})`);
+                }
+            } catch (refundErr: any) {
+                console.error('[Cancel] Automatic Stripe refund failed:', refundErr);
+                return NextResponse.json({
+                    error: 'Automatisk återbetalning via Stripe misslyckades just nu. Bokningen är fortfarande aktiv – vänligen försök igen eller kontakta salongen.'
+                }, { status: 502 });
             }
         }
 
@@ -154,6 +264,10 @@ export async function POST(req: Request) {
         const providerEmail = appointment.salon?.owner?.email || '';
 
         // 4. Send cancellation email to customer
+        const emailRefundInfo = refundResult.refunded
+            ? { refunded: true, amount: refundResult.amount }
+            : undefined;
+
         if (appointment.customer_email) {
             try {
                 if (bypassPolicy) {
@@ -163,7 +277,8 @@ export async function POST(req: Request) {
                         salonName,
                         appointment.service_name || 'Behandling',
                         bookingDateStr,
-                        startTimeStr
+                        startTimeStr,
+                        emailRefundInfo
                     );
                 } else {
                     await sendCustomerCancellationEmail(
@@ -172,7 +287,8 @@ export async function POST(req: Request) {
                         salonName,
                         appointment.service_name || 'Behandling',
                         bookingDateStr,
-                        startTimeStr
+                        startTimeStr,
+                        emailRefundInfo
                     );
                 }
             } catch (emailErr) {
@@ -189,7 +305,8 @@ export async function POST(req: Request) {
                     appointment.customer_name || 'Kund',
                     appointment.service_name || 'Behandling',
                     bookingDateStr,
-                    startTimeStr
+                    startTimeStr,
+                    emailRefundInfo
                 );
             } catch (emailErr) {
                 console.error('Error sending provider cancellation email:', emailErr);
@@ -203,7 +320,11 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             success: true,
-            message: 'Bokningen har avbokats framgångsrikt.'
+            refunded: refundResult.refunded,
+            refundAmount: refundResult.amount,
+            message: refundResult.refunded
+                ? `Bokningen har avbokats och ${refundResult.amount ? `${refundResult.amount} kr` : 'beloppet'} återbetalas automatiskt till ditt ursprungliga betalsätt.`
+                : 'Bokningen har avbokats framgångsrikt.'
         });
 
     } catch (error) {

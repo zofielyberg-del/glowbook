@@ -311,7 +311,7 @@ export default function ProfilePage() {
             const response = await fetch('/api/bookings/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ bookingId }),
+                body: JSON.stringify({ appointmentId: bookingId }),
             });
             const data = await response.json();
             if (!data.success) {
@@ -333,7 +333,7 @@ export default function ProfilePage() {
                 localStorage.setItem('glowbook_bookings', JSON.stringify(updatedLocal));
             }
 
-            setSavedMsg('Bokningen har avbokats');
+            setSavedMsg(data.message || 'Bokningen har avbokats');
             setTimeout(() => setSavedMsg(''), 3000);
             window.dispatchEvent(new Event('glowbook_update'));
         } catch (e) {
