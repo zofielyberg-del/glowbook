@@ -9,22 +9,12 @@ import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { NORDIC_COUNTRIES, getMunicipalities } from "@/data/nordic-data";
+import { MEMBERSHIP_DURATIONS, calculateMembershipPrice } from "@/lib/pricing";
 
 // Mock Data for Categories
 const CATEGORIES = ["Naglar", "Hudvård", "Hårvård", "Massage", "Fransar & Bryn", "Estetisk Injektion", "Tatuering", "Spa", "Makeup", "Fotvård", "Kiropraktik", "Naprapati", "Tandblekning", "Piercing", "Barberare"];
 
-const DURATIONS = [
-    { value: 1, label: '1 Månad', discount: 0 },
-    { value: 3, label: '3 Månader', discount: 0.05, badge: '5% OFF' },
-    { value: 6, label: '6 Månader', discount: 0.10, badge: '10% OFF' },
-    { value: 12, label: '12 Månader', discount: 0.15, badge: '15% OFF' },
-];
-
-const TIER_PRICES = {
-    bas: 79,
-    pro: 149,
-    luxe: 349
-};
+const DURATIONS = MEMBERSHIP_DURATIONS;
 
 export default function ProviderOnboarding() {
     const router = useRouter();
@@ -41,7 +31,7 @@ export default function ProviderOnboarding() {
         municipality: '',
         address: '',
         tier: 'pro' as 'bas' | 'pro' | 'luxe',
-        duration: 3
+        duration: 1
     });
 
     const [hasPreFilledLocation, setHasPreFilledLocation] = useState(false);
@@ -76,13 +66,10 @@ export default function ProviderOnboarding() {
 
 
     const calculatePrice = (tier: 'bas' | 'pro' | 'luxe', duration: number) => {
-        const base = TIER_PRICES[tier];
-        const durationObj = DURATIONS.find(d => d.value === duration);
-        const discount = durationObj ? durationObj.discount : 0;
-        const monthly = Math.round(base * (1 - discount));
+        const pricing = calculateMembershipPrice(tier, duration);
         return {
-            monthly,
-            total: monthly * duration
+            monthly: pricing.monthly,
+            total: pricing.total
         };
     };
 
@@ -248,11 +235,11 @@ export default function ProviderOnboarding() {
                                         <div className="space-y-1">
                                             <p className="text-xs text-foreground/40 uppercase font-bold tracking-widest">Belopp att debiteras efter provperiod</p>
                                             <p className="text-3xl font-bold text-foreground">
-                                                {calculatePrice(formData.tier, formData.duration).total} {currency}
+                                                {calculatePrice(formData.tier, formData.duration).total} SEK
                                             </p>
                                             {formData.duration > 1 && (
                                                 <p className="text-xs font-bold text-emerald-600 mt-1">
-                                                    Motsvarar endast {calculatePrice(formData.tier, formData.duration).monthly} {currency} / mån!
+                                                    Motsvarar endast {calculatePrice(formData.tier, formData.duration).monthly} SEK / mån!
                                                 </p>
                                             )}
                                             <p className="text-[10px] text-foreground/40 mt-1">Inga kostnader under din 3 månaders gratis provperiod.</p>
@@ -476,7 +463,7 @@ export default function ProviderOnboarding() {
                                                     )}
                                                 >
                                                     <span className="text-[10px] font-bold">{d.label}</span>
-                                                    <span className="text-[9px] opacity-60 font-medium leading-none mt-0.5">{prices.total} {currency}</span>
+                                                    <span className="text-[9px] opacity-60 font-medium leading-none mt-0.5">{prices.total} SEK</span>
                                                     {d.value > 1 && <span className="text-[8px] text-emerald-600 font-bold mt-1">Motsvarar {prices.monthly} kr/mån</span>}
                                                     {d.badge && (
                                                         <span className="absolute -top-3 -right-1 bg-champagne-500 text-white text-[8px] px-2 py-0.5 rounded-full ring-2 ring-card font-black shadow-lg">
@@ -525,8 +512,8 @@ export default function ProviderOnboarding() {
                                                             </p>
                                                         </div>
                                                         <div className="text-right">
-                                                            <div className={clsx("font-bold text-lg line-through opacity-40", isSelected && isPremium ? "text-white" : "text-foreground")}>{prices.monthly} {currency}</div>
-                                                            <div className={clsx("font-black text-2xl", isSelected && isPremium ? "text-emerald-400" : "text-emerald-600")}>0 {currency}</div>
+                                                            <div className={clsx("font-bold text-lg line-through opacity-40", isSelected && isPremium ? "text-white" : "text-foreground")}>{prices.monthly} SEK</div>
+                                                            <div className={clsx("font-black text-2xl", isSelected && isPremium ? "text-emerald-400" : "text-emerald-600")}>0 SEK</div>
                                                             <p className="text-[10px] opacity-70">första 3 månaderna</p>
                                                         </div>
                                                     </div>
@@ -586,7 +573,7 @@ export default function ProviderOnboarding() {
                                                     <p className="text-xs text-white/30">Provperiod — 3 månader gratis</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-4xl font-black text-emerald-400">0 {currency}</p>
+                                                    <p className="text-4xl font-black text-emerald-400">0 SEK</p>
                                                 </div>
                                             </div>
                                             <div className="h-px bg-white/5" />
@@ -596,7 +583,7 @@ export default function ProviderOnboarding() {
                                                     <p className="text-xs text-white/30">{formData.duration} mån bindningstid</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-2xl font-bold text-champagne-400">{calculatePrice(formData.tier, formData.duration).total} {currency}</p>
+                                                    <p className="text-2xl font-bold text-champagne-400">{calculatePrice(formData.tier, formData.duration).total} SEK</p>
                                                     {formData.duration > 1 && <p className="text-[10px] text-emerald-400 mt-1">Motsvarar {calculatePrice(formData.tier, formData.duration).monthly} kr/mån</p>}
                                                 </div>
                                             </div>
@@ -610,7 +597,7 @@ export default function ProviderOnboarding() {
                                             </div>
                                             <div className="flex-1 text-left">
                                                 <span className="font-bold text-foreground block text-xl">Säker betalning via Stripe</span>
-                                                <span className="text-sm text-foreground/50">Kort, Apple Pay & Klarna stöds</span>
+                                                <span className="text-sm text-foreground/50">Kort & Apple Pay stöds</span>
                                             </div>
                                             <div className="absolute -top-3 right-8 bg-champagne-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full ring-4 ring-card uppercase tracking-tighter shadow-lg">
                                                 SÄKERT
@@ -630,7 +617,7 @@ export default function ProviderOnboarding() {
                                         </div>
 
                                         <p className="text-[10px] text-foreground/30 text-center px-8 leading-relaxed">
-                                            Genom att fortsätta godkänner du våra användarvillkor. Efter 3 månaders gratis provperiod debiteras en förskottsbetalning på {calculatePrice(formData.tier, formData.duration).total} {currency} för din valda period via Stripe.
+                                            Genom att fortsätta godkänner du våra användarvillkor. Efter 3 månaders gratis provperiod debiteras en förskottsbetalning på {calculatePrice(formData.tier, formData.duration).total} SEK för din valda period via Stripe.
                                         </p>
                                     </div>
                                 </motion.div>

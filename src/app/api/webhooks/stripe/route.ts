@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { stripe } from '@/lib/stripe';
+import { calculateMembershipPrice, normalizeDuration } from '@/lib/pricing';
 import { resend } from '@/lib/resend';
 import { prisma } from '@/lib/prisma';
 import { 
@@ -316,25 +317,34 @@ export async function POST(req: Request) {
     if (event.type === 'checkout.session.completed' && session.mode === 'subscription') {
         const salonId = session.metadata?.salonId;
         const tier = session.metadata?.tier || 'pro';
+        const durationNum = normalizeDuration(session.metadata?.duration);
         const customerId = session.customer;
         const subscriptionId = session.subscription;
+        const resolvedStatus = session.amount_total === 0 ? 'trialing' : 'active';
 
         if (salonId) {
+            const existingSalon = await prisma.salon.findUnique({
+                where: { id: salonId },
+                select: { stripe_subscription_id: true }
+            });
+            const alreadySynced = Boolean(subscriptionId && existingSalon?.stripe_subscription_id === subscriptionId);
+
             const updatedSalon = await prisma.salon.update({
                 where: { id: salonId },
                 data: { 
-                    subscription_status: 'active',
+                    subscription_status: resolvedStatus,
                     membership_tier: tier ? tier.toLowerCase() : undefined,
+                    duration: durationNum,
                     stripe_customer_id: customerId as string,
                     stripe_subscription_id: subscriptionId as string
                 },
                 include: { owner: true }
             });
 
-            console.log(`[Webhook] Salon ${salonId} active. Owner: ${updatedSalon.owner?.email}`);
+            console.log(`[Webhook] Salon ${salonId} ${resolvedStatus} (${durationNum}m). Owner: ${updatedSalon.owner?.email}`);
 
-            // Send Welcome and Receipt emails to the provider
-            if (updatedSalon.owner?.email) {
+            // Send Welcome and Receipt emails to the provider if not already sent by sync-session
+            if (!alreadySynced && updatedSalon.owner?.email) {
                 const firstName = updatedSalon.owner.first_name || updatedSalon.name || 'Utförare';
                 
                 // 1. Send Welcome Email
@@ -345,9 +355,8 @@ export async function POST(req: Request) {
                     console.error('[Webhook] Failed to send welcome email:', err);
                 }
 
-                // 2. Send Receipt Email (Base Pricing: Bas 79, Pro 149, Luxe 349)
-                const priceMap: Record<string, number> = { bas: 79, pro: 149, luxe: 349 };
-                const basePrice = priceMap[tier.toLowerCase()] || 149;
+                // 2. Send Receipt Email using exact tier + duration pricing
+                const pricing = calculateMembershipPrice(tier, durationNum);
 
                 try {
                     await sendProviderReceiptEmail(
@@ -355,7 +364,7 @@ export async function POST(req: Request) {
                         firstName,
                         updatedSalon.name,
                         tier,
-                        basePrice,
+                        pricing.total,
                         'SEK'
                     );
                     console.log(`[Webhook] Receipt email sent to ${updatedSalon.owner.email}`);

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { sendProviderWelcomeEmail, sendProviderReceiptEmail } from '@/lib/email';
+import { calculateMembershipPrice } from '@/lib/pricing';
 
 export async function POST(req: Request) {
     try {
@@ -78,8 +79,7 @@ export async function POST(req: Request) {
                 console.error('[Sync Session] Failed to send welcome email:', err);
             }
 
-            const priceMap: Record<string, number> = { bas: 79, pro: 149, luxe: 349 };
-            const basePrice = priceMap[tier.toLowerCase()] || 149;
+            const pricing = calculateMembershipPrice(tier, updatedSalon.duration || durationNum || 1);
 
             try {
                 await sendProviderReceiptEmail(
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
                     firstName,
                     updatedSalon.name,
                     tier,
-                    basePrice,
+                    pricing.total,
                     'SEK'
                 );
                 console.log(`[Sync Session] Receipt email sent as backup to ${updatedSalon.owner.email}`);

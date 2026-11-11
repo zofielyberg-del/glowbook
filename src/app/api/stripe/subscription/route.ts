@@ -1,65 +1,32 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-
-const TIER_PRICES: Record<string, number> = {
-    bas: 79,
-    pro: 149,
-    luxe: 349,
-};
-
-const DURATIONS_DISCOUNT: Record<number, number> = {
-    1: 0,
-    3: 0.05,
-    6: 0.10,
-    12: 0.15,
-};
-
-function calculatePrice(tier: string, duration: number) {
-    const tierKey = (tier || 'pro').toLowerCase();
-    const base = TIER_PRICES[tierKey] || 149;
-    const discount = DURATIONS_DISCOUNT[duration] || 0;
-    const monthly = Math.round(base * (1 - discount));
-    const total = monthly * duration;
-    return { monthly, total };
-}
+import {
+    calculateMembershipPrice,
+    getConfiguredStripePriceId,
+    normalizeDuration,
+    normalizeTierKey,
+    TRIAL_PERIOD_DAYS,
+} from '@/lib/pricing';
 
 export async function POST(req: Request) {
     try {
         const { tier = 'pro', duration = 1, salonId, salonEmail } = await req.json();
-        const durationNum = Number(duration) || 1;
-
-        // Map tiers and durations to Stripe Price IDs
-        const getPriceId = (tierName: string, dur: number) => {
-            const tierUpper = tierName.toUpperCase();
-            
-            // Try specific duration first: STRIPE_PRICE_PRO_3
-            const durationPrice = process.env[`STRIPE_PRICE_${tierUpper}_${dur}`];
-            if (durationPrice) return durationPrice;
-
-            // Try base tier price: STRIPE_PRICE_PRO
-            const basePrice = process.env[`STRIPE_PRICE_${tierUpper}`];
-            if (basePrice) return basePrice;
-
-            // Try legacy naming: STRIPE_PRICE_ID_PRO
-            const legacyPrice = process.env[`STRIPE_PRICE_ID_${tierUpper}`];
-            if (legacyPrice) return legacyPrice;
-            
-            return '';
-        };
-
-        const priceId = getPriceId(tier, durationNum);
+        const tierKey = normalizeTierKey(tier);
+        const durationNum = normalizeDuration(duration);
+        const priceId = getConfiguredStripePriceId(tierKey, durationNum);
 
         const getBaseUrl = () => {
-            let url = process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se';
+            let url = process.env.NEXT_PUBLIC_APP_URL || 'https://www.glowbook.se';
             if (!url.startsWith('https://')) {
                 url = url.replace(/^http:\/\//, 'https://');
                 if (!url.startsWith('https://')) url = 'https://' + url;
             }
-            if (url.includes('localhost')) url = 'https://glowbook.se';
+            if (url.includes('localhost')) url = 'https://www.glowbook.se';
             return url;
         };
 
         const createCheckoutSession = async (useFallbackPrice: boolean) => {
+            const pricing = calculateMembershipPrice(tierKey, durationNum);
             const line_items = (!useFallbackPrice && priceId)
                 ? [{ price: priceId, quantity: 1 }]
                 : [
@@ -67,13 +34,13 @@ export async function POST(req: Request) {
                         price_data: {
                             currency: 'sek',
                             product_data: {
-                                name: `Glowbook ${tier.toUpperCase()}`,
-                                description: `Glowbook ${tier.toUpperCase()} Medlemskap (${durationNum} mån) - 3 månader gratis provperiod`,
+                                name: `Glowbook ${tierKey.toUpperCase()}`,
+                                description: `Glowbook ${tierKey.toUpperCase()} Medlemskap (${durationNum} mån) - 3 månader gratis provperiod`,
                             },
-                            unit_amount: calculatePrice(tier, durationNum).total * 100,
+                            unit_amount: pricing.total * 100,
                             recurring: {
                                 interval: 'month' as const,
-                                interval_count: Math.min(Math.max(durationNum, 1), 12),
+                                interval_count: durationNum,
                             },
                         },
                         quantity: 1,
@@ -86,10 +53,10 @@ export async function POST(req: Request) {
                 ...(salonEmail ? { customer_email: salonEmail } : {}),
                 line_items,
                 subscription_data: {
-                    trial_period_days: 90, // 3 månader gratis provperiod
+                    trial_period_days: TRIAL_PERIOD_DAYS,
                     metadata: {
                         salonId: salonId || '',
-                        tier: String(tier),
+                        tier: tierKey,
                         duration: String(durationNum),
                     },
                 },
@@ -97,7 +64,7 @@ export async function POST(req: Request) {
                 cancel_url: `${getBaseUrl()}/onboarding/provider?canceled=true`,
                 metadata: {
                     salonId: salonId || '',
-                    tier: String(tier),
+                    tier: tierKey,
                     duration: String(durationNum),
                 },
             });
@@ -108,7 +75,6 @@ export async function POST(req: Request) {
             try {
                 session = await createCheckoutSession(false);
             } catch (stripeErr: any) {
-                // If price ID does not exist in the active Stripe account/mode (e.g. Test vs Live mismatch)
                 if (
                     stripeErr?.message?.includes('No such price') ||
                     stripeErr?.code === 'resource_missing'

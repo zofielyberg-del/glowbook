@@ -10,6 +10,7 @@ import clsx from "clsx";
 import WeeklyScheduleGrid from "@/components/schedule/WeeklyScheduleGrid";
 import { useLanguage } from "@/context/LanguageContext";
 import { NORDIC_COUNTRIES, getMunicipalities } from "@/data/nordic-data";
+import { TIER_PRICES, MEMBERSHIP_DURATIONS, calculateMembershipPrice } from "@/lib/pricing";
 import {
     getDefaultLoyaltyState, calculateLoyaltyStatus,
     LOYALTY_COOLDOWN_DAYS, LOYALTY_MIN_ACTIVE_DAYS,
@@ -243,6 +244,9 @@ function SettingsContent() {
                         localStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
                         sessionStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
                         
+                        if (parsedFresh.duration) {
+                            setComparisonDuration(Number(parsedFresh.duration) || 1);
+                        }
                         setSalonData(prev => {
                             if (hasUnsavedChanges.current) {
                                 return prev;
@@ -1560,18 +1564,13 @@ function SettingsContent() {
 
                                 {/* Duration Selector */}
                                 <div className="flex flex-wrap gap-2 p-1.5 bg-foreground/5 rounded-2xl border border-border">
-                                    {[
-                                        { val: 1, label: '1 Månad', discount: 0 },
-                                        { val: 3, label: '3 Månader', discount: 5 },
-                                        { val: 6, label: '6 Månader', discount: 10 },
-                                        { val: 12, label: '12 Månader', discount: 15 },
-                                    ].map((d) => (
+                                    {MEMBERSHIP_DURATIONS.map((d) => (
                                         <button
-                                            key={d.val}
-                                            onClick={() => setComparisonDuration(d.val)}
+                                            key={d.value}
+                                            onClick={() => setComparisonDuration(d.value)}
                                             className={clsx(
                                                 "flex-1 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative overflow-visible",
-                                                comparisonDuration === d.val
+                                                comparisonDuration === d.value
                                                     ? "bg-white dark:bg-[#111] text-foreground shadow-sm"
                                                     : "text-foreground/40 hover:text-foreground"
                                             )}
@@ -1579,7 +1578,7 @@ function SettingsContent() {
                                             {d.label}
                                             {d.discount > 0 && (
                                                 <span className="absolute -top-2 -right-1 bg-pink-500 text-white text-[7px] px-1.5 py-0.5 rounded-full ring-2 ring-card font-black">
-                                                    {d.discount}% OFF
+                                                    {Math.round(d.discount * 100)}% OFF
                                                 </span>
                                             )}
                                         </button>
@@ -1591,13 +1590,15 @@ function SettingsContent() {
                                     <h3 className="font-bold text-lg text-foreground px-2">Jämför & uppgradera</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         {[
-                                            { key: 'bas', label: 'Bas', price: 79, perks: ['Bokningskalender', 'Standardprofil', 'Begränsad synlighet', 'Endast lokalt synlig'], limit: 'Max 20 bokn/Mån', desc: t('label_tier_start_desc') },
-                                            { key: 'pro', label: 'PRO', price: 149, perks: ['Syns högre i sök', 'Syns i "Upptäck"', 'Glow-tag (Kort länk)', 'SMS-påminnelser', 'Obegränsade bokningar'], popular: true, desc: t('label_tier_pro_desc') },
-                                            { key: 'luxe', label: 'LUXE', price: 349, perks: ['Högsta ranking (VIP)', 'Featured i din stad', 'Glow-tag (Kort länk)', 'Flera utförare (Team)', 'VIP Support'], note: 'Bäst för salonger', desc: t('label_tier_studio_desc') },
+                                            { key: 'bas', label: 'Bas', price: TIER_PRICES.bas, perks: ['Bokningskalender', 'Standardprofil', 'Begränsad synlighet', 'Endast lokalt synlig'], limit: 'Max 20 bokn/Mån', desc: t('label_tier_start_desc') },
+                                            { key: 'pro', label: 'PRO', price: TIER_PRICES.pro, perks: ['Syns högre i sök', 'Syns i "Upptäck"', 'Glow-tag (Kort länk)', 'SMS-påminnelser', 'Obegränsade bokningar'], popular: true, desc: t('label_tier_pro_desc') },
+                                            { key: 'luxe', label: 'LUXE', price: TIER_PRICES.luxe, perks: ['Högsta ranking (VIP)', 'Featured i din stad', 'Glow-tag (Kort länk)', 'Flera utförare (Team)', 'VIP Support'], note: 'Bäst för salonger', desc: t('label_tier_studio_desc') },
                                         ].map((p: { key: string; label: string; price: number; perks: string[]; popular?: boolean; limit?: string; note?: string; desc: string }) => {
-                                            const discountFactor = { 1: 1, 3: 0.95, 6: 0.9, 12: 0.85 }[comparisonDuration] || 1;
-                                            const monthlyPrice = Math.round(p.price * discountFactor);
-                                            const totalCost = monthlyPrice * comparisonDuration;
+                                            const pricing = calculateMembershipPrice(p.key, comparisonDuration);
+                                            const monthlyPrice = pricing.monthly;
+                                            const totalCost = pricing.total;
+                                            const hasActiveSub = ['active', 'trialing', 'canceling'].includes((salonData.subscription_status || '').toLowerCase());
+                                            const isCurrentPlan = hasActiveSub && salonData.tier === p.key && comparisonDuration === (salonData.duration || 1);
 
                                             return (
                                                 <div
@@ -1649,20 +1650,20 @@ function SettingsContent() {
                                                     </div>
                                                     <button
                                                         onClick={() => handleUpgradeClick(p.key as any)}
-                                                        disabled={salonData.tier === p.key && comparisonDuration === (salonData.duration || 12)}
+                                                        disabled={isCurrentPlan}
                                                         className={clsx(
                                                             "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all box-border border flex flex-col items-center justify-center gap-1",
-                                                            salonData.tier === p.key && comparisonDuration === (salonData.duration || 12)
+                                                            isCurrentPlan
                                                                 ? "bg-foreground/5 text-foreground/30 border-foreground/5 cursor-default"
                                                                 : "bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-champagne-600 dark:hover:bg-champagne-300 border-transparent shadow-lg active:scale-95"
                                                         )}
                                                     >
                                                         <span>
-                                                            {salonData.tier === p.key && comparisonDuration === (salonData.duration || 12) 
+                                                            {isCurrentPlan
                                                                 ? 'Nuvarande plan' 
-                                                                : salonData.subscription_status === 'trialing' ? 'Uppgradera plan' : 'Starta 3 månader gratis prova-på'}
+                                                                : hasActiveSub ? 'Byt till denna plan' : 'Starta 3 månader gratis prova-på'}
                                                         </span>
-                                                        {!(salonData.tier === p.key && comparisonDuration === (salonData.duration || 12)) && (
+                                                        {!isCurrentPlan && (
                                                             <span className="text-[7px] opacity-50 lowercase font-medium tracking-normal flex items-center gap-1">
                                                                 <CreditCard size={8} /> Endast verifiering — 0 kr idag
                                                             </span>

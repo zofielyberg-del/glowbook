@@ -1,28 +1,13 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
-
-const TIER_PRICES: Record<string, number> = {
-    bas: 79,
-    pro: 149,
-    luxe: 349,
-};
-
-const DURATIONS_DISCOUNT: Record<number, number> = {
-    1: 0,
-    3: 0.05,
-    6: 0.10,
-    12: 0.15,
-};
-
-function calculatePrice(tier: string, duration: number) {
-    const tierKey = (tier || 'pro').toLowerCase();
-    const base = TIER_PRICES[tierKey] || 149;
-    const discount = DURATIONS_DISCOUNT[duration] || 0;
-    const monthly = Math.round(base * (1 - discount));
-    const total = monthly * duration;
-    return { monthly, total };
-}
+import {
+    calculateMembershipPrice,
+    getConfiguredStripePriceId,
+    normalizeDuration,
+    normalizeTierKey,
+    TRIAL_PERIOD_DAYS,
+} from '@/lib/pricing';
 
 export async function POST(req: Request) {
     try {
@@ -34,20 +19,21 @@ export async function POST(req: Request) {
 
         const salon = await prisma.salon.findUnique({
             where: { id: salonId },
-            select: { 
+            select: {
                 stripe_customer_id: true,
                 membership_tier: true,
                 duration: true,
-                name: true
-            }
+                name: true,
+            },
         });
 
         if (!salon) {
             return NextResponse.json({ error: 'Salon not found' }, { status: 404 });
         }
 
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://glowbook.se';
-        const returnUrl = appUrl.includes('localhost') ? 'https://glowbook.se/provider' : `${appUrl}/provider`;
+        const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.glowbook.se';
+        const appUrl = rawAppUrl.includes('localhost') ? 'https://www.glowbook.se' : rawAppUrl;
+        const returnUrl = `${appUrl}/provider`;
 
         // 1. If Stripe Customer exists, redirect to Billing Portal (Manage Subscriptions/Pay invoice)
         if (salon.stripe_customer_id) {
@@ -71,11 +57,12 @@ export async function POST(req: Request) {
                         status: 'all',
                         limit: 10,
                     });
-                    const validSub = subs.data.find(
-                        (s) =>
-                            ['active', 'trialing'].includes(s.status) &&
-                            (!s.metadata?.salonId || s.metadata.salonId === salonId)
-                    ) || subs.data.find((s) => ['active', 'trialing'].includes(s.status));
+                    const validSub =
+                        subs.data.find(
+                            (s) =>
+                                ['active', 'trialing'].includes(s.status) &&
+                                (!s.metadata?.salonId || s.metadata.salonId === salonId)
+                        ) || subs.data.find((s) => ['active', 'trialing'].includes(s.status));
 
                     if (validSub) {
                         await prisma.salon.update({
@@ -98,27 +85,13 @@ export async function POST(req: Request) {
             }
         }
 
-        // 2. If no Stripe Customer exists, redirect to Checkout Session for their tier (Initial payment)
-        const tier = (salon.membership_tier || 'bas').toLowerCase();
-        const duration = Number(salon.duration) || 1;
-        
-        const getPriceId = (t: string, d: number) => {
-            const tierUpper = t.toUpperCase();
-            const durationPrice = process.env[`STRIPE_PRICE_${tierUpper}_${d}`];
-            if (durationPrice) return durationPrice;
-
-            const basePrice = process.env[`STRIPE_PRICE_${tierUpper}`];
-            if (basePrice) return basePrice;
-
-            const legacyPrice = process.env[`STRIPE_PRICE_ID_${tierUpper}`];
-            if (legacyPrice) return legacyPrice;
-
-            return '';
-        };
-
-        const priceId = getPriceId(tier, duration);
+        // 2. If no Stripe Customer exists, redirect to Checkout Session for their tier
+        const tier = normalizeTierKey(salon.membership_tier || 'bas');
+        const duration = normalizeDuration(salon.duration);
+        const priceId = getConfiguredStripePriceId(tier, duration);
 
         const createCheckoutSession = async (useFallbackPrice: boolean) => {
+            const pricing = calculateMembershipPrice(tier, duration);
             const line_items = (!useFallbackPrice && priceId)
                 ? [{ price: priceId, quantity: 1 }]
                 : [
@@ -129,10 +102,10 @@ export async function POST(req: Request) {
                                 name: `Glowbook ${tier.toUpperCase()}`,
                                 description: `Glowbook ${tier.toUpperCase()} Medlemskap (${duration} mån) - 3 månader gratis provperiod`,
                             },
-                            unit_amount: calculatePrice(tier, duration).total * 100,
+                            unit_amount: pricing.total * 100,
                             recurring: {
                                 interval: 'month' as const,
-                                interval_count: Math.min(Math.max(duration, 1), 12),
+                                interval_count: duration,
                             },
                         },
                         quantity: 1,
@@ -145,7 +118,7 @@ export async function POST(req: Request) {
                 ...(email ? { customer_email: email } : {}),
                 line_items,
                 subscription_data: {
-                    trial_period_days: 90, // 3 månader gratis provperiod
+                    trial_period_days: TRIAL_PERIOD_DAYS,
                     metadata: {
                         salonId,
                         tier,
@@ -183,7 +156,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ url: session.url });
     } catch (error: any) {
-        console.error('Portal/Checkout Error:', error);
+        console.error('Portal Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
