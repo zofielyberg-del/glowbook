@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendCustomerBookingConfirmation, sendProviderBookingNotification } from '@/lib/email';
+import { sendCustomerBookingConfirmation, sendProviderBookingNotification, sendGiftCardUsageEmail } from '@/lib/email';
 import { emitAvailabilityUpdate } from '@/lib/realtime';
 import { getStockholmDate } from '@/lib/date';
 
@@ -9,6 +9,7 @@ export async function POST(req: Request) {
     try {
         const {
             salonId,
+            serviceId,
             serviceName,
             practitionerId,
             startTime, // "09:00"
@@ -20,7 +21,9 @@ export async function POST(req: Request) {
             status = 'confirmed',
             start_time, // Exact UTC string from frontend
             end_time,   // Exact UTC string from frontend
-            rewardInfo
+            rewardInfo,
+            giftCardCode,
+            giftCardDiscount
         } = await req.json();
 
         if (!salonId || !serviceName || !customerInfo?.email || !date || !startTime) {
@@ -112,12 +115,14 @@ export async function POST(req: Request) {
         try {
             const existingProfile = await prisma.profile.findUnique({
                 where: { email: customerInfo.email },
-                select: { id: true, role: true }
+                select: { id: true, role: true, password_hash: true }
             });
 
             if (existingProfile) {
-                // If they are a provider, owner, admin, etc. do NOT update their profile name/phone with booking inputs
-                if (existingProfile.role === 'customer' || !existingProfile.role) {
+                // Only update name/phone for guest placeholder profiles or when the logged-in customer is updating their own profile
+                const isCustomerProfile = existingProfile.role === 'customer' || !existingProfile.role;
+                const canUpdateDetails = isCustomerProfile && (!existingProfile.password_hash || customerInfo.isLoggedIn === true);
+                if (canUpdateDetails) {
                     const profile = await prisma.profile.update({
                         where: { id: existingProfile.id },
                         data: {
@@ -181,7 +186,16 @@ export async function POST(req: Request) {
             }
         }
 
-        // 3. Insert appointment using atomic transaction to prevent double bookings
+        type RedeemedGiftCardInfo = {
+            recipient_email: string | null;
+            recipient_name: string | null;
+            code: string;
+            remaining_balance: number;
+            amount: number;
+        };
+        let redeemedGiftCard = null as RedeemedGiftCardInfo | null;
+
+        // 3. Insert appointment (plus atomic giftcard / loyalty deduction for direct bookings)
         let appointment;
         try {
             appointment = await prisma.$transaction(async (tx) => {
@@ -246,10 +260,67 @@ export async function POST(req: Request) {
                     }
                 }
 
+                // 3a-extra. For direct (non-Stripe) bookings, atomically redeem gift card & Glowpoints inside the transaction
+                if (paymentMethod !== 'stripe') {
+                    const numericDiscount = Number(giftCardDiscount || 0);
+                    if (giftCardCode && numericDiscount > 0) {
+                        const normalizedCode = String(giftCardCode).trim().toUpperCase();
+                        const card = await tx.giftCard.findUnique({ where: { code: normalizedCode } });
+                        if (!card) throw new Error('GIFTCARD_NOT_FOUND');
+                        if (card.status !== 'active') throw new Error('GIFTCARD_NOT_ACTIVE');
+                        if (card.expires_at && new Date(card.expires_at) < new Date()) throw new Error('GIFTCARD_EXPIRED');
+                        const currentBal = Number(card.remaining_balance);
+                        if (currentBal < numericDiscount) throw new Error('GIFTCARD_INSUFFICIENT');
+                        const nextBal = Math.max(0, currentBal - numericDiscount);
+                        await tx.giftCard.update({
+                            where: { id: card.id },
+                            data: {
+                                remaining_balance: nextBal,
+                                status: nextBal <= 0 ? 'used' : 'active'
+                            }
+                        });
+                        redeemedGiftCard = {
+                            recipient_email: card.recipient_email,
+                            recipient_name: card.recipient_name,
+                            code: card.code,
+                            remaining_balance: nextBal,
+                            amount: numericDiscount
+                        };
+                    }
+
+                    const pointsCost = Math.floor(Number(rewardInfo?.pointsCost || 0));
+                    if (pointsCost > 0 && profileId && sid) {
+                        const balance = await tx.loyaltyBalance.findUnique({
+                            where: { profile_id_salon_id: { profile_id: profileId, salon_id: sid } },
+                            select: { id: true, current_points: true }
+                        });
+                        if (!balance || (balance.current_points ?? 0) < pointsCost) {
+                            throw new Error('INSUFFICIENT_POINTS');
+                        }
+                        await tx.loyaltyBalance.update({
+                            where: { id: balance.id },
+                            data: {
+                                current_points: (balance.current_points ?? 0) - pointsCost,
+                                updated_at: new Date()
+                            }
+                        });
+                        await tx.pointTransaction.create({
+                            data: {
+                                profile_id: profileId,
+                                salon_id: sid,
+                                amount: pointsCost,
+                                type: 'spent',
+                                description: `Inlösen: ${rewardInfo.label || `${rewardInfo.discountAmount || 50} kr rabatt`} för ${serviceName}`
+                            }
+                        });
+                    }
+                }
+
                 // 3b. Create appointment
                 return await tx.appointment.create({
                     data: {
                         salon_id: sid,
+                        service_id: serviceId && isUUID(serviceId) ? serviceId : undefined,
                         service_name: serviceName,
                         practitioner_id: assignedPractitionerId,
                         customer_id: profileId,
@@ -269,6 +340,21 @@ export async function POST(req: Request) {
             console.error('Error creating appointment:', appointmentError);
             if (appointmentError.message === 'SLOT_TAKEN') {
                 return NextResponse.json({ error: 'Tiden har tyvärr precis blivit bokad av någon annan. Vänligen välj en ny tid.' }, { status: 409 });
+            }
+            if (appointmentError.message === 'GIFTCARD_NOT_FOUND') {
+                return NextResponse.json({ error: 'Presentkortet hittades inte.' }, { status: 404 });
+            }
+            if (appointmentError.message === 'GIFTCARD_NOT_ACTIVE') {
+                return NextResponse.json({ error: 'Presentkortet är inte längre aktivt.' }, { status: 400 });
+            }
+            if (appointmentError.message === 'GIFTCARD_EXPIRED') {
+                return NextResponse.json({ error: 'Presentkortets giltighetstid har gått ut.' }, { status: 400 });
+            }
+            if (appointmentError.message === 'GIFTCARD_INSUFFICIENT') {
+                return NextResponse.json({ error: 'Saldot på presentkortet räcker inte till.' }, { status: 400 });
+            }
+            if (appointmentError.message === 'INSUFFICIENT_POINTS') {
+                return NextResponse.json({ error: 'Inte tillräckligt med poäng.' }, { status: 400 });
             }
             return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
         }
@@ -294,37 +380,19 @@ export async function POST(req: Request) {
                 } catch { }
             }
 
-            // Deduct redeemed points if used (and not already spent via /api/loyalty/spend)
-            if (rewardInfo && rewardInfo.pointsCost && profileId && sid) {
+            // Send Gift Card usage notice email if gift card was redeemed
+            if (redeemedGiftCard?.recipient_email) {
                 try {
-                    const fifteenSecondsAgo = new Date(Date.now() - 15000);
-                    const alreadySpent = await prisma.pointTransaction.findFirst({
-                        where: {
-                            profile_id: profileId,
-                            salon_id: sid,
-                            type: 'spent',
-                            amount: rewardInfo.pointsCost,
-                            created_at: { gte: fifteenSecondsAgo }
-                        }
-                    });
-
-                    if (!alreadySpent) {
-                        await prisma.loyaltyBalance.updateMany({
-                            where: { profile_id: profileId, salon_id: sid },
-                            data: { current_points: { decrement: rewardInfo.pointsCost } }
-                        });
-                        await prisma.pointTransaction.create({
-                            data: {
-                                profile_id: profileId,
-                                salon_id: sid,
-                                amount: rewardInfo.pointsCost,
-                                type: 'spent',
-                                description: `Inlösen: ${rewardInfo.label || `${rewardInfo.discountAmount || 50} kr rabatt`}`
-                            }
-                        });
-                    }
-                } catch (redeemErr) {
-                    console.error('[Confirm] Error deducting redeemed loyalty points:', redeemErr);
+                    await sendGiftCardUsageEmail(
+                        redeemedGiftCard.recipient_email,
+                        redeemedGiftCard.recipient_name || 'mottagare',
+                        salonName,
+                        redeemedGiftCard.amount,
+                        redeemedGiftCard.code,
+                        redeemedGiftCard.remaining_balance
+                    );
+                } catch (gcMailErr) {
+                    console.error('[Confirm] Failed sending gift card usage email:', gcMailErr);
                 }
             }
 

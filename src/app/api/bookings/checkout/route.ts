@@ -5,16 +5,31 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
     try {
-        const { appointmentId, salonId, serviceName, price, customerEmail } = await req.json();
+        const {
+            appointmentId,
+            salonId,
+            serviceName,
+            price,
+            customerEmail,
+            customerId,
+            giftCardCode,
+            giftCardDiscount,
+            rewardInfo
+        } = await req.json();
 
         if (!appointmentId || !salonId) {
             return NextResponse.json({ error: 'Missing required data' }, { status: 400 });
         }
 
+        const numericPrice = Number(price);
+        if (isNaN(numericPrice) || numericPrice <= 0) {
+            return NextResponse.json({ error: 'Invalid payable amount for Stripe Checkout' }, { status: 400 });
+        }
+
         // 1. Get Salon Connect Account
         const salon = await prisma.salon.findUnique({
             where: { id: salonId },
-            select: { stripe_account_id: true, name: true }
+            select: { stripe_account_id: true, name: true, country: true }
         });
 
         if (!salon?.stripe_account_id) {
@@ -40,11 +55,11 @@ export async function POST(req: Request) {
             line_items: [
                 {
                     price_data: {
-                        currency: 'sek',
+                        currency: salon.country === 'NO' ? 'nok' : salon.country === 'DK' ? 'dkk' : salon.country === 'FI' ? 'eur' : 'sek',
                         product_data: {
                             name: `${serviceName} @ ${salon.name}`,
                         },
-                        unit_amount: Math.round(price * 100), // Stripe expects cents/öre
+                        unit_amount: Math.round(numericPrice * 100), // Stripe expects cents/öre
                     },
                     quantity: 1,
                 },
@@ -72,6 +87,11 @@ export async function POST(req: Request) {
                 type: 'booking',
                 appointmentId,
                 salonId,
+                ...(customerId ? { customerId: String(customerId) } : {}),
+                ...(giftCardCode ? { giftCardCode: String(giftCardCode).trim().toUpperCase() } : {}),
+                ...(giftCardDiscount ? { giftCardDiscount: String(giftCardDiscount) } : {}),
+                ...(rewardInfo?.pointsCost ? { rewardPointsCost: String(rewardInfo.pointsCost) } : {}),
+                ...(rewardInfo?.label ? { rewardLabel: String(rewardInfo.label).slice(0, 120) } : {}),
             },
         };
 

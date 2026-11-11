@@ -267,7 +267,7 @@ export default function SearchPage() {
                                 <div className="hidden md:block h-10 w-[1px] bg-black/5 dark:bg-white/5 mx-2" />
 
                                 <Link
-                                    href={`/explore?q=${query}&m=${selectedMunicipality}&c=${selectedCountry.code}`}
+                                    href={`/explore?q=${encodeURIComponent(query)}&m=${encodeURIComponent(selectedMunicipality)}&c=${encodeURIComponent(selectedCountry.code)}`}
                                     className="w-full md:w-auto bg-black dark:bg-white text-white dark:text-black px-12 py-5 rounded-[28px] font-black text-xs uppercase tracking-[0.2em] hover:bg-champagne-600 hover:text-white transition-all flex items-center justify-center gap-4 group/btn overflow-hidden relative shadow-xl active:scale-95"
                                 >
                                     <span className="relative z-10">{t('search_button')}</span>

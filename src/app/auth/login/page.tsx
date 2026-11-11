@@ -41,15 +41,28 @@ export default function LoginPage() {
                 setLoginError(data.error || 'Inloggningen misslyckades');
                 return;
             }
-            // Success! Store data in sessionStorage (maintaining existing UI logic)
+            const getSafeRedirect = (defaultPath: string) => {
+                if (typeof window === 'undefined') return defaultPath;
+                const urlParams = new URLSearchParams(window.location.search);
+                const redir = urlParams.get('redirect') || sessionStorage.getItem('glowbook_redirect_after_login');
+                sessionStorage.removeItem('glowbook_redirect_after_login');
+                if (redir && redir.startsWith('/') && !redir.startsWith('//')) return redir;
+                return defaultPath;
+            };
+
             if (role === 'provider' && data.salon) {
-                sessionStorage.removeItem('glowbook_customer'); // Clear opposite session
-                sessionStorage.setItem('glowbook_salon', JSON.stringify(data.salon));
+                sessionStorage.removeItem('glowbook_customer');
+                localStorage.removeItem('glowbook_customer');
+                const serialized = JSON.stringify(data.salon);
+                sessionStorage.setItem('glowbook_salon', serialized);
+                localStorage.setItem('glowbook_salon', serialized);
                 router.push('/provider');
             } else {
-                sessionStorage.removeItem('glowbook_salon'); // Clear opposite session
+                sessionStorage.removeItem('glowbook_salon');
+                localStorage.removeItem('glowbook_salon');
                 sessionStorage.setItem('glowbook_customer', JSON.stringify(data.user));
-                router.push('/profile');
+                localStorage.setItem('glowbook_customer', JSON.stringify(data.user));
+                router.push(getSafeRedirect('/profile'));
             }
 
             window.dispatchEvent(new Event('glowbook_update'));
@@ -117,10 +130,15 @@ export default function LoginPage() {
                     router.push('/onboarding/provider');
                 }
             } else {
-                sessionStorage.removeItem('glowbook_salon'); // Clear opposite session
+                sessionStorage.removeItem('glowbook_salon');
+                localStorage.removeItem('glowbook_salon');
                 sessionStorage.setItem('glowbook_customer', JSON.stringify(data.user));
+                localStorage.setItem('glowbook_customer', JSON.stringify(data.user));
                 window.dispatchEvent(new Event('glowbook_update'));
-                router.push('/profile');
+                const urlParams = new URLSearchParams(window.location.search);
+                const redir = urlParams.get('redirect') || sessionStorage.getItem('glowbook_redirect_after_login');
+                sessionStorage.removeItem('glowbook_redirect_after_login');
+                router.push(redir && redir.startsWith('/') && !redir.startsWith('//') ? redir : '/profile');
             }
 
         } catch (err) {

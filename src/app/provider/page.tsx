@@ -370,7 +370,8 @@ export default function ProviderDashboard() {
         if (modalMode === 'share') {
             const dateObj = toStockholmDate(new Date(`${bookingData.date}T12:00:00`));
             const dayIndex = (dateObj.getDay() + 6) % 7; // Convert to Mon-Sun (0-6)
-            const url = `${window.location.origin}/salon?id=${salonName.toLowerCase().replace(/\s+/g, '-')}&booking=now&service=${encodeURIComponent(bookingData.service)}&day=${dayIndex}&time=${bookingData.startTime}`;
+            const salonSlug = (user as any)?.slug || salonName.toLowerCase().trim().replace(/[åäæ]/g, 'a').replace(/[öø]/g, 'o').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+            const url = `${window.location.origin}/${salonSlug}?booking=now&service=${encodeURIComponent(bookingData.service)}&day=${dayIndex}&time=${bookingData.startTime}`;
             setGeneratedLink(url);
             return;
         }

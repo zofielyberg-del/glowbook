@@ -10,7 +10,8 @@ import {
     sendProviderReceiptEmail,
     sendCustomerBookingConfirmation,
     sendProviderBookingNotification,
-    sendCancellationEmail
+    sendCancellationEmail,
+    sendGiftCardUsageEmail
 } from '@/lib/email';
 
 // Rebuild trigger: apply updated Vercel environment variables
@@ -126,8 +127,21 @@ export async function POST(req: Request) {
             const appointmentId = session.metadata?.appointmentId;
             const salonId = session.metadata?.salonId;
             const customerEmail = session.customer_details?.email;
-            const amount = session.amount_total / 100; // in SEK
+            const amount = (session.amount_total || 0) / 100; // in SEK
             const points = Math.floor(amount / 10) * 5;
+
+            if (!appointmentId) {
+                return NextResponse.json({ received: true });
+            }
+
+            // Idempotency guard against duplicate Stripe webhook deliveries
+            const existingApt = await prisma.appointment.findUnique({
+                where: { id: appointmentId },
+                select: { status: true }
+            });
+            if (!existingApt || existingApt.status === 'paid' || existingApt.status === 'completed') {
+                return NextResponse.json({ received: true });
+            }
 
             // 1. Retrieve the actual payment method from Stripe PaymentIntent
             let paymentMethod = 'stripe';
@@ -266,48 +280,112 @@ export async function POST(req: Request) {
                 }
             }
 
-            // 3. Add Loyalty Points
-            if (customerEmail && salonId) {
-                // Find profile by email
-                const profile = await prisma.profile.findUnique({
-                    where: { email: customerEmail },
+            // 3. Deduct Gift Card balance if applied in checkout metadata
+            const metaGiftCardCode = session.metadata?.giftCardCode;
+            const metaGiftCardDiscount = Number(session.metadata?.giftCardDiscount || 0);
+            if (metaGiftCardCode && metaGiftCardDiscount > 0) {
+                try {
+                    const normalizedCode = metaGiftCardCode.trim().toUpperCase();
+                    const gcRes = await prisma.$transaction(async (tx) => {
+                        const card = await tx.giftCard.findUnique({ where: { code: normalizedCode } });
+                        if (!card || card.status !== 'active') return null;
+                        const cur = Number(card.remaining_balance);
+                        const deduct = Math.min(cur, metaGiftCardDiscount);
+                        if (deduct <= 0) return null;
+                        const next = Math.max(0, cur - deduct);
+                        const updated = await tx.giftCard.update({
+                            where: { id: card.id },
+                            data: { remaining_balance: next, status: next <= 0 ? 'used' : 'active' }
+                        });
+                        return { updated, deduct, next };
+                    });
+                    if (gcRes?.updated.recipient_email) {
+                        await sendGiftCardUsageEmail(
+                            gcRes.updated.recipient_email,
+                            gcRes.updated.recipient_name || 'mottagare',
+                            appointment.salon?.name || 'en av våra anslutna salonger',
+                            gcRes.deduct,
+                            gcRes.updated.code,
+                            gcRes.next
+                        );
+                    }
+                } catch (gcErr) {
+                    console.error('[Webhook] Failed deducting giftcard balance:', gcErr);
+                }
+            }
+
+            // 4. Resolve customer profile & process Loyalty Spend / Earn
+            const lookupEmail = appointment.customer_email || customerEmail;
+            let customerProfileId = appointment.customer_id || session.metadata?.customerId || null;
+            if (!customerProfileId && lookupEmail) {
+                const profile = await prisma.profile.findFirst({
+                    where: { email: { equals: lookupEmail, mode: 'insensitive' } },
                     select: { id: true }
                 });
+                customerProfileId = profile?.id || null;
+            }
 
-                if (profile) {
-                    // Update Global Points
+            if (customerProfileId && salonId) {
+                // 4a. Deduct redeemed Glowpoints now that Stripe payment succeeded
+                const rewardPointsCost = Math.floor(Number(session.metadata?.rewardPointsCost || 0));
+                if (rewardPointsCost > 0) {
+                    try {
+                        await prisma.$transaction(async (tx) => {
+                            const bal = await tx.loyaltyBalance.findUnique({
+                                where: { profile_id_salon_id: { profile_id: customerProfileId!, salon_id: salonId } }
+                            });
+                            if (bal && (bal.current_points ?? 0) > 0) {
+                                const nextPts = Math.max(0, (bal.current_points ?? 0) - rewardPointsCost);
+                                await tx.loyaltyBalance.update({
+                                    where: { id: bal.id },
+                                    data: { current_points: nextPts, updated_at: new Date() }
+                                });
+                                await tx.pointTransaction.create({
+                                    data: {
+                                        profile_id: customerProfileId!,
+                                        salon_id: salonId,
+                                        type: 'spent',
+                                        amount: rewardPointsCost,
+                                        description: `Inlösen: ${session.metadata?.rewardLabel || 'Rabatt'} via Stripe-bokning`
+                                    }
+                                });
+                            }
+                        });
+                    } catch (spendErr) {
+                        console.error('[Webhook] Failed deducting spent Glowpoints:', spendErr);
+                    }
+                }
+
+                // 4b. Award Loyalty Points only if salon has rewards enabled
+                if (appointment.salon?.is_rewards_enabled && points > 0) {
                     await prisma.profile.update({
-                        where: { id: profile.id },
+                        where: { id: customerProfileId },
                         data: { total_points_earned: { increment: points } }
                     });
 
-                    // Update Salon Specific Points (only if salon has rewards enabled)
-                    if (appointment.salon?.is_rewards_enabled) {
-                        await prisma.loyaltyBalance.upsert({
-                            where: { profile_id_salon_id: { profile_id: profile.id, salon_id: salonId } },
-                            update: {
-                                current_points: { increment: points },
-                                total_earned: { increment: points }
-                            },
-                            create: {
-                                profile_id: profile.id,
-                                salon_id: salonId,
-                                current_points: points,
-                                total_earned: points
-                            }
-                        });
+                    await prisma.loyaltyBalance.upsert({
+                        where: { profile_id_salon_id: { profile_id: customerProfileId, salon_id: salonId } },
+                        update: {
+                            current_points: { increment: points },
+                            total_earned: { increment: points }
+                        },
+                        create: {
+                            profile_id: customerProfileId,
+                            salon_id: salonId,
+                            current_points: points,
+                            total_earned: points
+                        }
+                    });
 
-                        // Record Transaction
-                        await prisma.pointTransaction.create({
-                            data: {
-                                profile_id: profile.id,
-                                salon_id: salonId,
-                                type: 'earned',
-                                amount: points,
-                                description: 'Bokning via Glowbook'
-                            }
-                        });
-                    }
+                    await prisma.pointTransaction.create({
+                        data: {
+                            profile_id: customerProfileId,
+                            salon_id: salonId,
+                            type: 'earned',
+                            amount: points,
+                            description: 'Bokning via Glowbook'
+                        }
+                    });
                 }
             }
         }

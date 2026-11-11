@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { slugifySalonName } from '@/lib/slug';
 
 
 export const dynamic = 'force-dynamic';
@@ -31,20 +32,37 @@ export async function GET(req: Request) {
             console.error('Failed to clean up expired pending bookings:', cleanupErr);
         }
 
-        const salon = await prisma.salon.findUnique({
-            where: id ? { id } : { slug: slug as string },
-            include: {
-                practitioners: true,
-                services: true,
-                owner: true,
-                appointments: {
-                    where: {
-                        status: { not: 'cancelled' },
-                        start_time: { gte: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000) } // Last 35 days + future (covers full 30-day revenue dashboard)
-                    }
+        const includeClause = {
+            practitioners: true,
+            services: true,
+            owner: true,
+            appointments: {
+                where: {
+                    status: { not: 'cancelled' },
+                    start_time: { gte: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000) } // Last 35 days + future (covers full 30-day revenue dashboard)
                 }
             }
+        };
+
+        let salon = await prisma.salon.findUnique({
+            where: id ? { id } : { slug: slug as string },
+            include: includeClause,
         });
+
+        // Support normalized å/ä/ö and legacy apostrophe slugs
+        if (!salon && slug) {
+            const normalizedSlug = slugifySalonName(slug);
+            if (normalizedSlug && normalizedSlug !== slug) {
+                salon = await prisma.salon.findUnique({
+                    where: { slug: normalizedSlug },
+                    include: includeClause,
+                });
+            }
+            if (!salon && normalizedSlug) {
+                const candidates = await prisma.salon.findMany({ include: includeClause });
+                salon = candidates.find(s => s.slug && slugifySalonName(s.slug) === normalizedSlug) || null;
+            }
+        }
 
         if (!salon) {
             return NextResponse.json({ error: 'Salon not found' }, { status: 404 });

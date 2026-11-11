@@ -11,6 +11,7 @@ import WeeklyScheduleGrid from "@/components/schedule/WeeklyScheduleGrid";
 import { useLanguage } from "@/context/LanguageContext";
 import { NORDIC_COUNTRIES, getMunicipalities } from "@/data/nordic-data";
 import { TIER_PRICES, MEMBERSHIP_DURATIONS, calculateMembershipPrice } from "@/lib/pricing";
+import { slugifySalonName } from "@/lib/slug";
 import {
     getDefaultLoyaltyState, calculateLoyaltyStatus,
     LOYALTY_COOLDOWN_DAYS, LOYALTY_MIN_ACTIVE_DAYS,
@@ -470,7 +471,7 @@ function SettingsContent() {
 
         // Auto-generate slug from name for all tiers to ensure URL matches salon name
         const computedSlug = dataToSave.name
-            ? dataToSave.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+            ? slugifySalonName(dataToSave.name)
             : (dataToSave as any).slug;
 
         const updatedData = {
@@ -2710,12 +2711,12 @@ function SettingsContent() {
                                                     <input
                                                         readOnly
                                                         type="text"
-                                                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/salon/${salonData.name.toLowerCase().replace(/\s+/g, '-')}`}
+                                                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/salon/${(salonData as any).slug || slugifySalonName(salonData.name)}`}
                                                         className="flex-1 px-5 py-4 rounded-2xl border border-border bg-[#1a1a1a] text-white text-sm outline-none transition-colors shadow-inner font-medium tracking-wide"
                                                     />
                                                     <button
                                                         onClick={() => {
-                                                            const url = `${window.location.origin}/salon/${salonData.name.toLowerCase().replace(/\s+/g, '-')}`;
+                                                            const url = `${window.location.origin}/salon/${(salonData as any).slug || slugifySalonName(salonData.name)}`;
                                                             navigator.clipboard.writeText(url);
                                                             setSavedSuccess(true);
                                                             setTimeout(() => setSavedSuccess(false), 2000);

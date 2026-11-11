@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { REWARD_TIERS, normalizeRewardTiers } from "@/lib/loyalty";
 import { useSearchParams, useRouter } from "next/navigation";
+import { slugifySalonName } from "@/lib/slug";
 
 function getServiceCategory(service: any, salonCategory: string) {
     const ignoredCategories = ['skönhet', 'skönhetssalong'];
@@ -277,7 +278,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
     useEffect(() => {
         const checkCustomerLogin = () => {
-            const customer = sessionStorage.getItem('glowbook_customer');
+            const customer = sessionStorage.getItem('glowbook_customer') || localStorage.getItem('glowbook_customer');
             if (customer) {
                 const data = JSON.parse(customer);
                 setIsCustomerLoggedIn(true);
@@ -447,60 +448,28 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         } catch { }
 
         try {
-            // 1. Redeeming Gift Card if selected
-            if (selectedPaymentMethod === 'giftcard' && giftCardStatus?.valid) {
-                const amountToRedeem = giftCardDiscount;
-                const redeemResponse = await fetch('/api/giftcards/redeem', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        code: giftCardCode.trim().toUpperCase(),
-                        amount: amountToRedeem,
-                        salonName: salon.name
-                    }),
-                });
-                const redeemData = await redeemResponse.json();
-                if (!redeemData.success) {
-                    alert('Gick inte att lösa in presentkortet: ' + redeemData.error);
-                    return;
-                }
-            }
+            const appliedGiftCardCode = selectedPaymentMethod === 'giftcard' && giftCardStatus?.valid
+                ? giftCardCode.trim().toUpperCase()
+                : null;
+            const appliedGiftCardDiscount = appliedGiftCardCode ? giftCardDiscount : 0;
 
-            // 1b. Spend Glowpoints if selected
-            if (useGlowpoints && selectedReward && isCustomerLoggedIn) {
-                const spendResponse = await fetch('/api/loyalty/spend', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: customerInfo.id,
-                        salonId: salon.id,
-                        amount: selectedReward.pointsCost,
-                        description: `Inlösen: ${selectedReward.label} för ${selectedService.name}`
-                    }),
-                });
-                const spendData = await spendResponse.json();
-                if (!spendData.success) {
-                    alert('Kunde inte lösa in poäng: ' + spendData.error);
-                    return;
-                }
-            }
+            const actualPaymentMethod = finalTotal <= 0
+                ? (appliedGiftCardCode ? 'giftcard' : 'glowpoints')
+                : (selectedPaymentMethod === 'giftcard' ? giftCardSecondaryMethod : selectedPaymentMethod);
 
-            const actualPaymentMethod = selectedPaymentMethod === 'giftcard' && finalTotal > 0
-                ? giftCardSecondaryMethod
-                : selectedPaymentMethod;
-
-            const isStripePayment = actualPaymentMethod === 'stripe';
+            const isStripePayment = actualPaymentMethod === 'stripe' && finalTotal > 0;
 
             const localStart = new Date(`${selectedTime.fullDate}T${selectedTime.time}:00`);
             const start_time = localStart.toISOString();
             const end_time = new Date(localStart.getTime() + (selectedService.duration || 30) * 60000).toISOString();
 
-            // 2. Create Appointment
+            // 1. Create Appointment (atomically handles non-Stripe gift card & Glowpoints deduction)
             const bookingResponse = await fetch('/api/bookings/confirm', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     salonId: salon.id,
+                    serviceId: selectedService.id,
                     serviceName: selectedService.name,
                     practitionerId: selectedPractitioner?.id || 'owner',
                     startTime: selectedTime.time,
@@ -514,6 +483,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     },
                     paymentMethod: actualPaymentMethod,
                     rewardInfo: useGlowpoints ? selectedReward : null,
+                    giftCardCode: appliedGiftCardCode,
+                    giftCardDiscount: appliedGiftCardDiscount,
                     status: isStripePayment ? 'pending_payment' : 'confirmed',
                     start_time,
                     end_time
@@ -526,7 +497,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 return;
             }
 
-            // 3. Handle Payment Redirect if needed
+            // 2. Handle Payment Redirect if needed (gift card & Glowpoints are deducted in Stripe webhook on payment completion)
             if (isStripePayment) {
                 try {
                     const checkoutResponse = await fetch('/api/bookings/checkout', {
@@ -537,7 +508,11 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             salonId: salon.id,
                             serviceName: selectedService.name,
                             price: finalTotal,
-                            customerEmail: customerInfo.email
+                            customerEmail: customerInfo.email,
+                            customerId: customerInfo.id || undefined,
+                            giftCardCode: appliedGiftCardCode || undefined,
+                            giftCardDiscount: appliedGiftCardDiscount || undefined,
+                            rewardInfo: useGlowpoints ? selectedReward : null
                         }),
                     });
                     const checkoutData = await checkoutResponse.json();
@@ -551,6 +526,13 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         throw new Error('Ingen betalningslänk returnerades från Stripe.');
                     }
                 } catch (checkoutErr: any) {
+                    if (bookingData.appointmentId) {
+                        await fetch('/api/bookings/cancel-pending', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ appointmentId: bookingData.appointmentId })
+                        }).catch(() => {});
+                    }
                     alert('Kunde inte genomföra betalning: ' + checkoutErr.message);
                     return;
                 }
@@ -655,7 +637,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
     useEffect(() => {
         const loadSalon = async () => {
-            let salonId = params?.id;
+            let salonId = params?.id || searchParams.get('id') || '';
             if (!salonId) {
                 setSalon('not_found');
                 setStatus('ready');
@@ -696,8 +678,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 return null;
             };
 
-            // Normalize: strip special chars, lowercase
-            const normalized = salonId.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            // Normalize using shared slug transliteration (å/ä/ö safe)
+            const normalized = slugifySalonName(salonId) || salonId.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
             const isUuid = salonId.length > 30;
 
             try {
@@ -708,6 +690,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     found = await fetchById(salonId);
                 } else {
                     found = await fetchBySlug(normalized);
+                    if (!found && salonId !== normalized) {
+                        found = await fetchBySlug(salonId);
+                    }
                 }
 
                 // 2. If slug failed, also try by ID (handles cases where URL is a short UUID)
@@ -750,7 +735,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 try {
                     const localData = JSON.parse(saved);
                     const localSlug = localData.name
-                        ? localData.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+                        ? slugifySalonName(localData.name)
                         : '';
                     if (
                         localData.id === salonId ||
@@ -1058,7 +1043,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             <div className="flex items-center gap-1.5 px-3 py-1 bg-champagne-500/10 rounded-lg text-sm font-black text-champagne-600">
                                 <Star size={14} className={salon.rating ? "fill-current" : ""} />
                                 <span>{salon.rating ? salon.rating : (isNew ? 'NY' : '-')}</span>
-                                {salon.reviewCount > 0 && <span className="text-foreground/40 font-normal">({salon.reviewCount})</span>}
+                                {(salon.reviewCount ?? salon.review_count) > 0 && <span className="text-foreground/40 font-normal">({salon.reviewCount ?? salon.review_count})</span>}
                             </div>
                         </div>
                         <div className="flex items-center justify-center md:justify-start gap-4">
@@ -2025,7 +2010,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         <div className="flex justify-between items-center text-sm border-t border-border pt-4">
                                             <span className="text-foreground/40">Totalt</span>
                                             <span className="font-bold text-lg">
-                                                {selectedService?.price || successAppointment?.total_price || 0} {salon?.currency || 'kr'}
+                                                {successAppointment?.total_price ?? finalTotal ?? selectedService?.price ?? 0} {salon?.currency || 'kr'}
                                             </span>
                                         </div>
                                     </div>

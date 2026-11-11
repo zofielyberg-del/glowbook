@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { NORDIC_COUNTRIES, getMunicipalities } from "@/data/nordic-data";
 import { MEMBERSHIP_DURATIONS, calculateMembershipPrice } from "@/lib/pricing";
+import { slugifySalonName } from "@/lib/slug";
 
 // Mock Data for Categories
 const CATEGORIES = ["Naglar", "Hudvård", "Hårvård", "Massage", "Fransar & Bryn", "Estetisk Injektion", "Tatuering", "Spa", "Makeup", "Fotvård", "Kiropraktik", "Naprapati", "Tandblekning", "Piercing", "Barberare"];
@@ -38,17 +39,25 @@ export default function ProviderOnboarding() {
     const [hasPreFilledName, setHasPreFilledName] = useState(false);
 
 
-    // Initial load from sessionStorage (registration saves here)
+    // Initial load from sessionStorage or localStorage (preserves fields if returning from cancelled Stripe Checkout)
     useEffect(() => {
-        const saved = sessionStorage.getItem('glowbook_salon');
+        const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
         if (saved) {
-            const data = JSON.parse(saved);
-            setFormData(prev => ({
-                ...prev,
-                country: data.country || prev.country,
-                municipality: data.municipality || prev.municipality,
-            }));
-            if (data.country && data.municipality) setHasPreFilledLocation(true);
+            try {
+                const data = JSON.parse(saved);
+                setFormData(prev => ({
+                    ...prev,
+                    businessName: data.name && !data.name.endsWith(' Beauty') ? data.name : prev.businessName,
+                    category: data.category || prev.category,
+                    categories: Array.isArray(data.categories) ? data.categories : prev.categories,
+                    country: data.country || prev.country,
+                    municipality: data.municipality || prev.municipality,
+                    address: data.address || prev.address,
+                    tier: (data.tier || data.membership_tier || prev.tier) as any,
+                    duration: Number(data.duration) || prev.duration,
+                }));
+                if (data.country && data.municipality) setHasPreFilledLocation(true);
+            } catch {}
         }
     }, []);
 
@@ -96,7 +105,8 @@ export default function ProviderOnboarding() {
             } catch { }
         }
 
-        const salonId = initialData.id || (formData.businessName ? formData.businessName.toLowerCase().replace(/\s+/g, '-') : `studio-${Date.now()}`);
+        const cleanSlug = slugifySalonName(formData.businessName || initialData.name || '') || `studio-${Date.now().toString(36)}`;
+        const salonId = initialData.id || cleanSlug;
         // Use the actual registered email - never generate a fake one
         const salonEmail = initialData.email;
 
@@ -115,7 +125,7 @@ export default function ProviderOnboarding() {
             paidAmount: pricing.total,
             currency: currency,
             joined: initialData.created_at || new Date().toISOString().split('T')[0],
-            slug: (formData.businessName ? formData.businessName.toLowerCase().replace(/\s+/g, '-') : initialData.slug) || 'studio',
+            slug: cleanSlug,
             subscription_status: 'pending_payment'
         };
 
@@ -129,7 +139,11 @@ export default function ProviderOnboarding() {
             });
 
             const syncData = await syncResponse.json();
+            if (!syncResponse.ok || !syncData.success) {
+                throw new Error(syncData.error || 'Kunde inte spara salongsprofilen.');
+            }
             const realId = syncData.salonId || salonId;
+            const resolvedSlug = syncData.slug || cleanSlug;
 
             // 3. Create Stripe Session
             const stripeResponse = await fetch('/api/stripe/subscription', {
@@ -148,7 +162,9 @@ export default function ProviderOnboarding() {
             if (stripeData.url) {
                 setKlarnaStatus('success');
                 // Save to local storage
-                sessionStorage.setItem('glowbook_salon', JSON.stringify({ ...newSalon, id: realId }));
+                const syncedSalon = { ...newSalon, id: realId, slug: resolvedSlug };
+                sessionStorage.setItem('glowbook_salon', JSON.stringify(syncedSalon));
+                localStorage.setItem('glowbook_salon', JSON.stringify(syncedSalon));
                 
                 // Open in the same tab so sessionStorage/session state is preserved
                 setTimeout(() => {

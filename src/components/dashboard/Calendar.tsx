@@ -15,6 +15,7 @@ type TimeFrame = {
     startTime: string;
     duration: number;
     dayIndex: number;
+    week?: number | string;
     practitionerId?: string;
     practitionerIds?: string[]; // Array of qualified practitioners for this slot
 };
@@ -100,6 +101,9 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                     if (data.availability) {
                         let hasChanges = false;
                         const normalized = data.availability.map((f: any) => {
+                            if (!f || f.type === 'settings' || f.type === 'reviews' || f.type === 'hidden_customers') {
+                                return f;
+                            }
                             const hasWeekSuffix = f.week && f.id && f.id.includes(f.week);
                             if (!f.id || (f.week && !hasWeekSuffix && f.id.startsWith('frame-'))) {
                                 hasChanges = true;
@@ -138,8 +142,13 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                 };
                             }
                             
-                            const pad = (n: number) => String(n).padStart(2, '0');
-                            const startTime = `${pad(sDate.getHours())}:${pad(sDate.getMinutes())}`;
+                            const stockholmTime = new Intl.DateTimeFormat('sv-SE', {
+                                timeZone: 'Europe/Stockholm',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            }).format(sDate);
+                            const startTime = stockholmTime.slice(0, 5);
                             
                             let duration = 30;
                             if (apt.end_time) {
@@ -546,7 +555,9 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                 id: Date.now().toString() + '-before',
                 startTime: frame.startTime,
                 duration: removeStart - frameStart,
-                dayIndex: frame.dayIndex
+                dayIndex: frame.dayIndex,
+                ...(frame.week ? { week: frame.week } : {}),
+                ...((frame as any).date ? { date: (frame as any).date } : {}),
             });
         }
         if (removeEnd < frameEnd) {
@@ -554,7 +565,9 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                 id: Date.now().toString() + '-after',
                 startTime: minsToTime(removeEnd),
                 duration: frameEnd - removeEnd,
-                dayIndex: frame.dayIndex
+                dayIndex: frame.dayIndex,
+                ...(frame.week ? { week: frame.week } : {}),
+                ...((frame as any).date ? { date: (frame as any).date } : {}),
             });
         }
 
@@ -586,11 +599,12 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
         const updatedAvailability = (data.availability || []).filter((f: any) => {
             if (String(f.id) === String(frame.id)) return false;
             
+            const sameDay = f.dayIndex === frame.dayIndex;
             const sameTime = f.startTime === frame.startTime;
             const sameDuration = (f.duration || 40) === (frame.duration || 40);
             const sameWeek = (f as any).week === (frame as any).week;
             
-            if (sameTime && sameDuration && sameWeek) {
+            if (sameDay && sameTime && sameDuration && sameWeek) {
                 const otherOverlapping = getAppointmentsInFrame(f);
                 if (otherOverlapping.length > 0) return true; // Protect active bookings
                 return false;
@@ -892,7 +906,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                     <div className="h-[68px]" />
 
                                     {/* Day Slots */}
-                                    <div className="relative h-[832px]"> {/* 13 hours * 64px */}
+                                    <div className="relative h-[1152px]"> {/* 18 hours * 64px */}
                                     {/* Grid Lines — clickable to add new slot */}
                                     {hours.map((hour, i) => (
                                         <div

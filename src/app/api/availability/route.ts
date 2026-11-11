@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { startOfWeek, addDays, format, parseISO } from 'date-fns';
+import { toStockholmDate } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,7 +71,7 @@ export async function GET(req: Request) {
         const step = serviceDuration;
         const allFrames: any[] = [];
         
-        const now = new Date();
+        const now = toStockholmDate(new Date());
         const currentDayIdx = (now.getDay() + 6) % 7;
         const currentMins = now.getHours() * 60 + now.getMinutes();
         

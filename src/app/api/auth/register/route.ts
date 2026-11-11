@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
-import { sendProviderWelcomeEmail, sendCustomerWelcomeEmail } from '@/lib/email';
+import { sendCustomerWelcomeEmail } from '@/lib/email';
 import { triggerAccountCreatedReward } from '@/lib/rewards-service';
+import { slugifySalonName } from '@/lib/slug';
 
 export async function POST(req: Request) {
     try {
@@ -10,95 +11,98 @@ export async function POST(req: Request) {
 
         const normalizedEmail = (email || '').toLowerCase().trim();
 
-        if (!normalizedEmail || !firstName || !lastName || !role) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        if (!normalizedEmail || !firstName?.trim() || !lastName?.trim() || !role) {
+            return NextResponse.json({ error: 'Vänligen fyll i alla obligatoriska fält' }, { status: 400 });
         }
 
-        // 1. Check if profile already exists (case-insensitive check)
+        if (!password || String(password).trim().length < 6) {
+            return NextResponse.json({ error: 'Lösenordet måste vara minst 6 tecken långt' }, { status: 400 });
+        }
+
         const existingProfile = await prisma.profile.findFirst({
-             where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
-             select: { id: true, password_hash: true, first_name: true, last_name: true, phone: true, role: true }
+            where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+            select: { id: true, password_hash: true, first_name: true, last_name: true, phone: true, role: true },
         });
 
         if (existingProfile && existingProfile.password_hash) {
-            return NextResponse.json({ error: 'Det finns redan ett konto med denna e-postadress. Vänligen logga in.' }, { status: 400 });
+            return NextResponse.json(
+                { error: 'Det finns redan ett konto med denna e-postadress. Vänligen logga in.' },
+                { status: 400 }
+            );
         }
 
-        // 2. Create or Update Profile
-        let profile;
+        const passwordHash = hashPassword(String(password));
+        const isProvider = role === 'provider' || role === 'salon_owner';
+        const baseSlug = slugifySalonName(`${firstName} beauty`) || 'studio';
+        const uniqueSlug = `${baseSlug}-${Date.now().toString(36)}`;
+
+        let result: { profile: any; salon: any };
         try {
-            if (existingProfile) {
-                // Profile exists from guest booking (no password set yet) - activate it
-                profile = await prisma.profile.update({
-                    where: { id: existingProfile.id },
-                    data: {
-                        first_name: firstName || existingProfile.first_name,
-                        last_name: lastName || existingProfile.last_name,
-                        phone: phone || existingProfile.phone,
-                        role: role || existingProfile.role || 'customer',
-                        password_hash: password ? hashPassword(password) : null
-                    }
-                });
-            } else {
-                profile = await prisma.profile.create({
-                    data: {
-                        email: normalizedEmail,
-                        first_name: firstName,
-                        last_name: lastName,
-                        phone,
-                        role,
-                        password_hash: password ? hashPassword(password) : null
-                    }
-                });
-            }
-        } catch (profileError) {
-            console.error('Profile creation error:', profileError);
-            return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 });
+            result = await prisma.$transaction(async (tx) => {
+                let profile;
+                if (existingProfile) {
+                    profile = await tx.profile.update({
+                        where: { id: existingProfile.id },
+                        data: {
+                            first_name: firstName.trim() || existingProfile.first_name,
+                            last_name: lastName.trim() || existingProfile.last_name,
+                            phone: phone?.trim() || existingProfile.phone,
+                            role: role || existingProfile.role || 'customer',
+                            password_hash: passwordHash,
+                        },
+                    });
+                } else {
+                    profile = await tx.profile.create({
+                        data: {
+                            email: normalizedEmail,
+                            first_name: firstName.trim(),
+                            last_name: lastName.trim(),
+                            phone: phone?.trim() || null,
+                            role,
+                            password_hash: passwordHash,
+                        },
+                    });
+                }
+
+                let salon = null;
+                if (isProvider) {
+                    salon = await tx.salon.create({
+                        data: {
+                            owner_id: profile.id,
+                            name: `${firstName.trim()} Beauty`,
+                            slug: uniqueSlug,
+                            country: country || 'Sverige',
+                            municipality: municipality || '',
+                            city: municipality || '',
+                            subscription_status: 'unpaid',
+                            membership_tier: 'bas',
+                            duration: 1,
+                            practitioners: {
+                                create: {
+                                    name: firstName.trim(),
+                                    role: 'Owner',
+                                    status: 'active',
+                                },
+                            },
+                        },
+                    });
+                }
+
+                return { profile, salon };
+            });
+        } catch (txError: any) {
+            console.error('Registration transaction error:', txError);
+            return NextResponse.json(
+                { success: false, error: 'Kunde inte slutföra registreringen. Försök igen.' },
+                { status: 500 }
+            );
         }
 
-        // Award +100 welcome points to user_rewards_ledger
-        await triggerAccountCreatedReward(profile.id);
-
-        // 3. If Provider, create Salon
-        let salon = null;
-        if (role === 'provider' || role === 'salon_owner') {
+        // Award +100 welcome points for customer registrations
+        if (!isProvider) {
+            await triggerAccountCreatedReward(result.profile.id);
             try {
-                console.log(`CREATING SALON FOR USER ${profile.id}...`);
-                salon = await prisma.salon.create({
-                    data: {
-                        owner_id: profile.id,
-                        name: `${firstName} Beauty`, 
-                        slug: `${firstName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-beauty-${Date.now()}`,
-                        country: country || 'Sweden',
-                        municipality: municipality || '',
-                        city: municipality || '',
-                        subscription_status: 'unpaid',
-                        membership_tier: 'bas',
-                        practitioners: {
-                            create: {
-                                name: firstName,
-                                role: 'Owner',
-                                status: 'active'
-                            }
-                        }
-                    }
-                });
-                console.log('SALON & PRACTITIONER CREATED SUCCESSFULLY:', salon.id);
-
-                // Welcome email is sent via Stripe webhook after payment confirmation
-
-            } catch (salonError) {
-                console.error('CRITICAL SALON CREATION ERROR:', salonError);
-                return NextResponse.json({ 
-                    success: false, 
-                    error: 'Kunde inte skapa salongen i databasen: ' + String(salonError) 
-                }, { status: 500 });
-            }
-        } else if (role === 'customer') {
-            // Send Welcome Email to the Customer
-            try {
-                await sendCustomerWelcomeEmail(email, firstName);
-                console.log(`Customer welcome email successfully sent to ${email}`);
+                await sendCustomerWelcomeEmail(normalizedEmail, firstName.trim());
             } catch (emailErr) {
                 console.error('Failed to send customer welcome email:', emailErr);
             }
@@ -106,10 +110,9 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             success: true,
-            user: profile,
-            salon: salon // Now explicitly returning the created salon
+            user: result.profile,
+            salon: result.salon,
         });
-
     } catch (error) {
         console.error('Registration error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

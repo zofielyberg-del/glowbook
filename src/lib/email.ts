@@ -243,7 +243,7 @@ export const sendProviderWelcomeEmail = async (email: string, firstName: string)
         <p style="color:#2D2B2A;margin:0 0 40px 0;">Er profil är nu skapad. Ni kan omgående konfigurera er kalender, lägga till behandlingar samt anpassa er presentation för att återspegla er salongs unika karaktär.</p>
         
         <div style="margin:40px 0;">
-            <a href="https://glowbook.se/admin" style="display:inline-block;background-color:#C2A26A;color:#FFFFFF;padding:16px 40px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Gå till er Dashboard</a>
+            <a href="https://www.glowbook.se/provider" style="display:inline-block;background-color:#C2A26A;color:#FFFFFF;padding:16px 40px;border-radius:100px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Gå till er Dashboard</a>
         </div>
         
         <p style="color:#6B6965;margin:0 0 12px 0;">Om ni har några frågor eller önskar vägledning under uppstarten står vår dedikerade support alltid till er tjänst.</p>
@@ -617,7 +617,7 @@ export const sendProviderCancellationEmail = async (
         ${refundNote}
         <p>Denna tid har nu öppnats upp i din kalender så att andra kunder kan boka den.</p>
         <div style="text-align: center; margin-top: 24px;">
-            <a href="https://glowbook.se/admin/calendar" class="btn">Gå till din Kalender</a>
+            <a href="https://www.glowbook.se/provider/calendar" class="btn">Gå till din Kalender</a>
         </div>
     `;
 
@@ -664,7 +664,7 @@ export const sendProviderBookingNotification = async (
         </div>
         
         <div style="text-align: center; margin-top: 40px;">
-            <a href="https://glowbook.se/admin/calendar" style="display:inline-block;background-color:#C2A26A;color:#FFFFFF;padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Visa i Kalendern</a>
+            <a href="https://www.glowbook.se/provider/calendar" style="display:inline-block;background-color:#C2A26A;color:#FFFFFF;padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Visa i Kalendern</a>
         </div>
     `;
 

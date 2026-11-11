@@ -128,7 +128,7 @@ const MORE_CATEGORIES: { id: string; nameKey: string; descKey: string; href: str
   {
     id: 'piercing',
     nameKey: 'cat_piercing_name',
-    descKey: 'cat_teeth_desc',
+    descKey: 'cat_piercing_desc',
     href: '/explore?category=Piercing',
     img: '/assets/piercing_new.jpg',
     icon: <CircleDot size={20} />,
@@ -229,8 +229,8 @@ export default function Home() {
         return tB - tA;
       });
 
-      // Merge results, removing duplicates by name
-      const allResults = [...staticMatches];
+      // Merge results, prioritizing local draft, real DB salons, then category suggestions
+      const allResults = [...localMatches, ...formattedDb, ...staticMatches];
       const uniqueResults: any[] = [];
       const seenNames = new Set();
       
