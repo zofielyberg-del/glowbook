@@ -81,6 +81,30 @@ export async function GET(req: Request) {
             }
         }
 
+        // Merge manually added salon directory customers (stored in availability metadata)
+        const manualBlock: any = currentAvail.find((a: any) => a && a.type === 'manual_customers');
+        const manualCustomers: any[] = Array.isArray(manualBlock?.customers) ? manualBlock.customers : [];
+        for (const mc of manualCustomers) {
+            const emailKey = (mc.email || '').toLowerCase().trim();
+            const mcIdStr = mc.id ? String(mc.id) : '';
+            if (hiddenEmails.has(emailKey) || (mcIdStr && hiddenIds.has(mcIdStr))) {
+                continue;
+            }
+            const key = emailKey || mc.phone || mcIdStr;
+            if (!key || customerMap[key]) continue;
+            customerMap[key] = {
+                id: mc.id || key,
+                firstName: mc.firstName || 'Kund',
+                lastName: mc.lastName || '',
+                email: mc.email || '',
+                phone: mc.phone || '-',
+                lastVisit: mc.lastVisit || '-',
+                totalBookings: mc.totalBookings || 0,
+                totalCancellations: mc.totalCancellations || 0,
+                status: mc.status || 'Aktiv'
+            };
+        }
+
         return NextResponse.json({
             success: true,
             customers: Object.values(customerMap)
@@ -118,9 +142,19 @@ export async function DELETE(req: Request) {
         const updatedEmails = Array.from(new Set([...existingEmails, normalizedEmail])).filter(Boolean);
         const updatedIds = customerId ? Array.from(new Set([...existingIds, String(customerId)])) : existingIds;
 
-        const otherBlocks = currentAvail.filter((a: any) => !a || a.type !== 'hidden_customers');
+        const existingManualBlock: any = currentAvail.find((a: any) => a && a.type === 'manual_customers');
+        const existingManual: any[] = Array.isArray(existingManualBlock?.customers) ? existingManualBlock.customers : [];
+        const filteredManual = existingManual.filter((mc: any) => {
+            const mcEmail = (mc.email || '').toLowerCase().trim();
+            if (normalizedEmail && mcEmail === normalizedEmail) return false;
+            if (customerId && String(mc.id) === String(customerId)) return false;
+            return true;
+        });
+
+        const otherBlocks = currentAvail.filter((a: any) => !a || (a.type !== 'hidden_customers' && a.type !== 'manual_customers'));
         const newAvailability = [
             ...otherBlocks,
+            ...(existingManualBlock ? [{ type: 'manual_customers', customers: filteredManual }] : []),
             {
                 type: 'hidden_customers',
                 emails: updatedEmails,
@@ -143,5 +177,72 @@ export async function DELETE(req: Request) {
     } catch (error: any) {
         console.error('Error removing customer from salon:', error);
         return NextResponse.json({ error: error.message || 'Kunde inte ta bort kunden.' }, { status: 500 });
+    }
+}
+
+export async function POST(req: Request) {
+    try {
+        const { salonId, firstName, lastName, email, phone } = await req.json();
+
+        if (!salonId || (!email && !firstName)) {
+            return NextResponse.json({ error: 'salonId samt namn eller e-post krävs' }, { status: 400 });
+        }
+
+        const salon = await prisma.salon.findUnique({
+            where: { id: salonId },
+            select: { availability: true }
+        });
+
+        if (!salon) {
+            return NextResponse.json({ error: 'Salong hittades inte' }, { status: 404 });
+        }
+
+        const currentAvail: any[] = Array.isArray(salon.availability) ? salon.availability : [];
+        const manualBlock: any = currentAvail.find((a: any) => a && a.type === 'manual_customers');
+        const existingManual: any[] = Array.isArray(manualBlock?.customers) ? manualBlock.customers : [];
+
+        const normalizedEmail = (email || '').trim().toLowerCase();
+        const newCustomer = {
+            id: `cust_${Date.now()}`,
+            firstName: (firstName || 'Kund').trim(),
+            lastName: (lastName || '').trim(),
+            email: (email || '').trim(),
+            phone: (phone || '-').trim(),
+            lastVisit: '-',
+            totalBookings: 0,
+            totalCancellations: 0,
+            status: 'Aktiv'
+        };
+
+        const filteredManual = existingManual.filter(
+            (c: any) => !normalizedEmail || (c.email || '').trim().toLowerCase() !== normalizedEmail
+        );
+        const updatedManual = [...filteredManual, newCustomer];
+
+        // Also un-hide if this email was previously deleted/hidden
+        const hiddenBlock: any = currentAvail.find((a: any) => a && a.type === 'hidden_customers');
+        const updatedHidden = hiddenBlock
+            ? {
+                ...hiddenBlock,
+                emails: (hiddenBlock.emails || []).filter((e: string) => (e || '').toLowerCase().trim() !== normalizedEmail)
+            }
+            : null;
+
+        const otherBlocks = currentAvail.filter((a: any) => !a || (a.type !== 'manual_customers' && a.type !== 'hidden_customers'));
+        const newAvailability = [
+            ...otherBlocks,
+            ...(updatedHidden ? [updatedHidden] : []),
+            { type: 'manual_customers', customers: updatedManual }
+        ];
+
+        await prisma.salon.update({
+            where: { id: salonId },
+            data: { availability: newAvailability }
+        });
+
+        return NextResponse.json({ success: true, customer: newCustomer });
+    } catch (error: any) {
+        console.error('Error adding customer to salon:', error);
+        return NextResponse.json({ error: error.message || 'Kunde inte spara kunden.' }, { status: 500 });
     }
 }

@@ -110,9 +110,11 @@ export async function POST(req: Request) {
             }
         }
 
-        // 2. Create or update customer profile
+        const isPlaceholderEmail = String(customerInfo.email || '').toLowerCase().endsWith('@noemail.glowbook.se');
+
+        // 2. Create or update customer profile (skip dummy manual-booking emails)
         let profileId: string | undefined;
-        try {
+        if (!isPlaceholderEmail) try {
             const existingProfile = await prisma.profile.findUnique({
                 where: { email: customerInfo.email },
                 select: { id: true, role: true, password_hash: true }
@@ -445,7 +447,7 @@ export async function POST(req: Request) {
             }
 
             try {
-                if (customerInfo.email) {
+                if (customerInfo.email && !isPlaceholderEmail) {
                     await sendCustomerBookingConfirmation(
                         customerInfo.email,
                         `${customerInfo.firstName} ${customerInfo.lastName}`,
@@ -468,7 +470,7 @@ export async function POST(req: Request) {
             }
 
             try {
-                if (providerEmail) {
+                if (providerEmail && !isPlaceholderEmail) {
                     await sendProviderBookingNotification(
                         providerEmail,
                         salonName,

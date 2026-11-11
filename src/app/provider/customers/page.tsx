@@ -144,19 +144,19 @@ export default function CustomersPage() {
         };
     }, []);
 
-    const handleInviteSubmit = (e: React.FormEvent) => {
+    const handleInviteSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         if (saved) {
             const data = JSON.parse(saved);
             const localCusts = data.customers || [];
             
-            const nameParts = inviteName.split(' ');
+            const nameParts = inviteName.trim().split(' ');
             const firstName = nameParts[0] || 'Ny';
-            const lastName = nameParts.slice(1).join(' ') || 'Kund';
+            const lastName = nameParts.slice(1).join(' ') || '';
 
-            const newCust = {
+            let savedCust = {
                 id: Date.now().toString(),
                 firstName,
                 lastName,
@@ -165,19 +165,32 @@ export default function CustomersPage() {
                 lastVisit: '-',
                 totalBookings: 0,
                 totalCancellations: 0,
-                status: 'Active'
+                status: 'Aktiv'
             };
+
+            if (data.id) {
+                try {
+                    const res = await fetch('/api/salons/customers', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            salonId: data.id,
+                            firstName,
+                            lastName,
+                            email: inviteEmail,
+                            phone: invitePhone || '-'
+                        })
+                    });
+                    const json = await res.json();
+                    if (res.ok && json.customer) savedCust = json.customer;
+                } catch (err) {
+                    console.error('Failed to save customer to database:', err);
+                }
+            }
             
-            data.customers = [...localCusts, newCust];
+            data.customers = [...localCusts, savedCust];
             localStorage.setItem('glowbook_salon', JSON.stringify(data));
             sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
-            
-            // Trigger API sync if exists
-            fetch('/api/salons/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            }).catch(err => console.error('Failed to sync invitation:', err));
 
             window.dispatchEvent(new Event('glowbook_update'));
             loadCustomers();

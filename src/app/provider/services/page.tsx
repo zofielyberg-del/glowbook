@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import Header from "@/components/layout/Header";
 import { Plus, Search, Clock, DollarSign, Edit, Trash2, Camera, Image as ImageIcon, X, Check, Save, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
@@ -173,9 +174,15 @@ export default function ServicesPage() {
             const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
             const baseData = saved ? JSON.parse(saved) : {};
 
+            if (!baseData.id || baseData.id === 'undefined') {
+                setSaveStatus('error');
+                setIsSaving(false);
+                return;
+            }
+
             const payload = {
                 ...baseData,
-                id: baseData.id && baseData.id !== 'undefined' ? baseData.id : 'luxe-by-essi',
+                id: baseData.id,
                 services: updatedServices,
                 practitioners: practitioners
             };
@@ -194,6 +201,19 @@ export default function ServicesPage() {
             });
 
             if (response.ok) {
+                const resData = await response.json().catch(() => null);
+                if (resData?.services && Array.isArray(resData.services)) {
+                    const synced = resData.services.map((s: any) => ({
+                        ...s,
+                        duration: s.duration ?? s.duration_minutes ?? 30,
+                        price: Number(s.price),
+                        sale_price: s.sale_price !== null && s.sale_price !== undefined ? Number(s.sale_price) : null
+                    }));
+                    setServices(synced);
+                    const nextStorage = { ...payload, services: synced };
+                    localStorage.setItem('glowbook_salon', JSON.stringify(nextStorage));
+                    sessionStorage.setItem('glowbook_salon', JSON.stringify(nextStorage));
+                }
                 setSaveStatus('success');
                 // Trigger event to sync other pages
                 window.dispatchEvent(new Event('glowbook_update'));
@@ -329,7 +349,7 @@ export default function ServicesPage() {
             setShowCustomCategoryInput(false);
             setCustomCategoryName('');
         }
-        setDiscountType('amount');
+        setDiscountType('price');
         setDiscountValue(s.sale_price ? s.sale_price.toString() : '');
         setIsModalOpen(true);
     };
@@ -354,8 +374,9 @@ export default function ServicesPage() {
     const currentPlaceholder = PLACEHOLDERS[category as keyof typeof PLACEHOLDERS] || PLACEHOLDERS["Naglar"];
 
     return (
-        <div className="min-h-screen bg-background p-8 pt-24 md:pt-8 md:ml-64 transition-colors duration-300">
-            <div className="max-w-6xl mx-auto space-y-12">
+        <div className="min-h-screen bg-[#faf8f5] dark:bg-[#0c0c0a] text-foreground transition-colors duration-300">
+            <Header />
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16 space-y-12">
 
 
                 {/* Services Section */}

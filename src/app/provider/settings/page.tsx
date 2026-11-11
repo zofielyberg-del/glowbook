@@ -131,6 +131,12 @@ function SettingsContent() {
             policy: '',
             preparation: ''
         } as { directions: string; policy: string; preparation: string },
+        notificationSettings: {
+            newBookings: true,
+            cancellations: true,
+            reminders: false,
+            marketing: false
+        },
         is_rewards_enabled: false,
         custom_rewards: null as RewardTier[] | null
     });
@@ -146,6 +152,7 @@ function SettingsContent() {
     const [showCategorySelector, setShowCategorySelector] = useState(false);
     const [scheduleBuffer, setScheduleBuffer] = useState<any>({});
     const [uploadedDiploma, setUploadedDiploma] = useState<string | null>(null);
+    const [uploadedDiplomaFile, setUploadedDiplomaFile] = useState<File | null>(null);
     const [verificationCategory, setVerificationCategory] = useState('Naglar');
     const [loyaltyState, setLoyaltyState] = useState<ProviderLoyaltyState>(getDefaultLoyaltyState());
 
@@ -181,6 +188,7 @@ function SettingsContent() {
     };
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
     const [isDisconnectingStripe, setIsDisconnectingStripe] = useState(false);
+    const [stripeDetailsSubmitted, setStripeDetailsSubmitted] = useState<boolean>(true);
     const [stripeOnboardUrl, setStripeOnboardUrl] = useState<string | null>(null);
     const [stripeConnectError, setStripeConnectError] = useState<string | null>(null);
     const [showTroubleshoot, setShowTroubleshoot] = useState(false);
@@ -218,9 +226,18 @@ function SettingsContent() {
                     categories: additionalCategories,
                     isVerified: salon.is_verified !== undefined ? salon.is_verified : (salon.isVerified || false),
                     is_verified: salon.is_verified !== undefined ? salon.is_verified : (salon.isVerified || false),
+                    verificationStatus: (salon.is_verified || salon.isVerified)
+                        ? ('active' as const)
+                        : (salon.verification_requested ? ('pending' as const) : (salon.verificationStatus || 'none' as const)),
                     verifiedCategories: salon.verified_categories || salon.verifiedCategories || [],
                     openingHoursType: hoursSettings?.openingHoursType || 'dynamic',
                     customOpeningHours: hoursSettings?.customOpeningHours || '',
+                    notificationSettings: {
+                        newBookings: hoursSettings?.notificationSettings?.newBookings ?? true,
+                        cancellations: hoursSettings?.notificationSettings?.cancellations ?? true,
+                        reminders: hoursSettings?.notificationSettings?.reminders ?? false,
+                        marketing: hoursSettings?.notificationSettings?.marketing ?? false
+                    },
                     stripeConnected: !!salon.stripe_account_id,
                     tier: (salon.tier || salon.membership_tier || 'pro').toLowerCase(),
                     messageTemplates: {
@@ -287,6 +304,16 @@ function SettingsContent() {
                         setComparisonDuration(parsedFresh.duration || 1);
                         if (parsedFresh.category) {
                             setVerificationCategory(parsedFresh.category);
+                        }
+                        if (parsedFresh.stripeConnected && parsedFresh.id) {
+                            fetch(`/api/stripe/connect/onboard?salonId=${parsedFresh.id}`)
+                                .then(r => r.json())
+                                .then(st => {
+                                    if (typeof st.detailsSubmitted === 'boolean') {
+                                        setStripeDetailsSubmitted(st.detailsSubmitted);
+                                    }
+                                })
+                                .catch(() => {});
                         }
                         
                         setTimeout(() => {
@@ -482,8 +509,10 @@ function SettingsContent() {
             openingHoursSettings: {
                 type: 'settings',
                 openingHoursType: (dataToSave as any).openingHoursType || 'dynamic',
-                customOpeningHours: (dataToSave as any).customOpeningHours || ''
-            }
+                customOpeningHours: (dataToSave as any).customOpeningHours || '',
+                notificationSettings: (dataToSave as any).notificationSettings
+            },
+            notificationSettings: (dataToSave as any).notificationSettings
         };
         
         // Critical fix: Never send availability or services from the settings tab to prevent overwriting with stale data
@@ -820,8 +849,10 @@ function SettingsContent() {
             });
             const data = await response.json();
             if (data.url) {
-                if (salonData.stripeConnected) {
+                if (salonData.stripeConnected && stripeDetailsSubmitted) {
                     window.open(data.url, '_blank');
+                } else if (salonData.stripeConnected && !stripeDetailsSubmitted) {
+                    window.location.href = data.url;
                 } else {
                     setStripeOnboardUrl(data.url);
                 }
@@ -2423,11 +2454,20 @@ function SettingsContent() {
                                                     </div>
                                                     <div className="flex-1 space-y-2">
                                                         <div className="flex flex-wrap items-center gap-3">
-                                                            <h3 className="font-heading font-black text-2xl text-foreground">Du är ansluten till online-betalningar</h3>
-                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase rounded-full tracking-widest border border-emerald-500/20 animate-pulse">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                                Aktiv & Kopplad
-                                                            </span>
+                                                            <h3 className="font-heading font-black text-2xl text-foreground">
+                                                                {stripeDetailsSubmitted ? 'Du är ansluten till online-betalningar' : 'Slutför din Stripe-anslutning'}
+                                                            </h3>
+                                                            {stripeDetailsSubmitted ? (
+                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase rounded-full tracking-widest border border-emerald-500/20 animate-pulse">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                    Aktiv & Kopplad
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase rounded-full tracking-widest border border-amber-500/30">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                    Verifiering ej slutförd
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <p className="text-sm text-foreground/80 leading-relaxed max-w-xl">
                                                             Kunder kan nu betala med kort och Klarna direkt vid bokning. Pengarna sätts in säkert på ditt bankkonto.
@@ -2625,22 +2665,39 @@ function SettingsContent() {
 
                                     <div className="space-y-4">
                                         {[
-                                            { label: t('notif_new_bookings'), desc: t('notif_new_bookings_desc'), defaultOn: true },
-                                            { label: t('notif_cancellations'), desc: t('notif_cancellations_desc'), defaultOn: true },
-                                            { label: t('notif_reminders'), desc: t('notif_reminders_desc'), defaultOn: false },
-                                            { label: t('notif_marketing'), desc: t('notif_marketing_desc'), defaultOn: false },
-                                        ].map((item, i) => (
-                                            <div key={i} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
-                                                <div>
-                                                    <p className="font-bold text-foreground text-sm">{item.label}</p>
-                                                    <p className="text-xs text-foreground/40">{item.desc}</p>
+                                            { key: 'newBookings' as const, label: t('notif_new_bookings'), desc: t('notif_new_bookings_desc') },
+                                            { key: 'cancellations' as const, label: t('notif_cancellations'), desc: t('notif_cancellations_desc') },
+                                            { key: 'reminders' as const, label: t('notif_reminders'), desc: t('notif_reminders_desc') },
+                                            { key: 'marketing' as const, label: t('notif_marketing'), desc: t('notif_marketing_desc') },
+                                        ].map((item) => {
+                                            const checked = (salonData as any).notificationSettings?.[item.key] ?? (item.key === 'newBookings' || item.key === 'cancellations');
+                                            return (
+                                                <div key={item.key} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                                                    <div>
+                                                        <p className="font-bold text-foreground text-sm">{item.label}</p>
+                                                        <p className="text-xs text-foreground/40">{item.desc}</p>
+                                                    </div>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={(e) => {
+                                                                hasUnsavedChanges.current = true;
+                                                                setSalonData({
+                                                                    ...salonData,
+                                                                    notificationSettings: {
+                                                                        ...((salonData as any).notificationSettings || {}),
+                                                                        [item.key]: e.target.checked
+                                                                    }
+                                                                });
+                                                            }}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <div className="w-11 h-6 bg-background border border-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-card after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-foreground transition-colors"></div>
+                                                    </label>
                                                 </div>
-                                                <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" defaultChecked={item.defaultOn} className="sr-only peer" />
-                                                    <div className="w-11 h-6 bg-background border border-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-card after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-foreground transition-colors"></div>
-                                                </label>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </section>
 
@@ -3119,9 +3176,12 @@ function SettingsContent() {
                                             onChange={(e) => {
                                                 const file = e.target.files?.[0];
                                                 if (file) {
-                                                    const reader = new FileReader();
-                                                    reader.onloadend = () => setUploadedDiploma(reader.result as string);
-                                                    reader.readAsDataURL(file);
+                                                    if (file.size > 5 * 1024 * 1024) {
+                                                        alert('Filen är för stor. Max 5 MB.');
+                                                        return;
+                                                    }
+                                                    setUploadedDiplomaFile(file);
+                                                    setUploadedDiploma(file.name);
                                                 }
                                             }}
                                         />
@@ -3150,39 +3210,57 @@ function SettingsContent() {
                                         </p>
                                     </div>
                                     <button
-                                        disabled={!uploadedDiploma || isSubmittingVerification}
-                                        onClick={() => {
+                                        disabled={!uploadedDiplomaFile || isSubmittingVerification}
+                                        onClick={async () => {
+                                            if (!uploadedDiplomaFile || !salonData.id) return;
                                             setIsSubmittingVerification(true);
-                                            setTimeout(() => {
+                                            try {
+                                                const formData = new FormData();
+                                                formData.append('file', uploadedDiplomaFile);
+                                                const uploadRes = await fetch('/api/blob/upload', {
+                                                    method: 'POST',
+                                                    body: formData
+                                                });
+                                                const uploadJson = await uploadRes.json();
+                                                if (!uploadRes.ok || !uploadJson.url) {
+                                                    throw new Error(uploadJson.error || 'Uppladdningen misslyckades');
+                                                }
+
+                                                const updateRes = await fetch('/api/salons/update', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        id: salonData.id,
+                                                        verification_requested: true,
+                                                        verificationDocumentUrl: uploadJson.url,
+                                                        verificationCategory
+                                                    })
+                                                });
+                                                if (!updateRes.ok) {
+                                                    const uJson = await updateRes.json().catch(() => ({}));
+                                                    throw new Error(uJson.error || 'Kunde inte spara verifieringsansökan');
+                                                }
+
                                                 const updatedSalonState = {
                                                     ...salonData,
-                                                    verificationStatus: 'pending' as const,
-                                                    id: salonData.id || (salonData.name ? salonData.name.toLowerCase().replace(/\s+/g, '-') : `salon-${Date.now()}`)
+                                                    verification_requested: true,
+                                                    verificationStatus: 'pending' as const
                                                 };
                                                 setSalonData(updatedSalonState);
                                                 localStorage.setItem('glowbook_salon', JSON.stringify(updatedSalonState));
-
-                                                const existingRequests = JSON.parse(localStorage.getItem('glowbook_verification_requests') || '[]');
-                                                const request = {
-                                                    id: `ver_${Date.now()}`,
-                                                    providerName: salonData.name || 'Okänd',
-                                                    salonName: (salonData as any).salon || salonData.name || 'Okänd salong',
-                                                    email: salonData.email || '',
-                                                    diplomaFile: uploadedDiploma,
-                                                    submittedAt: new Date().toISOString(),
-                                                    status: 'pending' as const,
-                                                    category: verificationCategory,
-                                                    categories: salonData.practitioners?.flatMap((p: any) => p.categories || []) || []
-                                                };
-                                                localStorage.setItem('glowbook_verification_requests', JSON.stringify([...existingRequests, request]));
+                                                sessionStorage.setItem('glowbook_salon', JSON.stringify(updatedSalonState));
 
                                                 setIsVerificationModalOpen(false);
-                                                setIsSubmittingVerification(false);
                                                 setUploadedDiploma(null);
+                                                setUploadedDiplomaFile(null);
                                                 setSavedSuccess(true);
                                                 setTimeout(() => setSavedSuccess(false), 3000);
                                                 window.dispatchEvent(new Event('glowbook_update'));
-                                            }, 2000);
+                                            } catch (err: any) {
+                                                alert(err.message || 'Ett fel uppstod vid uppladdning.');
+                                            } finally {
+                                                setIsSubmittingVerification(false);
+                                            }
                                         }}
                                         className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
                                     >

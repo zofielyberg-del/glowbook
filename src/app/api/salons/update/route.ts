@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { emitAvailabilityUpdate } from '@/lib/realtime';
 import { slugifySalonName } from '@/lib/slug';
 
-const METADATA_AVAILABILITY_TYPES = new Set(['reviews', 'hidden_customers', 'settings']);
+const METADATA_AVAILABILITY_TYPES = new Set(['reviews', 'hidden_customers', 'settings', 'manual_customers', 'verification']);
 
 async function resolveUniqueSlug(baseRaw: string, excludeSalonId?: string): Promise<string> {
     const base = slugifySalonName(baseRaw) || `studio-${Date.now().toString(36)}`;
@@ -64,10 +64,32 @@ export async function POST(req: Request) {
                 finalAvailability = [...incomingAvail, ...preservedMeta];
             }
 
-            if (salonInfo.openingHoursSettings) {
+            if (salonInfo.openingHoursSettings || salonInfo.notificationSettings) {
                 const currentAvail = Array.isArray(finalAvailability) ? finalAvailability : [];
+                const existingSettings = currentAvail.find((a: any) => a && a.type === 'settings') || { type: 'settings' };
+                const mergedSettings = {
+                    ...existingSettings,
+                    type: 'settings',
+                    ...(salonInfo.openingHoursSettings || {}),
+                    ...(salonInfo.notificationSettings ? { notificationSettings: salonInfo.notificationSettings } : {}),
+                };
                 const filteredAvail = currentAvail.filter((a: any) => a && a.type !== 'settings');
-                finalAvailability = [...filteredAvail, salonInfo.openingHoursSettings];
+                finalAvailability = [...filteredAvail, mergedSettings];
+            }
+
+            if (salonInfo.verificationDocumentUrl) {
+                const currentAvail = Array.isArray(finalAvailability) ? finalAvailability : [];
+                const filteredAvail = currentAvail.filter((a: any) => a && a.type !== 'verification');
+                finalAvailability = [
+                    ...filteredAvail,
+                    {
+                        type: 'verification',
+                        documentUrl: salonInfo.verificationDocumentUrl,
+                        category: salonInfo.verificationCategory || '',
+                        submittedAt: new Date().toISOString()
+                    }
+                ];
+                salonInfo.verification_requested = true;
             }
 
             const rawSlugSource = salonInfo.slug || (salonInfo.name ? salonInfo.name : existing?.slug) || '';

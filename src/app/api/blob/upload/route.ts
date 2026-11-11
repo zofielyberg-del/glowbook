@@ -12,9 +12,13 @@ export async function POST(request: Request): Promise<NextResponse> {
             return NextResponse.json({ error: 'Ingen fil skickades' }, { status: 400 });
         }
 
-        // Validate content type is an image
-        if (!file.type.startsWith('image/')) {
-            return NextResponse.json({ error: 'Filen måste vara en bild' }, { status: 400 });
+        // Validate file type (images + PDF certificates) & 5MB size cap
+        const isAllowedType = file.type.startsWith('image/') || file.type === 'application/pdf';
+        if (!isAllowedType) {
+            return NextResponse.json({ error: 'Filen måste vara en bild (JPG/PNG) eller PDF' }, { status: 400 });
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            return NextResponse.json({ error: 'Filen får vara max 5 MB stor' }, { status: 400 });
         }
 
         // Upload the file to Vercel Blob

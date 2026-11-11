@@ -364,7 +364,7 @@ export default function ProviderDashboard() {
         }
     };
 
-    const handleCreateBooking = (e: React.FormEvent) => {
+    const handleCreateBooking = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (modalMode === 'share') {
@@ -376,17 +376,67 @@ export default function ProviderDashboard() {
             return;
         }
 
-        const saved = localStorage.getItem('glowbook_salon');
+        const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
         const data = saved ? JSON.parse(saved) : {};
         const appointments = data.appointments || [];
 
+        const matchedService = services.find((s: any) => s.name === bookingData.service);
+        const durationMins = Number(bookingData.duration || matchedService?.duration || matchedService?.duration_minutes || 60);
+        const servicePrice = Number(matchedService?.sale_price ?? matchedService?.price ?? 0);
+
         const startUtc = getStockholmDate(bookingData.date, bookingData.startTime);
         const start_time = startUtc.toISOString();
-        const end_time = new Date(startUtc.getTime() + (bookingData.duration || 60) * 60000).toISOString();
+        const end_time = new Date(startUtc.getTime() + durationMins * 60000).toISOString();
+
+        const nameParts = (bookingData.clientName || 'Kund').trim().split(' ');
+        const firstName = nameParts[0] || 'Kund';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        let dbAppointmentId = Date.now().toString();
+        if (data.id) {
+            try {
+                const res = await fetch('/api/bookings/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        salonId: data.id,
+                        serviceId: matchedService?.id,
+                        serviceName: bookingData.service || 'Manuell bokning',
+                        practitionerId: 'owner',
+                        startTime: bookingData.startTime,
+                        date: bookingData.date,
+                        duration: durationMins,
+                        price: servicePrice,
+                        customerInfo: {
+                            firstName,
+                            lastName,
+                            email: `manual-${Date.now()}@noemail.glowbook.se`,
+                            phone: '-',
+                            isLoggedIn: false
+                        },
+                        paymentMethod: 'onsite',
+                        status: 'confirmed',
+                        start_time,
+                        end_time
+                    })
+                });
+                const resJson = await res.json();
+                if (!res.ok) {
+                    alert(resJson.error || 'Kunde inte spara bokningen i databasen.');
+                    return;
+                }
+                if (resJson.appointmentId) dbAppointmentId = resJson.appointmentId;
+            } catch (err) {
+                console.error('Failed persisting manual booking:', err);
+            }
+        }
 
         const newApt = {
-            id: Date.now().toString(),
+            id: dbAppointmentId,
             ...bookingData,
+            duration: durationMins,
+            price: servicePrice,
+            status: 'confirmed',
             start_time,
             end_time,
             color: 'bg-pink-100/95 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800/60 text-pink-800 dark:text-pink-300 shadow-sm'
@@ -524,25 +574,7 @@ export default function ProviderDashboard() {
             console.error('Failed to sync appointment completion to DB:', e);
         }
 
-        // 3. Grant Loyalty Points if customer ID exists
-        if (apt.customerId || apt.clientEmail) {
-            try {
-                await fetch('/api/loyalty/earn', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: apt.customerId,
-                        email: apt.clientEmail,
-                        salonId: data.id,
-                        amount: apt.price || apt.total_price || 0,
-                        bookingId: apt.id,
-                        description: `Behandling: ${apt.service || apt.service_name}`
-                    }),
-                });
-            } catch (e) {
-                console.error('Failed to grant loyalty points:', e);
-            }
-        }
+        // Points are granted when confirmed/paid and via /api/bookings/complete; avoid double-awarding here.
 
         // 4. Persist updated status to localStorage/sessionStorage
         const updated = { ...data, appointments: updatedAppointments };
