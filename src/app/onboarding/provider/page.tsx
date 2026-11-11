@@ -478,7 +478,7 @@ export default function ProviderOnboarding() {
                                     <div className="space-y-4">
                                         {[
                                             { id: 'bas', label: 'Bas', desc: 'För dig som precis startat', features: ['Bokningskalender', 'Standardprofil', 'Begränsad synlighet i sök', 'Endast lokalt synlig'], limit: 'Max 20 bokningar/mån' },
-                                            { id: 'pro', label: 'PRO', desc: 'Väx snabbare & syns mer', features: ['Syns högre i sök', 'Syns i "Upptäck"', 'Glow-tag (Kort länk)', 'SMS-påminnelser', 'Obegränsade bokningar'], popular: true },
+                                            { id: 'pro', label: 'PRO', desc: 'Väx snabbare & syns mer', features: ['Syns högre i sök', 'Syns i "Upptäck"', 'Glow-tag (Kort länk)', 'E-postpåminnelser (24h innan)', 'Obegränsade bokningar'], popular: true },
                                             { id: 'luxe', label: 'LUXE', desc: 'För premium-studion', features: ['Högsta ranking (VIP)', 'Featured i din stad', 'Glow-tag (Kort länk)', 'Flera utförare (Team)', 'VIP Support'], note: '349kr/mån' }
                                         ].map((tier) => {
                                             const tValue = tier.id as 'bas' | 'pro' | 'luxe';

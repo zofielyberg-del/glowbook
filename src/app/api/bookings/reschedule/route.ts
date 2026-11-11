@@ -88,7 +88,8 @@ export async function POST(req: Request) {
                     data: {
                         booking_date: new Date(newDate),
                         start_time: startDateTime,
-                        end_time: endDateTime
+                        end_time: endDateTime,
+                        reminder_sent_at: null
                     }
                 });
             });

@@ -135,9 +135,10 @@ model Appointment {
   status          String?       @default("pending")
   payment_method  String?
   payment_id      String?
-  total_price     Decimal?
-  currency        String?       @default("SEK")
-  created_at      DateTime?     @default(now())
+  total_price      Decimal?
+  currency         String?       @default("SEK")
+  reminder_sent_at DateTime?
+  created_at       DateTime?     @default(now())
   customer        Profile?      @relation(fields: [customer_id], references: [id])
   practitioner    Practitioner? @relation(fields: [practitioner_id], references: [id])
   salon           Salon?        @relation(fields: [salon_id], references: [id], onDelete: Cascade)

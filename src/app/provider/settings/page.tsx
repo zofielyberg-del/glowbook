@@ -1591,7 +1591,7 @@ function SettingsContent() {
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         {[
                                             { key: 'bas', label: 'Bas', price: TIER_PRICES.bas, perks: ['Bokningskalender', 'Standardprofil', 'Begränsad synlighet', 'Endast lokalt synlig'], limit: 'Max 20 bokn/Mån', desc: t('label_tier_start_desc') },
-                                            { key: 'pro', label: 'PRO', price: TIER_PRICES.pro, perks: ['Syns högre i sök', 'Syns i "Upptäck"', 'Glow-tag (Kort länk)', 'SMS-påminnelser', 'Obegränsade bokningar'], popular: true, desc: t('label_tier_pro_desc') },
+                                            { key: 'pro', label: 'PRO', price: TIER_PRICES.pro, perks: ['Syns högre i sök', 'Syns i "Upptäck"', 'Glow-tag (Kort länk)', 'E-postpåminnelser (24h innan)', 'Obegränsade bokningar'], popular: true, desc: t('label_tier_pro_desc') },
                                             { key: 'luxe', label: 'LUXE', price: TIER_PRICES.luxe, perks: ['Högsta ranking (VIP)', 'Featured i din stad', 'Glow-tag (Kort länk)', 'Flera utförare (Team)', 'VIP Support'], note: 'Bäst för salonger', desc: t('label_tier_studio_desc') },
                                         ].map((p: { key: string; label: string; price: number; perks: string[]; popular?: boolean; limit?: string; note?: string; desc: string }) => {
                                             const pricing = calculateMembershipPrice(p.key, comparisonDuration);

@@ -516,6 +516,70 @@ export const sendCustomerRescheduleEmail = async (
 };
 
 /**
+ * 2e. 24-hour Pre-Visit Email Reminder for Customers
+ */
+export const sendCustomerReminderEmail = async (
+    email: string,
+    customerName: string,
+    salonName: string,
+    serviceName: string,
+    dateStr: string,
+    timeStr: string,
+    appointmentId?: string,
+    address?: string,
+    practitionerName?: string,
+    messageTemplates?: { directions?: string; policy?: string; preparation?: string } | null
+) => {
+    const manageUrl = appointmentId
+        ? `https://www.glowbook.se/booking/manage/${appointmentId}`
+        : 'https://www.glowbook.se/profile';
+
+    const templateBlocks = [
+        messageTemplates?.directions
+            ? `<p style="margin: 8px 0 0 0;"><strong>Vägbeskrivning:</strong> ${messageTemplates.directions}</p>`
+            : '',
+        messageTemplates?.preparation
+            ? `<p style="margin: 8px 0 0 0;"><strong>Inför besöket:</strong> ${messageTemplates.preparation}</p>`
+            : '',
+    ]
+        .filter(Boolean)
+        .join('');
+
+    const htmlContent = `
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Påminnelse inför ditt besök</h1>
+        <p>Hej ${customerName},</p>
+        <p>Detta är en vänlig påminnelse om att du har en kommande behandling bokad hos <strong>${salonName}</strong> inom kort.</p>
+
+        <div class="card">
+            <div class="label">Behandling</div>
+            <div class="value">${serviceName}</div>
+
+            <div class="label">Datum & Tid</div>
+            <div class="value" style="text-transform: capitalize;">${dateStr} kl. ${timeStr}</div>
+
+            ${practitionerName ? `<div class="label">Utförare</div><div class="value">${practitionerName}</div>` : ''}
+            ${address ? `<div class="label">Adress</div><div class="value">${address}</div>` : ''}
+        </div>
+
+        ${templateBlocks ? `<div style="background-color:#FAF9F6;border:1px solid #EAE6DF;border-radius:12px;padding:14px 16px;margin:16px 0;font-size:13px;color:#444;">${templateBlocks}</div>` : ''}
+
+        <p>Behöver du se detaljer eller ändra din tid? Klicka på knappen nedan:</p>
+        <div style="text-align: center; margin: 24px 0;">
+            <a href="${manageUrl}" class="btn">Hantera bokning</a>
+        </div>
+
+        <p>Varmt välkommen!<br/><strong>${salonName}</strong></p>
+    `;
+
+    return await sendWithFallback({
+        fromName: 'Glowbook Påminnelse',
+        to: email,
+        subject: `Påminnelse: ${serviceName} hos ${salonName} (${timeStr})`,
+        html: getHtmlWrapper(htmlContent),
+    });
+};
+
+/**
  * 3. Booking Cancellation for Providers
  */
 export const sendProviderCancellationEmail = async (
