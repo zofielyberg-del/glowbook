@@ -232,6 +232,32 @@ function SettingsContent() {
                 };
             };
 
+            const syncLoyaltyFromSalon = (salonObj: any) => {
+                if (!salonObj?.id) return;
+                const key = `glowbook_provider_loyalty_${salonObj.id}`;
+                let stored: Partial<ProviderLoyaltyState> | null = null;
+                try {
+                    const raw = localStorage.getItem(key);
+                    if (raw) stored = JSON.parse(raw);
+                } catch {}
+
+                const dbEnabled = Boolean(salonObj.is_rewards_enabled);
+                if (!dbEnabled) {
+                    setLoyaltyState({
+                        ...getDefaultLoyaltyState(),
+                        cooldownEndsAt: stored?.cooldownEndsAt || null,
+                    });
+                } else {
+                    setLoyaltyState({
+                        ...getDefaultLoyaltyState(),
+                        ...stored,
+                        enabled: true,
+                        status: stored?.deactivationRequestedAt ? 'deactivating' : 'active',
+                        activatedAt: stored?.activatedAt || salonObj.created_at || new Date().toISOString(),
+                    });
+                }
+            };
+
             const fetchFreshData = async (salonId: string) => {
                 try {
                     const res = await fetch(`/api/salons/get?id=${salonId}&_t=${Date.now()}`);
@@ -256,6 +282,7 @@ function SettingsContent() {
                         if (parsedFresh.custom_rewards) {
                             setCustomRewards(normalizeRewardTiers(parsedFresh.custom_rewards));
                         }
+                        syncLoyaltyFromSalon(data.salon);
                         setComparisonDuration(parsedFresh.duration || 1);
                         if (parsedFresh.category) {
                             setVerificationCategory(parsedFresh.category);
@@ -290,6 +317,7 @@ function SettingsContent() {
                 if (parsedLocal.category) {
                     setVerificationCategory(parsedLocal.category);
                 }
+                syncLoyaltyFromSalon(localData);
 
                 if (localData.id) {
                     fetchFreshData(localData.id);
@@ -300,10 +328,8 @@ function SettingsContent() {
                 preventSave.current = false;
             }, 100);
 
-            const savedLoyalty = localStorage.getItem('glowbook_provider_loyalty');
-            if (savedLoyalty) {
-                try { setLoyaltyState(JSON.parse(savedLoyalty)); } catch { }
-            }
+            // Clean up legacy un-scoped global loyalty key so salons never inherit another salon's loyalty state
+            localStorage.removeItem('glowbook_provider_loyalty');
 
             // Load notifications
             const savedNotifications = localStorage.getItem('glowbook_provider_notifications');
@@ -551,7 +577,7 @@ function SettingsContent() {
             cooldownEndsAt: null,
         };
         setLoyaltyState(updated);
-        localStorage.setItem('glowbook_provider_loyalty', JSON.stringify(updated));
+        if (salonData.id) localStorage.setItem(`glowbook_provider_loyalty_${salonData.id}`, JSON.stringify(updated));
 
         // Sync is_rewards_enabled: true to backend
         if (salonData.id) {
@@ -577,7 +603,7 @@ function SettingsContent() {
             deactivationRequestedAt: new Date().toISOString(),
         };
         setLoyaltyState(updated);
-        localStorage.setItem('glowbook_provider_loyalty', JSON.stringify(updated));
+        if (salonData.id) localStorage.setItem(`glowbook_provider_loyalty_${salonData.id}`, JSON.stringify(updated));
 
         // Sync is_rewards_enabled: false to backend
         if (salonData.id) {
