@@ -115,6 +115,7 @@ export async function POST(req: Request) {
             return await stripe.checkout.sessions.create({
                 mode: 'subscription',
                 payment_method_types: ['card'],
+                allow_promotion_codes: true,
                 ...(email ? { customer_email: email } : {}),
                 line_items,
                 subscription_data: {

@@ -50,6 +50,7 @@ export async function POST(req: Request) {
             return await stripe.checkout.sessions.create({
                 mode: 'subscription',
                 payment_method_types: ['card'],
+                allow_promotion_codes: true,
                 ...(salonEmail ? { customer_email: salonEmail } : {}),
                 line_items,
                 subscription_data: {
