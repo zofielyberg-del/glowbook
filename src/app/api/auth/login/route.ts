@@ -67,6 +67,8 @@ export async function POST(req: Request) {
                     rating: salon.rating,
                     review_count: salon.review_count,
                     membership_tier: salon.membership_tier,
+                    duration: salon.duration,
+                    stripe_subscription_id: salon.stripe_subscription_id,
                     subscription_status: salon.subscription_status,
                     stripe_customer_id: salon.stripe_customer_id,
                     services: salon.services,

@@ -677,8 +677,9 @@ function SettingsContent() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tier,
+                    duration: comparisonDuration,
                     salonId: salonData.id,
-                    salonEmail: salonData.email // Fixed: changed email to salonEmail to match API
+                    salonEmail: salonData.email
                 }),
             });
 
@@ -1513,10 +1514,20 @@ function SettingsContent() {
                                     <div className="relative z-10">
                                         <div className="flex justify-between items-start mb-6">
                                             <div className="text-right">
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wider">
-                                                    <Check size={12} /> {t('label_status_active')}
+                                                <span className={clsx(
+                                                    "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                                    ['active', 'trialing', 'canceling'].includes((salonData.subscription_status || '').toLowerCase())
+                                                        ? "bg-green-500/20 text-green-400"
+                                                        : "bg-amber-500/20 text-amber-300"
+                                                )}>
+                                                    <Check size={12} /> {
+                                                        salonData.subscription_status === 'trialing' ? 'Provperiod aktiv' :
+                                                        salonData.subscription_status === 'canceling' ? 'Avslutas vid periodens slut' :
+                                                        salonData.subscription_status === 'active' ? t('label_status_active') :
+                                                        'Ej aktiverat'
+                                                    }
                                                 </span>
-                                                <span className="block text-xs text-white/40 mt-2">{salonData.duration} månader</span>
+                                                <span className="block text-xs text-white/40 mt-2">{salonData.duration || 1} månader</span>
                                             </div>
                                         </div>
 
@@ -1527,11 +1538,21 @@ function SettingsContent() {
                                             </div>
                                             <div className="bg-white/5 rounded-xl p-3 border border-white/10">
                                                 <p className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Period</p>
-                                                <p className="text-sm font-bold text-white">{salonData.duration} Mån</p>
+                                                <p className="text-sm font-bold text-white">{salonData.duration || 1} Mån</p>
                                             </div>
                                             <div className="bg-white/5 rounded-xl p-3 border border-white/10">
                                                 <p className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Status</p>
-                                                <p className="text-sm font-bold text-green-400">Aktiv</p>
+                                                <p className={clsx(
+                                                    "text-sm font-bold",
+                                                    ['active', 'trialing', 'canceling'].includes((salonData.subscription_status || '').toLowerCase())
+                                                        ? "text-green-400"
+                                                        : "text-amber-300"
+                                                )}>
+                                                    {salonData.subscription_status === 'trialing' ? 'Provperiod' :
+                                                     salonData.subscription_status === 'canceling' ? 'Avslutas' :
+                                                     salonData.subscription_status === 'active' ? 'Aktiv' :
+                                                     'Obetald / Ej aktiv'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -1652,15 +1673,17 @@ function SettingsContent() {
                                         })}
                                     </div>
 
-                                    <div className="bg-blue-50/50 dark:bg-blue-950/20 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/10 flex items-start gap-4 mt-8">
-                                        <Info size={18} className="text-blue-500 shrink-0 mt-0.5" />
-                                        <div className="space-y-1 flex-1">
-                                            <p className="text-sm font-bold text-foreground">Abonnemanget är låst</p>
-                                            <p className="text-[11px] text-foreground/50 leading-relaxed">
-                                                Du befinner dig i en aktiv bindningstid på {salonData.duration} Månader. Under denna period kan du inte byta abonnemangsform själv i portalen. Kontakta supporten om du vill planera ett byte vid periodens slut.
-                                            </p>
+                                    {['active', 'trialing', 'canceling'].includes((salonData.subscription_status || '').toLowerCase()) && (
+                                        <div className="bg-blue-50/50 dark:bg-blue-950/20 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/10 flex items-start gap-4 mt-8">
+                                            <Info size={18} className="text-blue-500 shrink-0 mt-0.5" />
+                                            <div className="space-y-1 flex-1">
+                                                <p className="text-sm font-bold text-foreground">Abonnemanget är låst</p>
+                                                <p className="text-[11px] text-foreground/50 leading-relaxed">
+                                                    Du befinner dig i en aktiv bindningstid på {salonData.duration || 1} Månader. Under denna period kan du inte byta abonnemangsform själv i portalen. Kontakta supporten om du vill planera ett byte vid periodens slut.
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {salonData.subscription_status === 'canceling' ? (
                                         <div className="mt-8 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-6 rounded-3xl flex items-center justify-between">

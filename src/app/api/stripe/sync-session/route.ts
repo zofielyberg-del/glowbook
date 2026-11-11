@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
+import { sendProviderWelcomeEmail, sendProviderReceiptEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
     try {
@@ -10,42 +11,66 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'sessionId krävs' }, { status: 400 });
         }
 
-        // 1. Retrieve the checkout session from Stripe
-        const session = await stripe.checkout.sessions.retrieve(sessionId);
-        
+        // 1. Retrieve the checkout session from Stripe (with expanded subscription)
+        const session = await stripe.checkout.sessions.retrieve(sessionId, {
+            expand: ['subscription'],
+        });
+
         if (!session) {
             return NextResponse.json({ error: 'Hittade inte Stripe-sessionen' }, { status: 404 });
         }
 
-        const salonId = session.metadata?.salonId;
-        const tier = session.metadata?.tier || 'pro';
-        const customerId = session.customer;
-        const subscriptionId = session.subscription;
+        const subscriptionObj =
+            session.subscription && typeof session.subscription !== 'string'
+                ? session.subscription
+                : null;
+
+        const salonId = session.metadata?.salonId || subscriptionObj?.metadata?.salonId;
+        const tier = session.metadata?.tier || subscriptionObj?.metadata?.tier || 'pro';
+        const durationRaw = session.metadata?.duration || subscriptionObj?.metadata?.duration;
+        const durationNum = durationRaw ? parseInt(String(durationRaw), 10) : undefined;
+        const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+        const subscriptionId = subscriptionObj?.id || (typeof session.subscription === 'string' ? session.subscription : undefined);
+
+        // Preserve 'trialing' vs 'active' when available, defaulting to 'active' if checkout completed
+        const stripeSubStatus = subscriptionObj?.status;
+        const resolvedStatus =
+            stripeSubStatus && ['active', 'trialing', 'canceling'].includes(stripeSubStatus)
+                ? stripeSubStatus
+                : 'active';
 
         if (!salonId) {
             return NextResponse.json({ error: 'Metadata saknar salonId' }, { status: 400 });
         }
 
+        const existingSalon = await prisma.salon.findUnique({
+            where: { id: salonId },
+            select: { stripe_subscription_id: true },
+        });
+
+        const alreadySynced = Boolean(
+            subscriptionId && existingSalon?.stripe_subscription_id === subscriptionId
+        );
+
         // 2. Safely update the salon in the database with Stripe details
         const updatedSalon = await prisma.salon.update({
             where: { id: salonId },
             data: {
-                subscription_status: 'active',
+                subscription_status: resolvedStatus,
                 membership_tier: tier ? tier.toLowerCase() : undefined,
-                stripe_customer_id: customerId as string,
-                stripe_subscription_id: subscriptionId as string
+                ...(durationNum && !Number.isNaN(durationNum) ? { duration: durationNum } : {}),
+                ...(customerId ? { stripe_customer_id: customerId } : {}),
+                ...(subscriptionId ? { stripe_subscription_id: subscriptionId } : {}),
             },
-            include: { owner: true }
+            include: { owner: true },
         });
 
-        console.log(`[Sync Session] Successfully synced Salon ${salonId} with Stripe Subscription ${subscriptionId}`);
+        console.log(`[Sync Session] Successfully synced Salon ${salonId} (${resolvedStatus}) with Stripe Subscription ${subscriptionId}`);
 
-        // 🎯 BACKUP: Send Welcome and Receipt emails to the provider
-        if (updatedSalon.owner?.email) {
-            const { sendProviderWelcomeEmail, sendProviderReceiptEmail } = require('@/lib/email');
+        // 3. Send Welcome and Receipt emails as backup if not already synced
+        if (!alreadySynced && updatedSalon.owner?.email) {
             const firstName = updatedSalon.owner.first_name || updatedSalon.name || 'Utförare';
-            
-            // 1. Send Welcome Email
+
             try {
                 await sendProviderWelcomeEmail(updatedSalon.owner.email, firstName);
                 console.log(`[Sync Session] Welcome email sent as backup to ${updatedSalon.owner.email}`);
@@ -53,7 +78,6 @@ export async function POST(req: Request) {
                 console.error('[Sync Session] Failed to send welcome email:', err);
             }
 
-            // 2. Send Receipt Email (Base Pricing: Bas 79, Pro 149, Luxe 349)
             const priceMap: Record<string, number> = { bas: 79, pro: 149, luxe: 349 };
             const basePrice = priceMap[tier.toLowerCase()] || 149;
 
@@ -72,15 +96,17 @@ export async function POST(req: Request) {
             }
         }
 
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             salon: {
                 id: updatedSalon.id,
                 name: updatedSalon.name,
                 subscription_status: updatedSalon.subscription_status,
                 membership_tier: updatedSalon.membership_tier,
-                stripe_subscription_id: updatedSalon.stripe_subscription_id
-            }
+                duration: updatedSalon.duration,
+                stripe_customer_id: updatedSalon.stripe_customer_id,
+                stripe_subscription_id: updatedSalon.stripe_subscription_id,
+            },
         });
     } catch (error: any) {
         console.error('[Sync Session Error]:', error);
