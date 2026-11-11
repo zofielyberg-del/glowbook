@@ -45,20 +45,26 @@ export default function SupportPage() {
         message: ''
     });
 
-    // Auto-detect if provider is logged in
+    const [isSending, setIsSending] = useState(false);
+
+    // Auto-detect if provider or customer is logged in
     useEffect(() => {
-        const savedSalon = localStorage.getItem('glowbook_salon');
-        if (savedSalon) {
-            const data = JSON.parse(savedSalon);
-            if (data.email) {
-                setEmail(data.email);
-                setIsAuthenticated(true);
-                setForm(prev => ({
-                    ...prev,
-                    name: `${data.firstName || ''} ${data.lastName || ''}`.trim() || data.businessName || '',
-                    email: data.email
-                }));
-            }
+        const savedSalon = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
+        const savedCustomer = sessionStorage.getItem('glowbook_customer') || localStorage.getItem('glowbook_customer');
+        const raw = savedSalon || savedCustomer;
+        if (raw) {
+            try {
+                const data = JSON.parse(raw);
+                if (data.email) {
+                    setEmail(data.email);
+                    setIsAuthenticated(true);
+                    setForm(prev => ({
+                        ...prev,
+                        name: `${data.firstName || ''} ${data.lastName || ''}`.trim() || data.businessName || data.name || '',
+                        email: data.email
+                    }));
+                }
+            } catch { }
         }
     }, []);
 
@@ -100,9 +106,35 @@ export default function SupportPage() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSending) return;
+        setIsSending(true);
         const tid = Date.now().toString();
+
+        try {
+            const res = await fetch('/api/support', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: form.name,
+                    email: form.email,
+                    subject: form.subject,
+                    message: form.message,
+                    ticketId: tid,
+                    action: 'create'
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'Kunde inte skicka meddelandet.');
+            }
+        } catch (err: any) {
+            alert(err.message || 'Ett fel uppstod vid sändning. Du kan alltid nå oss direkt på support@glowbook.se.');
+            setIsSending(false);
+            return;
+        }
+
         const newMessage: Ticket = {
             id: tid,
             ...form,
@@ -116,16 +148,18 @@ export default function SupportPage() {
         setAllTickets(updated);
         setEmail(form.email);
         setIsAuthenticated(true);
+        setForm(prev => ({ ...prev, subject: '', message: '' }));
         setView('tickets');
+        setIsSending(false);
 
         // Also notify the provider inbox if logged in as provider
-        const savedSalon = localStorage.getItem('glowbook_salon');
+        const savedSalon = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         if (savedSalon) {
             const confirmNotification = {
                 id: `support-${tid}`,
                 type: 'support_ticket',
                 title: `Supportärende: ${form.subject}`,
-                message: `Ditt ärende har mottagits. Vi svarar vanligtvis inom några timmar. Referens: #${tid.slice(-6)}`,
+                message: `Ditt ärende har skickats till support@glowbook.se. Referens: #${tid.slice(-6)}`,
                 timestamp: new Date().toISOString(),
                 read: false,
             };
@@ -135,9 +169,32 @@ export default function SupportPage() {
         }
     };
 
-    const handleReply = (e: React.FormEvent) => {
+    const handleReply = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedTicket || !newMessageText.trim()) return;
+
+        try {
+            const res = await fetch('/api/support', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: selectedTicket.name,
+                    email: selectedTicket.email,
+                    subject: selectedTicket.subject,
+                    message: newMessageText,
+                    ticketId: selectedTicket.id,
+                    action: 'reply'
+                })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                alert(err.error || 'Kunde inte skicka svar till support.');
+                return;
+            }
+        } catch {
+            alert('Nätverksfel vid sändning.');
+            return;
+        }
 
         const reply: ThreadMessage = {
             sender: 'customer',
@@ -251,8 +308,8 @@ export default function SupportPage() {
                                         <label className="text-[10px] font-bold uppercase tracking-widest text-black/30 dark:text-white/30 ml-1">{t('support_desc')}</label>
                                         <textarea required rows={4} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} className={`${inputClass} resize-none`} placeholder={t('support_desc_placeholder')} />
                                     </div>
-                                    <button type="submit" className="w-full bg-black dark:bg-champagne-600 text-white py-4 rounded-xl font-bold text-sm hover:bg-champagne-600 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98]">
-                                        {t('support_send_btn')} <Send size={14} />
+                                    <button type="submit" disabled={isSending} className="w-full bg-black dark:bg-champagne-600 text-white py-4 rounded-xl font-bold text-sm hover:bg-champagne-600 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98] disabled:opacity-50">
+                                        {isSending ? 'Skickar...' : t('support_send_btn')} <Send size={14} />
                                     </button>
                                 </form>
                             </motion.div>
@@ -294,8 +351,9 @@ export default function SupportPage() {
                                 ) : (
                                     <div className="space-y-5">
                                         <div className="bg-champagne-500/10 p-4 rounded-xl border border-champagne-500/20">
-                                            <p className="text-[10px] font-bold text-champagne-600 uppercase tracking-widest mb-1">Demo-kod (simulerad):</p>
-                                            <p className="font-bold text-black dark:text-white text-2xl tracking-[0.2em]">{sentCode}</p>
+                                            <p className="text-xs font-medium text-champagne-700 dark:text-champagne-300">
+                                                Historik från denna enhet låses upp med din engångskod: <strong className="tracking-widest">{sentCode}</strong>
+                                            </p>
                                         </div>
                                         <div className="space-y-1.5 text-left">
                                             <label className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest ml-1">{t('support_enter_code')}</label>

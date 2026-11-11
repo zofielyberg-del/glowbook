@@ -52,13 +52,9 @@ export async function POST(request: Request) {
 
         const resetUrl = `${origin}/auth/reset-password?token=${resetToken}`;
 
-        // Send email using Resend
+        // Send email using Resend (checking error return value with sandbox fallback)
         if (resend) {
-        await resend.emails.send({
-          from: 'Glowbook <noreply@glowbook.se>',
-          to: user.email,
-          subject: 'Återställ ditt lösenord på GlowBook',
-          html: `
+            const emailHtml = `
             <div style="font-family: Arial, sans-serif; max-w-md mx-auto p-4 bg-zinc-950 text-white">
               <h2 style="color: #ffffff; text-align: center; text-transform: uppercase; letter-spacing: 2px;">Glow<b style="font-weight:bold;">Book</b></h2>
               <p style="color: #cccccc;">Hej,</p>
@@ -68,9 +64,27 @@ export async function POST(request: Request) {
               </div>
               <p style="color: #cccccc; font-size: 12px;">Länken är giltig i 1 timme. Om du inte har begärt detta kan du ignorera detta mail.</p>
             </div>
-          `
-        });
-      }
+          `;
+            const { error: sendError } = await resend.emails.send({
+                from: 'Glowbook <noreply@glowbook.se>',
+                to: user.email,
+                subject: 'Återställ ditt lösenord på GlowBook',
+                html: emailHtml
+            });
+            if (sendError) {
+                console.warn('[ForgotPassword] Primary domain send failed, retrying fallback:', sendError);
+                const { error: fallbackErr } = await resend.emails.send({
+                    from: 'Glowbook <onboarding@resend.dev>',
+                    to: user.email,
+                    subject: 'Återställ ditt lösenord på GlowBook',
+                    html: emailHtml
+                });
+                if (fallbackErr) {
+                    console.error('[ForgotPassword] Both sends failed:', fallbackErr);
+                    return NextResponse.json({ error: 'Kunde inte skicka återställningsmail just nu.' }, { status: 500 });
+                }
+            }
+        }
 
 
         return NextResponse.json({ success: true, message: 'Om e-postadressen finns så har ett mail skickats.' });

@@ -140,7 +140,7 @@ export default function ProfilePage() {
     // Load profile from localStorage and sync with Supabase
     useEffect(() => {
         const checkAuth = async () => {
-            const saved = sessionStorage.getItem('glowbook_customer');
+            const saved = sessionStorage.getItem('glowbook_customer') || localStorage.getItem('glowbook_customer');
             if (!saved) {
                 router.push('/auth/login');
                 return;
@@ -213,12 +213,42 @@ export default function ProfilePage() {
         router.push('/auth/login');
     };
 
-    const saveProfile = (updates: Partial<CustomerProfile>) => {
+    const saveProfile = async (updates: Partial<CustomerProfile>) => {
         const updated = { ...profile, ...updates };
         setProfile(updated);
-        sessionStorage.setItem('glowbook_customer', JSON.stringify(updated));
-        setSavedMsg(t('profile_msg_saved'));
-        setTimeout(() => setSavedMsg(''), 2000);
+
+        try {
+            const rawSaved = sessionStorage.getItem('glowbook_customer') || localStorage.getItem('glowbook_customer');
+            const parsedSaved = rawSaved ? JSON.parse(rawSaved) : {};
+            const mergedStorage = { ...parsedSaved, ...updated };
+            sessionStorage.setItem('glowbook_customer', JSON.stringify(mergedStorage));
+            localStorage.setItem('glowbook_customer', JSON.stringify(mergedStorage));
+
+            if (updated.email) {
+                const res = await fetch('/api/profile/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: updated.email,
+                        firstName: updated.firstName,
+                        lastName: updated.lastName,
+                        phone: updated.phone,
+                        role: 'customer'
+                    })
+                });
+                if (!res.ok) {
+                    setSavedMsg('Kunde inte synka profilen med databasen.');
+                    setTimeout(() => setSavedMsg(''), 3000);
+                    return;
+                }
+            }
+            setSavedMsg(t('profile_msg_saved'));
+            setTimeout(() => setSavedMsg(''), 2000);
+        } catch (err) {
+            console.error('Failed saving profile:', err);
+            setSavedMsg('Kunde inte spara ändringarna.');
+            setTimeout(() => setSavedMsg(''), 3000);
+        }
     };
 
     const handleRedeemReward = async (tier: RewardTier, option: RewardOption, providerId: string) => {
@@ -285,7 +315,7 @@ export default function ProfilePage() {
         }
     };
 
-    const handlePasswordChange = () => {
+    const handlePasswordChange = async () => {
         if (!passwordData.current) {
             setSavedMsg(t('profile_msg_fill_current_pwd'));
             setTimeout(() => setSavedMsg(''), 3000);
@@ -301,9 +331,29 @@ export default function ProfilePage() {
             setTimeout(() => setSavedMsg(''), 3000);
             return;
         }
-        setSavedMsg(t('profile_msg_pwd_updated'));
-        setPasswordData({ current: '', newPass: '', confirm: '' });
-        setTimeout(() => setSavedMsg(''), 3000);
+        try {
+            const res = await fetch('/api/auth/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: profile.email,
+                    currentPassword: passwordData.current,
+                    newPassword: passwordData.newPass
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setSavedMsg(data.error || 'Kunde inte uppdatera lösenordet.');
+                setTimeout(() => setSavedMsg(''), 3500);
+                return;
+            }
+            setSavedMsg(t('profile_msg_pwd_updated'));
+            setPasswordData({ current: '', newPass: '', confirm: '' });
+            setTimeout(() => setSavedMsg(''), 3000);
+        } catch {
+            setSavedMsg('Ett nätverksfel uppstod.');
+            setTimeout(() => setSavedMsg(''), 3000);
+        }
     };
 
     const handleCancelBooking = async (bookingId: string) => {
@@ -633,15 +683,23 @@ export default function ProfilePage() {
                                                     <div className="flex items-center gap-2 mt-0.5"><Clock size={12} className="text-black/30 dark:text-white/30" /><span className="text-black/40 dark:text-white/40 text-xs">{b.date} kl {b.time}</span></div>
                                                 </div>
                                             </div>
-                                            <div className="text-right space-y-1">
-                                                <p className="font-bold text-black dark:text-white">{b.price} kr</p>
+                                            <div className="text-right space-y-1.5">
+                                                <p className="font-bold text-black dark:text-white">{b.price} {(b as any).currency || 'kr'}</p>
                                                 <p className="text-[10px] text-champagne-500 font-bold">+{Math.floor(b.price / 10) * 5}p</p>
-                                                <button
-                                                    onClick={() => setCancellingBooking(b.id)}
-                                                    className="text-[10px] text-red-400 hover:text-red-500 font-bold transition-colors"
-                                                >
-                                                    {t('profile_cancel_btn')}
-                                                </button>
+                                                <div className="flex items-center justify-end gap-3">
+                                                    <Link
+                                                        href={`/booking/manage/${b.id}`}
+                                                        className="text-[10px] text-champagne-600 hover:underline font-bold transition-colors"
+                                                    >
+                                                        Omboka / Hantera
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => setCancellingBooking(b.id)}
+                                                        className="text-[10px] text-red-400 hover:text-red-500 font-bold transition-colors"
+                                                    >
+                                                        {t('profile_cancel_btn')}
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -874,40 +932,13 @@ export default function ProfilePage() {
                                 {/* Payment */}
                                 <div className="bg-white dark:bg-[#141414] rounded-2xl border border-black/5 dark:border-white/10 shadow-sm overflow-hidden">
                                     <div className="px-6 py-4 border-b border-black/5 dark:border-white/10">
-                                        <h3 className="font-bold text-black dark:text-white flex items-center gap-2"><CreditCard size={16} /> Betaluppgifter</h3>
-                                        <p className="text-black/30 dark:text-white/30 text-xs mt-1">{t('profile_saved_card')}</p>
+                                        <h3 className="font-bold text-black dark:text-white flex items-center gap-2"><CreditCard size={16} /> Säkra kort- & Klarnabetalningar</h3>
                                     </div>
-                                    <div className="p-6 space-y-4">
-                                        {profile.bankDetails ? (
-                                            <div className="bg-gradient-to-br from-[#111] to-[#1a1a1a] rounded-2xl p-6 text-white">
-                                                <div className="flex justify-between items-start mb-8">
-                                                    <Shield size={24} className="text-champagne-400" />
-                                                    <span className="text-xs font-bold text-white/30 uppercase tracking-widest">{profile.bankDetails.cardBrand}</span>
-                                                </div>
-                                                <p className="text-lg font-mono tracking-[0.3em] mb-4">•••• •••• •••• {profile.bankDetails.cardLast4}</p>
-                                                <div className="flex justify-between items-end">
-                                                    <div>
-                                                        <p className="text-[10px] text-white/30 uppercase tracking-widest">Kortinnehavare</p>
-                                                        <p className="text-sm font-bold">{profile.firstName} {profile.lastName}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-white/30 uppercase tracking-widest">Giltig t.o.m</p>
-                                                        <p className="text-sm font-bold">{profile.bankDetails.expiryDate}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="border-2 border-dashed border-black/10 dark:border-white/10 rounded-2xl p-8 text-center">
-                                                <CreditCard size={32} className="text-black/10 dark:text-white/10 mx-auto mb-3" />
-                                                <p className="text-black/30 dark:text-white/30 text-sm">{t('profile_no_card')}</p>
-                                            </div>
-                                        )}
-                                        <button
-                                            onClick={() => profile.bankDetails ? handleRemoveCard() : setShowCardModal(true)}
-                                            className="w-full bg-[#F5F3EE] dark:bg-white/5 text-black dark:text-white py-3 rounded-xl font-bold text-sm border border-black/10 dark:border-white/10 hover:border-champagne-500 transition-all"
-                                        >
-                                            {profile.bankDetails ? t('profile_remove_card') : t('profile_add_card')}
-                                        </button>
+                                    <div className="p-6 flex items-start gap-4 text-sm text-black/60 dark:text-white/60">
+                                        <Shield size={20} className="text-champagne-500 shrink-0 mt-0.5" />
+                                        <p className="leading-relaxed">
+                                            Alla kortbetalningar och Klarnabetalningar hanteras säkert och krypterat direkt via Stripe Checkout i samband med din bokning. Glowbook lagrar aldrig några kortnummer.
+                                        </p>
                                     </div>
                                 </div>
 
@@ -992,12 +1023,13 @@ export default function ProfilePage() {
                                     >
                                         {t('profile_cancel_modal_btn')}
                                     </button>
-                                    <button
-                                        onClick={() => handleRedeemReward(selectedReward.tier, selectedReward.option, (selectedReward as any).providerId)}
-                                        className="flex-1 py-3 rounded-xl bg-black dark:bg-champagne-600 text-white text-sm font-bold hover:bg-champagne-600 transition-all shadow-md"
+                                    <Link
+                                        href={`/salon/${(selectedReward as any).providerId}`}
+                                        onClick={() => setShowRewardModal(false)}
+                                        className="flex-1 py-3 rounded-xl bg-black dark:bg-champagne-600 text-white text-sm font-bold hover:bg-champagne-600 transition-all shadow-md text-center"
                                     >
-                                        {t('profile_redeem_modal_btn')}
-                                    </button>
+                                        Använd vid bokning
+                                    </Link>
                                 </div>
                             </div>
                         </motion.div>

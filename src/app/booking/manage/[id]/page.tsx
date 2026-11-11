@@ -99,19 +99,22 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
         );
     }
 
-    const formattedDate = new Date(appointment.booking_date).toLocaleDateString('sv-SE', {
+    const formattedDate = new Date(appointment.start_time || appointment.booking_date).toLocaleDateString('sv-SE', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: 'Europe/Stockholm'
     });
 
     const startTimeStr = new Date(appointment.start_time).toLocaleTimeString('sv-SE', {
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'Europe/Stockholm'
     });
 
     const isCancelled = appointment.status === 'cancelled';
+    const isCompleted = appointment.status === 'completed';
 
     // Cancellation policy window check
     const cancellationWindowHours = appointment.salon?.cancellation_window_hours ?? 24;
@@ -153,9 +156,9 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                 <div className="bg-card rounded-[32px] md:rounded-[40px] p-6 md:p-10 border border-border shadow-2xl space-y-8 relative overflow-hidden">
                     {/* Status Ribbon */}
                     <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-3xl text-xs font-black uppercase tracking-wider ${
-                        isCancelled ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'
+                        isCancelled ? 'bg-rose-500/10 text-rose-500' : isCompleted ? 'bg-champagne-500/15 text-champagne-600' : 'bg-emerald-500/10 text-emerald-500'
                     }`}>
-                        {isCancelled ? t('manage_cancelled_badge') : t('manage_confirmed_badge')}
+                        {isCancelled ? t('manage_cancelled_badge') : isCompleted ? 'Slutförd' : t('manage_confirmed_badge')}
                     </div>
 
                     <div className="space-y-4">
@@ -204,7 +207,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                     </div>
 
                     {/* Actions Panel */}
-                    {!isCancelled && isWithinCancellationWindow && (
+                    {!isCancelled && !isCompleted && isWithinCancellationWindow && (
                         <div className="p-6 bg-rose-500/5 border border-rose-500/10 rounded-3xl space-y-4">
                             <div className="flex gap-4">
                                 <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 flex-shrink-0">
@@ -221,7 +224,7 @@ export default function ManageBookingPage({ params }: { params: Promise<{ id: st
                         </div>
                     )}
 
-                    {!isCancelled && !isWithinCancellationWindow && (
+                    {!isCancelled && !isCompleted && !isWithinCancellationWindow && (
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
                             <Link
                                 href={`/booking/reschedule/${appointmentId}`}

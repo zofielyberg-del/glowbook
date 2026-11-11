@@ -47,6 +47,7 @@ export async function GET(req: Request) {
                 code: giftCard.code,
                 value: Number(giftCard.value),
                 remainingBalance: Number(giftCard.remaining_balance),
+                currency: giftCard.currency || 'SEK',
                 recipientName: giftCard.recipient_name,
                 recipientEmail: giftCard.recipient_email,
                 senderName: giftCard.sender_name,

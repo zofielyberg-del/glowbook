@@ -10,8 +10,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Code is required' }, { status: 400 });
         }
 
+        const normalizedCode = String(code).trim().toUpperCase();
         const giftCard = await prisma.giftCard.findUnique({
-            where: { code }
+            where: { code: normalizedCode }
         });
 
         if (!giftCard) {
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
                 code: giftCard.code,
                 value: giftCard.value,
                 remainingBalance: giftCard.remaining_balance,
-                currency: 'SEK',
+                currency: giftCard.currency || 'SEK',
                 expiresAt: giftCard.expires_at,
                 recipientName: giftCard.recipient_name,
                 status: giftCard.status

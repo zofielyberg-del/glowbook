@@ -57,7 +57,8 @@ export async function POST(req: Request) {
 
         // 🎯 BULLSEYE: Handle Gift Card Payment Success
         if (type === 'giftcard') {
-            const { recipientEmail, recipientName, senderName, message, amount } = session.metadata;
+            const { recipientEmail, recipientName, senderName, message, amount, currency: metaCurrency } = session.metadata;
+            const cardCurrency = (metaCurrency || session.currency || 'SEK').toUpperCase();
             const code = generateCode();
             const expiresAt = new Date();
             expiresAt.setFullYear(expiresAt.getFullYear() + 2);
@@ -68,6 +69,7 @@ export async function POST(req: Request) {
                     data: {
                         code,
                         value: parseFloat(amount),
+                        currency: cardCurrency,
                         remaining_balance: parseFloat(amount),
                         recipient_name: recipientName,
                         recipient_email: recipientEmail,
@@ -92,7 +94,7 @@ export async function POST(req: Request) {
                             <p>Hej ${recipientName},</p>
                             <p>${senderName} har skickat ett digitalt presentkort till dig!</p>
                             <div style="background: #000; color: #fff; padding: 40px; text-align: center; border-radius: 20px; margin: 20px 0;">
-                                <h1 style="font-size: 48px; margin: 0;">${amount} SEK</h1>
+                                <h1 style="font-size: 48px; margin: 0;">${amount} ${cardCurrency}</h1>
                                 <p style="color: #c5a059; font-family: monospace; font-size: 24px; letter-spacing: 2px;">${code}</p>
                             </div>
                             <p><em>"${message || ''}"</em></p>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendCustomerRescheduleEmail, sendProviderBookingNotification } from '@/lib/email';
 import { emitAvailabilityUpdate } from '@/lib/realtime';
+import { getStockholmDate } from '@/lib/date';
 export async function POST(req: Request) {
     try {
         const { appointmentId, newDate, newStartTime, newStartTimeUtc, bypassPolicy, providerId } = await req.json();
@@ -26,6 +27,10 @@ export async function POST(req: Request) {
 
         if (!appointment) {
             return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
+        }
+
+        if (appointment.status === 'cancelled' || appointment.status === 'completed') {
+            return NextResponse.json({ error: 'Bokningen är redan avbokad eller slutförd och kan inte ombokas.' }, { status: 400 });
         }
 
         // Cancellation policy window check (Only verified salon owners or admins can bypass)
@@ -56,8 +61,11 @@ export async function POST(req: Request) {
         const endTime = appointment.end_time || new Date(appointment.start_time.getTime() + 30 * 60000);
         const duration = Math.round((endTime.getTime() - appointment.start_time.getTime()) / 60000);
 
-        // Parse new date and time correctly using UTC ISO string from client if available
-        const startDateTime = newStartTimeUtc ? new Date(newStartTimeUtc) : new Date(`${newDate}T${newStartTime}`);
+        // Parse new date and time locked to Europe/Stockholm timezone
+        const startDateTime = newStartTimeUtc ? new Date(newStartTimeUtc) : getStockholmDate(newDate, newStartTime);
+        if (startDateTime.getTime() < Date.now() - 300000) {
+            return NextResponse.json({ error: 'Den valda tiden har redan passerat. Vänligen välj en framtida tid.' }, { status: 400 });
+        }
         const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
         // 2 & 3. Atomic check and update

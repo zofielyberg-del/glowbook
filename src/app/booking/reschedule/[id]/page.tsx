@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Calendar from "@/components/dashboard/Calendar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getStockholmDate } from "@/lib/date";
 
 export default function ReschedulePage({ params }: { params: Promise<{ id: string }> }) {
     const { t } = useLanguage();
@@ -37,6 +38,9 @@ export default function ReschedulePage({ params }: { params: Promise<{ id: strin
                 }
 
                 const apt = aptData.appointment;
+                if (apt.status === 'cancelled' || apt.status === 'completed') {
+                    throw new Error("Bokningen är redan avbokad eller slutförd och kan inte ombokas.");
+                }
                 if (isMounted) setAppointment(apt);
 
                 // 2. Fetch Availability using cache buster
@@ -84,7 +88,7 @@ export default function ReschedulePage({ params }: { params: Promise<{ id: strin
         
         try {
             setIsRescheduling(true);
-            const localStart = new Date(`${selectedSlot.fullDate}T${selectedSlot.time}:00`);
+            const localStart = getStockholmDate(selectedSlot.fullDate, selectedSlot.time);
             const newStartTimeUtc = localStart.toISOString();
 
             const res = await fetch('/api/bookings/reschedule', {

@@ -52,6 +52,9 @@ export default function GiftCardsPage() {
 
     useEffect(() => {
         let active = true;
+        let attempts = 0;
+        const MAX_RETRIES = 10;
+
         const checkStripeSuccess = async () => {
             const params = new URLSearchParams(window.location.search);
             const success = params.get('success');
@@ -60,7 +63,7 @@ export default function GiftCardsPage() {
             if (success === 'true' && sessionId) {
                 setIsLoadingSession(true);
                 try {
-                    const response = await fetch(`/api/giftcards/by-session?session_id=${sessionId}`);
+                    const response = await fetch(`/api/giftcards/by-session?session_id=${encodeURIComponent(sessionId)}`);
                     const data = await response.json();
 
                     if (!active) return;
@@ -76,11 +79,13 @@ export default function GiftCardsPage() {
                             message: data.card.message || ''
                         });
                         setIsLoadingSession(false);
-                        // Clean URL
                         window.history.replaceState({}, document.title, '/giftcards');
-                    } else {
-                        // Webhook might be slightly delayed, retry in 2 seconds
+                    } else if (attempts < MAX_RETRIES) {
+                        attempts += 1;
                         setTimeout(checkStripeSuccess, 2000);
+                    } else {
+                        setIsLoadingSession(false);
+                        alert('Din betalning har mottagits! Presentkortet håller på att skapas och skickas direkt till mottagarens e-post inom ett par minuter.');
                     }
                 } catch (error) {
                     console.error('Error fetching checkout session:', error);
