@@ -58,6 +58,46 @@ export async function POST(req: Request) {
             return NextResponse.json({ url: session.url });
         }
 
+        // 1b. Safeguard against duplicate subscriptions: if a customer & active/trialing subscription already exist in Stripe for this email, sync and open Billing Portal
+        if (email) {
+            try {
+                const customers = await stripe.customers.list({
+                    email: String(email).toLowerCase().trim(),
+                    limit: 5,
+                });
+                for (const cust of customers.data) {
+                    const subs = await stripe.subscriptions.list({
+                        customer: cust.id,
+                        status: 'all',
+                        limit: 10,
+                    });
+                    const validSub = subs.data.find(
+                        (s) =>
+                            ['active', 'trialing'].includes(s.status) &&
+                            (!s.metadata?.salonId || s.metadata.salonId === salonId)
+                    ) || subs.data.find((s) => ['active', 'trialing'].includes(s.status));
+
+                    if (validSub) {
+                        await prisma.salon.update({
+                            where: { id: salonId },
+                            data: {
+                                stripe_customer_id: cust.id,
+                                stripe_subscription_id: validSub.id,
+                                subscription_status: validSub.status,
+                            },
+                        });
+                        const portalSession = await stripe.billingPortal.sessions.create({
+                            customer: cust.id,
+                            return_url: returnUrl,
+                        });
+                        return NextResponse.json({ url: portalSession.url });
+                    }
+                }
+            } catch (lookupErr) {
+                console.warn('[Stripe Portal] Existing customer lookup failed, falling back to Checkout:', lookupErr);
+            }
+        }
+
         // 2. If no Stripe Customer exists, redirect to Checkout Session for their tier (Initial payment)
         const tier = (salon.membership_tier || 'bas').toLowerCase();
         const duration = Number(salon.duration) || 1;

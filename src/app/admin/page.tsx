@@ -192,7 +192,17 @@ export default function AdminDashboard() {
         
         // Tillåt inloggning för Zofie direkt med email
         if (mail === 'zofielyberg@gmail.com' || mail === 'info@glowbook.se' || (mail === 'bibizola33' && adminPassword.trim() === 'Recovery666')) {
-            sessionStorage.setItem('glowbook_admin', JSON.stringify({ email: mail, role: 'admin' }));
+            for (const storage of [sessionStorage, localStorage]) {
+                try {
+                    const rawSalon = storage.getItem('glowbook_salon');
+                    if (rawSalon && JSON.parse(rawSalon).isImpersonated) {
+                        storage.removeItem('glowbook_salon');
+                    }
+                } catch {}
+            }
+            const adminPayload = JSON.stringify({ email: mail, role: 'admin' });
+            sessionStorage.setItem('glowbook_admin', adminPayload);
+            localStorage.setItem('glowbook_admin', adminPayload);
             window.dispatchEvent(new Event('glowbook_update'));
             window.location.reload();
         } else {
