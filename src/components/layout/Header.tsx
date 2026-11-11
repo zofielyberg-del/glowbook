@@ -44,7 +44,7 @@ export default function Header() {
     const { language, setLanguage, t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
     const pathname = usePathname();
-    const { isLoggedIn, isSalonOwner, isPractitioner: isPractitionerRole, logout, user } = useAuth();
+    const { isLoggedIn, isAdmin, isSalonOwner, isPractitioner: isPractitionerRole, logout, user } = useAuth();
     const isProvider = isSalonOwner || isPractitionerRole;
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -149,6 +149,12 @@ export default function Header() {
                                     <NavLink href="/provider" label={t('nav_dashboard')} active={pathname === '/provider'} />
                                     <NavLink href="/provider/settings?tab=inbox" label={t('nav_inbox')} active={pathname?.includes('tab=inbox')} />
                                 </>
+                            ) : isAdmin ? (
+                                <>
+                                    <NavLink href="/explore" label={t('discover')} active={pathname === '/explore'} />
+                                    <NavLink href="/admin" label="Admin" active={pathname === '/admin'} />
+                                    <NavLink href="/support" label={t('nav_support')} active={pathname === '/support'} />
+                                </>
                             ) : (
                                 <>
                                     <NavLink href="/explore" label={t('discover')} active={pathname === '/explore'} />
@@ -200,7 +206,7 @@ export default function Header() {
                                     onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                                     className="bg-foreground text-background px-4 py-2 rounded-full text-[10px] xl:text-[11px] font-medium uppercase tracking-[0.12em] hover:bg-[#C2A26A] hover:text-[#0B0B0C] transition-all flex items-center gap-1.5 shadow-sm"
                                 >
-                                    {isProvider ? t('nav_dashboard') : t('my_pages')}
+                                    {isProvider ? t('nav_dashboard') : isAdmin ? 'Admin' : t('my_pages')}
                                     <ChevronDown size={12} className={clsx("transition-transform", isUserDropdownOpen && "rotate-180")} />
                                 </button>
                                 {isUserDropdownOpen && (
@@ -208,11 +214,11 @@ export default function Header() {
                                         <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
                                         <div className="absolute right-0 mt-3 w-52 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-50 p-2">
                                             <Link
-                                                href={isProvider ? "/provider" : "/profile"}
+                                                href={isProvider ? "/provider" : isAdmin ? "/admin" : "/profile"}
                                                 onClick={() => setIsUserDropdownOpen(false)}
                                                 className="flex items-center gap-3 px-4 py-3 text-[11px] font-medium uppercase tracking-[0.12em] text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-xl transition-all"
                                             >
-                                                <User size={15} style={{ color: '#C2A26A' }} /> {isProvider ? t('nav_dashboard') : t('my_pages')}
+                                                <User size={15} style={{ color: '#C2A26A' }} /> {isProvider ? t('nav_dashboard') : isAdmin ? 'Admin' : t('my_pages')}
                                             </Link>
                                             {isProvider && (
                                                 <Link
@@ -330,6 +336,10 @@ export default function Header() {
                                             { href: "/explore", icon: Compass, label: t('discover') },
                                             { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
                                             { href: "/provider/settings", icon: Settings, label: t('nav_settings') },
+                                        ] : isAdmin ? [
+                                            { href: "/admin", icon: User, label: 'Admin' },
+                                            { href: "/explore", icon: Compass, label: t('discover') },
+                                            { href: "/support", icon: HelpCircle, label: t('nav_support') },
                                         ] : [
                                             { href: "/profile", icon: User, label: t('my_pages') },
                                             { href: "/explore", icon: Compass, label: t('discover') },

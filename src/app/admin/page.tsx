@@ -202,7 +202,7 @@ export default function AdminDashboard() {
             }
             const adminPayload = JSON.stringify({ email: mail, role: 'admin' });
             sessionStorage.setItem('glowbook_admin', adminPayload);
-            localStorage.setItem('glowbook_admin', adminPayload);
+            localStorage.removeItem('glowbook_admin');
             window.dispatchEvent(new Event('glowbook_update'));
             window.location.reload();
         } else {
