@@ -212,7 +212,27 @@ export default function Header() {
                                 {isUserDropdownOpen && (
                                     <>
                                         <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
-                                        <div className="absolute right-0 mt-3 w-60 bg-card/95 dark:bg-[#141416]/95 backdrop-blur-xl border border-border/80 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 p-2 animate-in fade-in zoom-in-95 duration-150">
+                                        <div className="absolute right-0 mt-3 w-72 bg-card/95 dark:bg-[#141416]/95 backdrop-blur-xl border border-border/80 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 p-2 animate-in fade-in zoom-in-95 duration-150">
+                                            {/* Integrated Profile Header */}
+                                            <div className="flex items-center justify-between gap-3 px-3.5 py-3 mb-1 border-b border-border/60">
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-semibold text-foreground truncate">
+                                                        {isProvider ? (user?.name || user?.firstName || 'Studio Partner') : isAdmin ? 'Admin' : (user?.firstName || 'Glow Member')}
+                                                    </p>
+                                                    {user?.email && (
+                                                        <p className="text-xs text-foreground/45 truncate">{user.email}</p>
+                                                    )}
+                                                </div>
+                                                <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-tr from-[#C2A26A] via-amber-200 to-[#C2A26A] shrink-0">
+                                                    <div className="w-full h-full rounded-full overflow-hidden bg-card flex items-center justify-center">
+                                                        {user?.profileImage ? (
+                                                            <img src={user.profileImage} alt="Profilbild" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <User size={16} strokeWidth={1.6} className="text-[#C2A26A]" />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <Link
                                                 href={isProvider ? "/provider" : isAdmin ? "/admin" : "/profile"}
                                                 onClick={() => setIsUserDropdownOpen(false)}
@@ -224,7 +244,7 @@ export default function Header() {
                                                 )}
                                             >
                                                 <User size={17} strokeWidth={1.6} className="text-foreground/70" />
-                                                {isProvider ? t('nav_dashboard') : isAdmin ? 'Admin' : t('my_pages')}
+                                                <span className="flex-1">{isProvider ? t('nav_dashboard') : isAdmin ? 'Admin' : t('my_pages')}</span>
                                             </Link>
                                             {isProvider && (
                                                 <Link
@@ -238,7 +258,10 @@ export default function Header() {
                                                     )}
                                                 >
                                                     <Settings size={17} strokeWidth={1.6} className="text-foreground/70" />
-                                                    {t('nav_settings')}
+                                                    <span className="flex-1">{t('nav_settings')}</span>
+                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#C2A26A]/15 text-[#C2A26A]">
+                                                        {(user?.tier || user?.membership_tier || 'bas').toUpperCase()}
+                                                    </span>
                                                 </Link>
                                             )}
                                             <div className="h-px bg-border/60 my-1.5 mx-2" />
@@ -351,38 +374,42 @@ export default function Header() {
                         </div>
                         
                         {/* Menu items */}
-                        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5">
-                            {showLoggedInUI && (
-                                <div className="flex items-center gap-3.5 px-4 py-3.5 rounded-3xl bg-card border border-border/70 shadow-sm">
-                                    <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-[#C2A26A]/60 bg-[#C2A26A]/15 flex items-center justify-center shrink-0">
-                                        {user?.profileImage ? (
-                                            <img src={user.profileImage} alt="Profilbild" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <User size={20} strokeWidth={1.6} className="text-[#C2A26A]" />
-                                        )}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#C2A26A]">Inloggad</p>
-                                        <p className="text-base font-semibold text-foreground truncate">
-                                            {(() => {
-                                                if (isProvider) {
-                                                    if (user) {
-                                                        const tier = (user.tier || user.membership_tier || 'bas').toLowerCase();
-                                                        if (tier === 'luxe') {
-                                                            return user.name || 'Studio Luxe';
+                        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="bg-card border border-border/70 rounded-3xl p-2 shadow-[0_12px_36px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.4)]">
+                                {showLoggedInUI && (
+                                    <div className="flex items-center justify-between gap-3 px-4 py-3.5 mb-1.5 border-b border-border/60">
+                                        <div className="min-w-0">
+                                            <p className="text-base font-semibold text-foreground truncate">
+                                                {(() => {
+                                                    if (isProvider) {
+                                                        if (user) {
+                                                            const tier = (user.tier || user.membership_tier || 'bas').toLowerCase();
+                                                            if (tier === 'luxe') {
+                                                                return user.name || 'Studio Luxe';
+                                                            }
+                                                            return user.firstName || user.name || 'Studio Partner';
                                                         }
-                                                        return user.firstName || user.name || 'Studio Partner';
+                                                        return 'Studio Partner';
                                                     }
-                                                    return 'Studio Partner';
-                                                }
-                                                return user?.firstName || 'Glow Member';
-                                            })()}
-                                        </p>
+                                                    return user?.firstName || 'Glow Member';
+                                                })()}
+                                            </p>
+                                            {user?.email && (
+                                                <p className="text-xs text-foreground/45 truncate mt-0.5">{user.email}</p>
+                                            )}
+                                        </div>
+                                        <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-[#C2A26A] via-amber-200 to-[#C2A26A] shrink-0">
+                                            <div className="w-full h-full rounded-full overflow-hidden bg-card flex items-center justify-center">
+                                                {user?.profileImage ? (
+                                                    <img src={user.profileImage} alt="Profilbild" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <User size={18} strokeWidth={1.6} className="text-[#C2A26A]" />
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            <div className="bg-card border border-border/70 rounded-3xl p-2 shadow-sm">
                                 <div className="flex flex-col gap-0.5">
                                     {[
                                         ...(showLoggedInUI ? (
@@ -391,12 +418,12 @@ export default function Header() {
                                                 { href: "/provider/customers", icon: Users, label: t('dash_nav_customers') },
                                                 { href: "/provider/services", icon: Scissors, label: t('dash_nav_services') },
                                                 { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
-                                                { href: "/provider/settings", icon: Settings, label: t('nav_settings'), dividerBefore: true },
+                                                { href: "/provider/settings", icon: Settings, label: t('nav_settings'), dividerBefore: true, badge: (user?.tier || user?.membership_tier || 'bas').toUpperCase() },
                                             ] : isProvider ? [
                                                 { href: "/provider", icon: User, label: t('nav_dashboard') },
                                                 { href: "/explore", icon: Compass, label: t('discover') },
                                                 { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
-                                                { href: "/provider/settings", icon: Settings, label: t('nav_settings'), dividerBefore: true },
+                                                { href: "/provider/settings", icon: Settings, label: t('nav_settings'), dividerBefore: true, badge: (user?.tier || user?.membership_tier || 'bas').toUpperCase() },
                                             ] : isAdmin ? [
                                                 { href: "/admin", icon: User, label: 'Admin' },
                                                 { href: "/explore", icon: Compass, label: t('discover') },
@@ -429,7 +456,12 @@ export default function Header() {
                                                     )}
                                                 >
                                                     <item.icon size={19} strokeWidth={1.6} className={isActive ? "text-foreground" : "text-foreground/55"} />
-                                                    <span>{item.label}</span>
+                                                    <span className="flex-1">{item.label}</span>
+                                                    {item.badge && (
+                                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#C2A26A]/15 text-[#C2A26A]">
+                                                            {item.badge}
+                                                        </span>
+                                                    )}
                                                 </Link>
                                             </div>
                                         );
