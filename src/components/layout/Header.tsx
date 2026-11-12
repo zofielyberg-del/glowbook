@@ -277,13 +277,58 @@ export default function Header() {
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
                         {/* Top bar */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
-                            <span 
-                                className="text-3xl font-normal tracking-[0.02em] leading-none"
-                                style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", "Didot", "Bodoni MT", Georgia, serif', color: theme === 'dark' ? '#F1EFF7' : '#111112' }}
-                            >
-                                Glow<span style={{ color: '#C2A26A', fontStyle: 'normal', fontWeight: 500 }}>book</span>
-                            </span>
-                            <button 
+                            <div className="flex items-center gap-3 relative">
+                                <span
+                                    className="text-3xl font-normal tracking-[0.02em] leading-none"
+                                    style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", "Didot", "Bodoni MT", Georgia, serif', color: theme === 'dark' ? '#F1EFF7' : '#111112' }}
+                                >
+                                    Glow<span style={{ color: '#C2A26A', fontStyle: 'normal', fontWeight: 500 }}>book</span>
+                                </span>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
+                                        aria-label="Byt språk / Change language"
+                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-foreground/5 transition-all text-foreground/75 hover:text-foreground border border-foreground/15 hover:border-[#C2A26A]/50 shrink-0 h-7"
+                                    >
+                                        <span className="text-[11px] font-bold text-foreground/85 uppercase tracking-wider">{currentLang.code}</span>
+                                        <ChevronDown size={11} className={clsx("transition-transform opacity-50", isLanguageDropdownOpen && "rotate-180")} />
+                                    </button>
+                                    {isLanguageDropdownOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-40" onClick={() => setIsLanguageDropdownOpen(false)} />
+                                            <div className="absolute left-0 mt-2 w-44 bg-background/95 dark:bg-[#121214]/95 border border-border/80 dark:border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden z-50 p-1.5">
+                                                <div className="space-y-0.5">
+                                                    {LANGUAGES.map((lang) => {
+                                                        const isSelected = language === lang.id;
+                                                        return (
+                                                            <button
+                                                                key={lang.id}
+                                                                onClick={() => {
+                                                                    setLanguage(lang.id);
+                                                                    setIsLanguageDropdownOpen(false);
+                                                                }}
+                                                                className={clsx(
+                                                                    "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all",
+                                                                    isSelected
+                                                                        ? "bg-[#C2A26A]/15 text-[#C2A26A] font-bold"
+                                                                        : "text-foreground/75 hover:text-foreground hover:bg-foreground/5 text-xs font-medium"
+                                                                )}
+                                                            >
+                                                                <span className="flex items-center gap-2.5">
+                                                                    <span className="text-[10px] font-bold tracking-wider text-foreground/40 w-5">{lang.code}</span>
+                                                                    <span className="text-xs">{lang.label}</span>
+                                                                </span>
+                                                                {isSelected && <Check size={14} className="text-[#C2A26A] shrink-0" />}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                            <button
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 style={{ width: '44px', height: '44px', borderRadius: '50%', background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'}`, color: theme === 'dark' ? '#fff' : '#111112', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                                 aria-label="Stäng meny"
@@ -396,38 +441,6 @@ export default function Header() {
 
                         {/* Bottom */}
                         <div style={{ padding: '20px', borderTop: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
-                            <div style={{ marginBottom: '16px' }}>
-                                <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#C2A26A', marginBottom: '8px' }}>Språk / Language</p>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                                    {LANGUAGES.map((lang) => {
-                                        const isSelected = language === lang.id;
-                                        return (
-                                            <button
-                                                key={lang.id}
-                                                onClick={() => setLanguage(lang.id)}
-                                                style={{
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '2px',
-                                                    padding: '8px 4px',
-                                                    borderRadius: '12px',
-                                                    border: isSelected ? '1px solid #C2A26A' : (theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)'),
-                                                    background: isSelected ? 'rgba(194, 162, 106, 0.12)' : 'transparent',
-                                                    color: isSelected ? '#C2A26A' : (theme === 'dark' ? '#fff' : '#111'),
-                                                    fontSize: '11px',
-                                                    fontWeight: isSelected ? 700 : 500,
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}>{lang.code}</span>
-                                                <span style={{ fontSize: '9px', opacity: 0.6 }}>{lang.label}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
                             <LocationSelector dark={theme === 'dark'} />
                         </div>
                     </div>
