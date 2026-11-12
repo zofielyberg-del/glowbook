@@ -5,16 +5,30 @@ import { sendCancellationEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
     try {
-        const { salonId, immediate = false } = await req.json();
+        const { salonId, salonEmail, immediate = false } = await req.json();
 
-        if (!salonId) {
+        if (!salonId && !salonEmail) {
             return NextResponse.json({ error: 'salonId krävs' }, { status: 400 });
         }
 
-        const salon = await prisma.salon.findUnique({
-            where: { id: salonId },
-            select: { stripe_subscription_id: true, name: true, owner: true }
-        });
+        let salon = salonId
+            ? await prisma.salon.findUnique({
+                where: { id: salonId },
+                select: { id: true, stripe_subscription_id: true, name: true, owner: true }
+            })
+            : null;
+
+        if (!salon) {
+            salon = await prisma.salon.findFirst({
+                where: {
+                    OR: [
+                        ...(salonId ? [{ slug: salonId }, { owner_id: salonId }] : []),
+                        ...(salonEmail ? [{ owner: { email: salonEmail } }] : []),
+                    ],
+                },
+                select: { id: true, stripe_subscription_id: true, name: true, owner: true }
+            });
+        }
 
         if (!salon) {
             return NextResponse.json({ error: 'Salong hittades inte' }, { status: 404 });
@@ -34,13 +48,32 @@ export async function POST(req: Request) {
             } catch (stripeErr: any) {
                 console.error('[Stripe Cancel] Error updating subscription in Stripe:', stripeErr);
             }
+        } else if (salon.owner?.email || salonEmail) {
+            try {
+                const emailToLookup = salon.owner?.email || salonEmail;
+                const customers = await stripe.customers.list({ email: emailToLookup, limit: 3 });
+                for (const cust of customers.data) {
+                    const subs = await stripe.subscriptions.list({ customer: cust.id, status: 'all', limit: 5 });
+                    for (const sub of subs.data) {
+                        if (sub.status === 'active' || sub.status === 'trialing') {
+                            if (immediate) {
+                                await stripe.subscriptions.cancel(sub.id);
+                            } else {
+                                await stripe.subscriptions.update(sub.id, { cancel_at_period_end: true });
+                            }
+                        }
+                    }
+                }
+            } catch (stripeLookupErr: any) {
+                console.error('[Stripe Cancel] Fallback customer lookup error:', stripeLookupErr);
+            }
         } else {
-            console.log(`[API] Salon ${salonId} has no Stripe subscription ID. Performing local database cancellation only.`);
+            console.log(`[API] Salon ${salon.id} has no Stripe subscription ID. Performing local database cancellation only.`);
         }
 
         // Update DB to reflect cancellation status
         await prisma.salon.update({
-            where: { id: salonId },
+            where: { id: salon.id },
             data: { subscription_status: immediate ? 'canceled' : 'canceling' }
         });
 

@@ -605,8 +605,6 @@ function SettingsContent() {
         return () => {
             if (saveTimerRef.current) {
                 clearTimeout(saveTimerRef.current);
-                // Flush the save on unmount!
-                handleSave(salonData);
             }
         };
     }, [salonData]);
@@ -795,7 +793,7 @@ function SettingsContent() {
             const response = await fetch('/api/stripe/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ salonId: salonData.id })
+                body: JSON.stringify({ salonId: salonData.id, salonEmail: salonData.email, reason: cancellationReason })
             });
             const data = await response.json();
             if (data.success) {
@@ -1818,7 +1816,7 @@ function SettingsContent() {
                                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-card rounded-[40px] shadow-2xl z-[101] overflow-hidden border border-border p-8 space-y-8"
+                                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-1.5rem)] sm:w-full max-w-lg bg-card rounded-[32px] sm:rounded-[40px] shadow-2xl z-[101] max-h-[90dvh] overflow-y-auto overscroll-contain border border-border p-6 sm:p-8 space-y-6 sm:space-y-8"
                                     >
                                         <div className="text-center space-y-2">
                                             <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-4">
@@ -3127,8 +3125,8 @@ function SettingsContent() {
                 </div >
 
                 {/* Auto-save floating indicator */}
-                {(isSaving || saveStatus !== 'idle') && (
-                    <div className="fixed bottom-10 right-10 z-[100]">
+                {saveStatus !== 'idle' && (
+                    <div className="fixed bottom-6 right-6 sm:bottom-10 sm:right-10 z-[100]">
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -3136,14 +3134,12 @@ function SettingsContent() {
                             className={clsx(
                                 "flex items-center gap-2 px-5 py-3 rounded-full text-xs font-bold shadow-xl",
                                 saveStatus === 'success' ? "bg-emerald-500 text-white"
-                                : saveStatus === 'error' ? "bg-red-500 text-white"
-                                : "bg-[#111] text-white"
+                                : "bg-red-500 text-white"
                             )}
                         >
-                            {isSaving && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                            {!isSaving && saveStatus === 'success' && <Check size={14} strokeWidth={3} />}
-                            {!isSaving && saveStatus === 'error' && <X size={14} strokeWidth={3} />}
-                            {isSaving ? 'Sparar...' : saveStatus === 'success' ? 'Sparat!' : errorMessage || 'Fel'}
+                            {saveStatus === 'success' && <Check size={14} strokeWidth={3} />}
+                            {saveStatus === 'error' && <X size={14} strokeWidth={3} />}
+                            {saveStatus === 'success' ? 'Sparat!' : errorMessage || 'Fel'}
                         </motion.div>
                     </div>
                 )}
