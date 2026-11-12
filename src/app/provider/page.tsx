@@ -721,8 +721,8 @@ export default function ProviderDashboard() {
                         </div>
                     </div>
 
-                    {/* Onboarding Get Started Guide */}
-                    {isGuideMinimized !== null && (
+                    {/* Onboarding Get Started Guide - Döljs helt när alla 5 steg är klara */}
+                    {completedStepsCount < 5 && isGuideMinimized !== null && (
                         isGuideMinimized ? (
                             <div className="bg-card border border-border shadow-md rounded-[2rem] p-6 mb-12 flex flex-col sm:flex-row justify-between items-center transition-all duration-300 gap-4">
                                 <div className="flex items-center gap-4">
