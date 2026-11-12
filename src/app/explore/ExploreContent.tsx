@@ -737,9 +737,16 @@ export default function ExploreContent() {
                                                     </div>
                                                 );
                                             })()}
-                                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-foreground/40">
-                                                <MapPin size={10} />
-                                                <span>{salon.municipality || 'Sverige'}</span>
+                                            <div className="space-y-1">
+                                                {formatSalonCategories(salon) && (
+                                                    <p className="text-xs font-medium text-foreground/55 truncate">
+                                                        {formatSalonCategories(salon)}
+                                                    </p>
+                                                )}
+                                                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-foreground/40">
+                                                    <MapPin size={10} />
+                                                    <span>{salon.municipality || 'Sverige'}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </Link>
@@ -763,6 +770,15 @@ export default function ExploreContent() {
             </main>
         </div>
     );
+}
+
+function formatSalonCategories(salon: any): string {
+    const rawCats = [
+        ...(Array.isArray(salon?.categories) ? salon.categories : []),
+        ...(Array.isArray(salon?.category) ? salon.category : (salon?.category ? [salon.category] : [])),
+    ];
+    const unique = Array.from(new Set(rawCats.map((c: any) => String(c || '').trim()).filter(Boolean)));
+    return unique.join(' · ');
 }
 
 function SalonMiniCard({ salon, currency }: { salon: any; currency: string }) {
@@ -795,9 +811,16 @@ function SalonMiniCard({ salon, currency }: { salon: any; currency: string }) {
                             <span>{salon.rating || (isNew ? 'NY' : '-')}</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-foreground/40 uppercase tracking-widest truncate">
-                        <MapPin size={8} className="text-champagne-600" />
-                        {salon.municipality || 'Sverige'}
+                    <div className="space-y-1">
+                        {formatSalonCategories(salon) && (
+                            <p className="text-[11px] font-medium text-foreground/55 truncate">
+                                {formatSalonCategories(salon)}
+                            </p>
+                        )}
+                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-foreground/40 uppercase tracking-widest truncate">
+                            <MapPin size={8} className="text-champagne-600" />
+                            {salon.municipality || 'Sverige'}
+                        </div>
                     </div>
                 </div>
             </div>
