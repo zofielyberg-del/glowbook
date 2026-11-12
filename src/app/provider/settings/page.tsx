@@ -92,6 +92,11 @@ function SettingsContent() {
     const { t, language, setLanguage, currency, setCurrency } = useLanguage();
     const initialTab = (searchParams.get('tab') as TabKey) || 'profile';
     const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
+
+    useEffect(() => {
+        const tabFromUrl = (searchParams.get('tab') as TabKey) || 'profile';
+        setActiveTab(tabFromUrl);
+    }, [searchParams]);
     const [savedSuccess, setSavedSuccess] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [salonData, setSalonData] = useState({

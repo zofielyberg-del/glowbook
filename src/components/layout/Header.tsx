@@ -49,6 +49,13 @@ export default function Header() {
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
+    const [currentTab, setCurrentTab] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setCurrentTab(new URLSearchParams(window.location.search).get('tab'));
+        }
+    }, [pathname, isMobileMenuOpen]);
 
     const currentLang = LANGUAGES.find(l => l.id === language) || LANGUAGES[0];
 
@@ -141,13 +148,13 @@ export default function Header() {
                                     <NavLink href="/provider" label={t('nav_dashboard')} active={pathname === '/provider'} />
                                     <NavLink href="/provider/customers" label={t('dash_nav_customers')} active={pathname === '/provider/customers'} />
                                     <NavLink href="/provider/services" label={t('dash_nav_services')} active={pathname === '/provider/services'} />
-                                    <NavLink href="/provider/settings?tab=inbox" label={t('nav_inbox')} active={pathname?.includes('tab=inbox')} />
+                                    <NavLink href="/provider/settings?tab=inbox" label={t('nav_inbox')} active={pathname === '/provider/settings' && currentTab === 'inbox'} />
                                 </>
                             ) : isProvider ? (
                                 <>
                                     <NavLink href="/explore" label={t('discover')} active={pathname === '/explore'} />
                                     <NavLink href="/provider" label={t('nav_dashboard')} active={pathname === '/provider'} />
-                                    <NavLink href="/provider/settings?tab=inbox" label={t('nav_inbox')} active={pathname?.includes('tab=inbox')} />
+                                    <NavLink href="/provider/settings?tab=inbox" label={t('nav_inbox')} active={pathname === '/provider/settings' && currentTab === 'inbox'} />
                                 </>
                             ) : isAdmin ? (
                                 <>
@@ -441,7 +448,11 @@ export default function Header() {
                                             { href: "/support", icon: HelpCircle, label: t('nav_support'), dividerBefore: true },
                                         ])
                                     ].map((item: any) => {
-                                        const isActive = pathname === item.href;
+                                        const isActive = item.href.includes('?tab=inbox')
+                                            ? pathname === '/provider/settings' && currentTab === 'inbox'
+                                            : item.href === '/provider/settings'
+                                            ? pathname === '/provider/settings' && currentTab !== 'inbox'
+                                            : pathname === item.href;
                                         return (
                                             <div key={item.href}>
                                                 {item.dividerBefore && <div className="h-px bg-border/60 my-1.5 mx-2" />}
