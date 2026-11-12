@@ -774,11 +774,22 @@ export default function ExploreContent() {
 
 function formatSalonCategories(salon: any): string {
     const rawCats = [
-        ...(Array.isArray(salon?.categories) ? salon.categories : []),
         ...(Array.isArray(salon?.category) ? salon.category : (salon?.category ? [salon.category] : [])),
+        ...(Array.isArray(salon?.categories) ? salon.categories : []),
     ];
-    const unique = Array.from(new Set(rawCats.map((c: any) => String(c || '').trim()).filter(Boolean)));
-    return unique.join(' · ');
+    const byLower = new Map<string, string>();
+    for (const raw of rawCats) {
+        const trimmed = String(raw || '').trim();
+        if (!trimmed) continue;
+        const lower = trimmed.toLowerCase();
+        const formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+        const existing = byLower.get(lower);
+        // Prefer versions with uppercase letters (e.g. "Naglar" over "naglar", "Estetisk Injektion" over "estetisk injektion")
+        if (!existing || (trimmed !== lower && existing === existing.toLowerCase())) {
+            byLower.set(lower, formatted);
+        }
+    }
+    return Array.from(byLower.values()).join(' · ');
 }
 
 function SalonMiniCard({ salon, currency }: { salon: any; currency: string }) {
