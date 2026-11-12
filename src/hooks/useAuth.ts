@@ -80,9 +80,14 @@ export function useAuth() {
                                 return { user: refreshedData, role, isLoading: false };
                             });
                         } else if (serverResult.error === 'Salon not found') {
-                            sessionStorage.removeItem('glowbook_salon');
-                            localStorage.removeItem('glowbook_salon');
-                            setState({ user: null, role: 'guest', isLoading: false });
+                            const isOnboardingOrPending =
+                                (typeof window !== 'undefined' && window.location.pathname.startsWith('/onboarding')) ||
+                                data.subscription_status === 'pending_payment';
+                            if (!isOnboardingOrPending) {
+                                sessionStorage.removeItem('glowbook_salon');
+                                localStorage.removeItem('glowbook_salon');
+                                setState({ user: null, role: 'guest', isLoading: false });
+                            }
                         }
                     })
                     .catch(e => {

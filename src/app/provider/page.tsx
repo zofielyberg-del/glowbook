@@ -632,13 +632,13 @@ export default function ProviderDashboard() {
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="fixed inset-0 z-[200] flex items-center justify-center p-6"
+                            className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
                         >
                             <div className="absolute inset-0 bg-background/60 backdrop-blur-xl" />
                             <motion.div
                                 initial={{ scale: 0.9, y: 20 }}
                                 animate={{ scale: 1, y: 0 }}
-                                className="relative bg-card p-10 rounded-[40px] border border-border shadow-2xl max-w-lg w-full text-center space-y-8"
+                                className="relative bg-card p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] border border-border shadow-2xl max-w-lg w-full max-h-[90dvh] overflow-y-auto overscroll-contain text-center space-y-6 sm:space-y-8"
                             >
                                 <div className="w-20 h-20 bg-red-50 dark:bg-red-950/30 rounded-3xl flex items-center justify-center mx-auto text-red-500">
                                     <Shield size={40} />
@@ -1445,9 +1445,9 @@ export default function ProviderDashboard() {
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-card rounded-[2.5rem] shadow-2xl z-[101] overflow-hidden border border-border"
+                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-1.5rem)] sm:w-full max-w-lg bg-card rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl z-[101] max-h-[90dvh] overflow-y-auto overscroll-contain border border-border"
                             >
-                                <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] p-8 flex justify-between items-center text-white">
+                                <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] p-5 sm:p-8 flex justify-between items-center text-white sticky top-0 z-10">
                                     <div>
                                         <h3 className="text-2xl font-bold">{modalMode === 'share' ? 'Dela ledig tid' : 'Skapa ny bokning'}</h3>
                                         <p className="text-white/50 text-xs">{modalMode === 'share' ? 'Generera en länk för dina sociala medier' : 'Lägg till en kund manuellt i kalendern'}</p>

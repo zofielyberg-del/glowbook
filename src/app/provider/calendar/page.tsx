@@ -261,7 +261,7 @@ export default function CalendarPage() {
                 </div>
 
                 {/* Main Area: Calendar */}
-                <div className="lg:col-span-3 h-full min-h-[800px]">
+                <div className="lg:col-span-3 h-full min-h-[540px] lg:min-h-[800px]">
                     <Calendar onCancelAppointment={handleCancelAppointment} />
                 </div>
             </main>
@@ -269,19 +269,19 @@ export default function CalendarPage() {
             {/* Modal: Post Times (Time Framing) */}
             <AnimatePresence>
                 {isPostingTimes && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-background/80 backdrop-blur-sm overflow-y-auto">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-card rounded-[40px] p-10 max-w-2xl w-full shadow-2xl border border-border relative overflow-hidden"
+                            className="bg-card rounded-t-[32px] sm:rounded-[40px] p-5 sm:p-10 max-w-2xl w-full max-h-[92dvh] overflow-y-auto overscroll-contain shadow-2xl border border-border relative"
                         >
-                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-champagne-300 via-pink-200 to-champagne-300"></div>
+                            <div className="sticky -top-5 sm:-top-10 -mx-5 sm:-mx-10 mb-5 sm:mb-6 h-2 bg-gradient-to-r from-champagne-300 via-pink-200 to-champagne-300 z-10"></div>
 
-                            <h2 className="text-3xl font-bold mb-2 text-foreground">{t('cal_post_times')}</h2>
-                            <p className="text-foreground/50 mb-8">Välj vilka dagar och tider du vill vara tillgänglig för bokning.</p>
+                            <h2 className="text-2xl sm:text-3xl font-bold mb-1.5 sm:mb-2 text-foreground">{t('cal_post_times')}</h2>
+                            <p className="text-sm sm:text-base text-foreground/50 mb-5 sm:mb-8">Välj vilka dagar och tider du vill vara tillgänglig för bokning.</p>
 
-                            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-5 sm:mb-8">
                                 <button
                                     onClick={() => setSlotType('standard')}
                                     className={clsx(
@@ -322,7 +322,7 @@ export default function CalendarPage() {
                                 )}
                             </AnimatePresence>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 mb-6 sm:mb-10">
                                 {WEEKDAYS.map(day => (
                                     <button
                                         key={day.id}
@@ -334,7 +334,7 @@ export default function CalendarPage() {
                                             );
                                         }}
                                         className={clsx(
-                                            "p-4 rounded-2xl text-sm font-bold border transition-all",
+                                            "p-3 sm:p-4 rounded-2xl text-sm font-bold border transition-all",
                                             selectedFrames.includes(day.id)
                                                 ? "bg-[#111] dark:bg-white text-white dark:text-[#111] border-[#111] dark:border-white shadow-lg"
                                                 : "bg-card text-foreground/40 border-border hover:border-champagne-300"
@@ -345,12 +345,12 @@ export default function CalendarPage() {
                                 ))}
                             </div>
 
-                            <div className="mb-8">
+                            <div className="mb-6 sm:mb-8">
                                 <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest mb-2 block">Välj vecka</label>
                                 <select
                                     value={selectedWeek}
                                     onChange={(e) => setSelectedWeek(e.target.value)}
-                                    className="w-full p-4 bg-background border border-border rounded-2xl font-bold text-foreground focus:ring-2 focus:ring-champagne-300 outline-none appearance-none cursor-pointer"
+                                    className="w-full p-3.5 sm:p-4 pr-10 bg-background border border-border rounded-2xl font-bold text-sm sm:text-base text-foreground focus:ring-2 focus:ring-champagne-300 outline-none appearance-none cursor-pointer truncate"
                                     style={{
                                         backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
                                         backgroundRepeat: 'no-repeat',
@@ -366,8 +366,8 @@ export default function CalendarPage() {
                                 </select>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6 mb-10">
-                                <div>
+                            <div className="grid grid-cols-2 gap-3 sm:gap-6 mb-6 sm:mb-10">
+                                <div className="min-w-0">
                                     <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest mb-2 block">
                                         {slotType === 'single' ? 'Klockslag' : 'Från'}
                                     </label>
@@ -376,7 +376,7 @@ export default function CalendarPage() {
                                         lang="sv-SE"
                                         value={frameTimes.from}
                                         onChange={(e) => setFrameTimes(prev => ({ ...prev, from: e.target.value }))}
-                                        className="w-full p-4 bg-background border border-border rounded-2xl font-bold text-foreground focus:ring-2 focus:ring-champagne-300 outline-none"
+                                        className="min-w-0 w-full p-3 sm:p-4 bg-background border border-border rounded-2xl font-bold text-sm sm:text-base text-foreground focus:ring-2 focus:ring-champagne-300 outline-none"
                                     />
                                 </div>
                                 
@@ -385,6 +385,7 @@ export default function CalendarPage() {
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.95 }}
+                                        className="min-w-0"
                                     >
                                         <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest mb-2 block">Till</label>
                                         <input
@@ -392,22 +393,22 @@ export default function CalendarPage() {
                                             lang="sv-SE"
                                             value={frameTimes.to}
                                             onChange={(e) => setFrameTimes(prev => ({ ...prev, to: e.target.value }))}
-                                            className="w-full p-4 bg-background border border-border rounded-2xl font-bold text-foreground focus:ring-2 focus:ring-champagne-300 outline-none"
+                                            className="min-w-0 w-full p-3 sm:p-4 bg-background border border-border rounded-2xl font-bold text-sm sm:text-base text-foreground focus:ring-2 focus:ring-champagne-300 outline-none"
                                         />
                                     </motion.div>
                                 )}
                             </div>
 
-                            <div className="flex gap-4">
+                            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 pt-1 pb-[env(safe-area-inset-bottom)]">
                                 <button
                                     onClick={() => setIsPostingTimes(false)}
-                                    className="flex-1 py-5 bg-foreground/5 text-foreground/50 font-bold rounded-3xl hover:bg-foreground/10 transition-colors"
+                                    className="flex-1 py-4 sm:py-5 bg-foreground/5 text-foreground/50 font-bold rounded-2xl sm:rounded-3xl hover:bg-foreground/10 transition-colors"
                                 >
                                     {t('btn_back')}
                                 </button>
                                 <button
                                     onClick={handleSaveSchedule}
-                                    className="flex-1 py-5 bg-[#111] dark:bg-white text-white dark:text-[#111] font-bold rounded-3xl hover:scale-[1.02] transition-transform shadow-xl shadow-black/20"
+                                    className="flex-1 py-4 sm:py-5 bg-[#111] dark:bg-white text-white dark:text-[#111] font-bold rounded-2xl sm:rounded-3xl hover:scale-[1.02] transition-transform shadow-xl shadow-black/20"
                                 >
                                     {t('btn_save_schedule')}
                                 </button>

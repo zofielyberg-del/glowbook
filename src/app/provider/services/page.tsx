@@ -132,27 +132,14 @@ export default function ServicesPage() {
     const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
     const [customCategoryName, setCustomCategoryName] = useState('');
 
-    const ALL_SERVICE_CATEGORIES = [
-        'Nagelterapeut',
-        'Fransstylist',
-        'Brow stylist',
-        'Hudterapeut',
-        'Lasertekniker',
-        'Frisör',
-        'Barberare',
-        'Massör',
-        'Makeup-artist',
-        'Tatuerare',
-        'Fotvårdsterapeut',
-        'Sjuksköterska',
-        'Läkare',
-        'Övrigt'
-    ];
-
     const getAvailableCategories = () => {
         const usedCategories = (services || []).map(s => s.category).filter(Boolean) as string[];
-        const combined = Array.from(new Set([...usedCategories, ...ALL_SERVICE_CATEGORIES]));
-        return combined;
+        const salonCategories = [
+            ...(availableCategories || []),
+            ...(category ? [category] : []),
+        ].filter(Boolean);
+        const combined = Array.from(new Set([...salonCategories, ...usedCategories]));
+        return combined.length > 0 ? combined : ['Övrigt'];
     };
 
     const [isSaving, setIsSaving] = useState(false);
@@ -314,7 +301,7 @@ export default function ServicesPage() {
 
         setIsModalOpen(false);
         setEditingService(null);
-        setNewService({ name: '', price: '', salePrice: '', saleEndsAt: '', duration: '', description: '', category: '', practitionerIds: [] });
+        setNewService({ name: '', price: '', salePrice: '', saleEndsAt: '', duration: '', description: '', category: category || availableCategories[0] || '', practitionerIds: [] });
         setDiscountValue('');
         setDiscountType('amount');
         setShowCustomCategoryInput(false);
@@ -323,7 +310,7 @@ export default function ServicesPage() {
 
     const handleEditClick = (s: any) => {
         const serviceCategory = s.category || category;
-        const isCustom = !ALL_SERVICE_CATEGORIES.includes(serviceCategory);
+        const isCustom = serviceCategory ? !getAvailableCategories().includes(serviceCategory) : false;
         setEditingService({
             id: s.id,
             name: s.name,
@@ -501,10 +488,10 @@ export default function ServicesPage() {
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-card rounded-3xl shadow-2xl z-[101] overflow-hidden flex flex-col max-h-[90vh]"
+                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-1.5rem)] sm:w-full max-w-lg bg-card rounded-3xl shadow-2xl z-[101] overflow-hidden flex flex-col max-h-[90dvh]"
                             >
                                 {/* Modal Header */}
-                                <div className="p-8 border-b border-border flex items-center justify-between bg-card shrink-0">
+                                <div className="p-5 sm:p-8 border-b border-border flex items-center justify-between bg-card shrink-0">
                                     <div>
                                         <h3 className="text-xl font-bold text-foreground">
                                             {editingService ? 'Redigera tjänst' : 'Lägg till tjänst'}
@@ -519,7 +506,7 @@ export default function ServicesPage() {
                                             onClick={() => {
                                                 setIsModalOpen(false);
                                                 setEditingService(null);
-                                                setNewService({ name: '', price: '', salePrice: '', saleEndsAt: '', duration: '', description: '', category: '', practitionerIds: [] });
+                                                setNewService({ name: '', price: '', salePrice: '', saleEndsAt: '', duration: '', description: '', category: category || availableCategories[0] || '', practitionerIds: [] });
                                                 setDiscountValue('');
                                                 setDiscountType('price');
                                                 setShowCustomCategoryInput(false);

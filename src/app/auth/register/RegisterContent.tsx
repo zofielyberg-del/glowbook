@@ -98,6 +98,7 @@ export default function RegisterContent() {
                     role: 'salon_owner'
                 };
                 sessionStorage.setItem('glowbook_salon', JSON.stringify(providerData));
+                localStorage.setItem('glowbook_salon', JSON.stringify(providerData));
                 // Trigger auth update
                 window.dispatchEvent(new Event('glowbook_update'));
                 router.push('/onboarding/provider');
@@ -112,6 +113,7 @@ export default function RegisterContent() {
                     role: 'customer'
                 };
                 sessionStorage.setItem('glowbook_customer', JSON.stringify(customerData));
+                localStorage.setItem('glowbook_customer', JSON.stringify(customerData));
                 // Trigger auth update
                 window.dispatchEvent(new Event('glowbook_update'));
                 router.push('/profile');

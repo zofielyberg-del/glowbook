@@ -39,10 +39,16 @@ export default function ProviderOnboarding() {
     const [hasPreFilledName, setHasPreFilledName] = useState(false);
 
 
-    // Initial load from sessionStorage or localStorage (preserves fields if returning from cancelled Stripe Checkout)
+    // Initial load from sessionStorage or localStorage (preserves fields & step if returning from cancelled Stripe Checkout)
     useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const isCanceled = params.get('canceled') === 'true';
+
         const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
         if (saved) {
+            // Ensure both storages stay in sync across external Stripe redirects
+            sessionStorage.setItem('glowbook_salon', saved);
+            localStorage.setItem('glowbook_salon', saved);
             try {
                 const data = JSON.parse(saved);
                 setFormData(prev => ({
@@ -59,7 +65,45 @@ export default function ProviderOnboarding() {
                 if (data.country && data.municipality) setHasPreFilledLocation(true);
             } catch {}
         }
+
+        const draftRaw = localStorage.getItem('glowbook_onboarding_draft') || sessionStorage.getItem('glowbook_onboarding_draft');
+        if (draftRaw) {
+            try {
+                const draft = JSON.parse(draftRaw);
+                if (draft.formData) {
+                    setFormData(prev => ({ ...prev, ...draft.formData }));
+                }
+                if (isCanceled) {
+                    setStep(2);
+                } else if (draft.step >= 1 && draft.step <= 3) {
+                    setStep(draft.step);
+                }
+            } catch {
+                if (isCanceled) setStep(2);
+            }
+        } else if (isCanceled) {
+            setStep(2);
+        }
+
+        if (isCanceled) {
+            window.history.replaceState({}, '', '/onboarding/provider');
+        }
+
+        const handlePageShow = () => {
+            setIsKlarnaLoading(false);
+        };
+        window.addEventListener('pageshow', handlePageShow);
+        return () => window.removeEventListener('pageshow', handlePageShow);
     }, []);
+
+    // Persist onboarding draft so back-navigation from Stripe never loses form data or step
+    useEffect(() => {
+        try {
+            const payload = JSON.stringify({ step, formData });
+            localStorage.setItem('glowbook_onboarding_draft', payload);
+            sessionStorage.setItem('glowbook_onboarding_draft', payload);
+        } catch {}
+    }, [step, formData]);
 
     // Sync Language and Currency when country changes
     useEffect(() => {
@@ -97,7 +141,7 @@ export default function ProviderOnboarding() {
         const pricing = calculatePrice(formData.tier, formData.duration);
 
         // 1. Prepare Salon Data
-        const saved = sessionStorage.getItem('glowbook_salon');
+        const saved = sessionStorage.getItem('glowbook_salon') || localStorage.getItem('glowbook_salon');
         let initialData = {} as any;
         if (saved) {
             try {
@@ -642,12 +686,12 @@ export default function ProviderOnboarding() {
                         </AnimatePresence>
                     </div>
 
-                    <div className="bg-[#F5F3EE] dark:bg-[#141414] p-8 flex justify-between items-center border-t border-border">
+                    <div className="bg-[#F5F3EE] dark:bg-[#141414] p-5 sm:p-8 flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-3 sm:gap-4 border-t border-border">
                         {step > 1 ? (
-                            <button onClick={handleBack} className="text-foreground/40 font-bold hover:text-foreground px-6 py-2 transition-colors uppercase tracking-widest text-[10px]">
+                            <button onClick={handleBack} className="text-foreground/50 font-bold hover:text-foreground px-4 sm:px-6 py-3 sm:py-2 transition-colors uppercase tracking-widest text-xs sm:text-[10px] text-center">
                                 {t('btn_back')}
                             </button>
-                        ) : <div />}
+                        ) : <div className="hidden sm:block" />}
 
                         {step < 3 ? (
                             <button
@@ -655,14 +699,14 @@ export default function ProviderOnboarding() {
                                 disabled={
                                     (step === 1 && (!formData.businessName || !formData.category || !formData.municipality || !formData.address))
                                 }
-                                className="bg-[#111] dark:bg-white text-white dark:text-[#111] px-10 py-4 rounded-full font-black hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-all disabled:opacity-20 disabled:grayscale flex items-center gap-3 shadow-xl hover:scale-105 active:scale-95"
+                                className="w-full sm:w-auto justify-center bg-[#111] dark:bg-white text-white dark:text-[#111] px-8 sm:px-10 py-4 rounded-2xl sm:rounded-full font-black hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-all disabled:opacity-20 disabled:grayscale flex items-center gap-3 shadow-xl hover:scale-[1.02] active:scale-95"
                             >
                                 {t('btn_next')} <ChevronRight size={18} />
                             </button>
                         ) : (
                             <button
                                 onClick={handleComplete}
-                                className="bg-[#111] dark:bg-white text-white dark:text-[#111] px-12 py-5 rounded-full font-black text-xl hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-all flex items-center gap-4 shadow-2xl hover:scale-105 active:scale-95"
+                                className="w-full sm:w-auto justify-center bg-[#111] dark:bg-white text-white dark:text-[#111] px-6 sm:px-10 py-4 sm:py-5 rounded-2xl sm:rounded-full font-black text-base sm:text-lg hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-all flex items-center gap-3 shadow-2xl hover:scale-[1.02] active:scale-95 whitespace-nowrap"
                             >
                                 Slutför & Aktivera via Stripe
                             </button>
