@@ -133,13 +133,15 @@ export default function ServicesPage() {
     const [customCategoryName, setCustomCategoryName] = useState('');
 
     const getAvailableCategories = () => {
-        const usedCategories = (services || []).map(s => s.category).filter(Boolean) as string[];
         const salonCategories = [
             ...(availableCategories || []),
             ...(category ? [category] : []),
         ].filter(Boolean);
-        const combined = Array.from(new Set([...salonCategories, ...usedCategories]));
-        return combined.length > 0 ? combined : ['Övrigt'];
+        if (salonCategories.length > 0) {
+            return Array.from(new Set(salonCategories));
+        }
+        const usedCategories = (services || []).map(s => s.category).filter(Boolean) as string[];
+        return usedCategories.length > 0 ? Array.from(new Set(usedCategories)) : ['Övrigt'];
     };
 
     const [isSaving, setIsSaving] = useState(false);

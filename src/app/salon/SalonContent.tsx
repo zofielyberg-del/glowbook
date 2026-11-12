@@ -15,11 +15,27 @@ import { slugifySalonName } from "@/lib/slug";
 
 function getServiceCategory(service: any, salonCategory: string) {
     const ignoredCategories = ['skönhet', 'skönhetssalong'];
+    const legacyRoleMap: Record<string, string> = {
+        'frisör': 'Hårvård',
+        'nagelterapeut': 'Naglar',
+        'fransstylist': 'Fransar & Bryn',
+        'brow stylist': 'Fransar & Bryn',
+        'hudterapeut': 'Hudvård',
+        'lasertekinker': 'Hudvård',
+        'lasertekniker': 'Hudvård',
+        'massör': 'Massage',
+        'tatuerare': 'Tatuering',
+        'fotvårdsterapeut': 'Fotvård',
+        'makeup-artist': 'Makeup',
+    };
     let cat = service?.category;
     if (cat && ignoredCategories.includes(cat.toLowerCase())) {
         cat = null;
     }
-    if (cat) return cat;
+    if (cat) {
+        const mapped = legacyRoleMap[cat.trim().toLowerCase()];
+        return mapped || cat;
+    }
 
     const name = service?.name?.toLowerCase() || '';
     if (name.includes('klipp') && !name.includes('skägg')) return 'Hårvård';
