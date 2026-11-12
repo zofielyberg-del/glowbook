@@ -74,6 +74,10 @@ type FrameSegment = {
 export default function Calendar({ onSelectSlot, onCancelAppointment, availability: propAvailability, appointments: propAppointments, hideAppointments = false }: CalendarProps) {
     const { language, t } = useLanguage();
     const [currentDate, setCurrentDate] = useState(() => toStockholmDate());
+    const [selectedMobileDayIndex, setSelectedMobileDayIndex] = useState(() => {
+        const d = toStockholmDate().getDay();
+        return d === 0 ? 6 : d - 1;
+    });
     const [internalAvailability, setInternalAvailability] = useState<TimeFrame[]>([]);
     const [internalAppointments, setInternalAppointments] = useState<Appointment[]>([]);
     const [editingFrame, setEditingFrame] = useState<EditingFrame | null>(null);
@@ -828,11 +832,47 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                     >
                         <ChevronLeft size={20} />
                     </button>
-                    <button onClick={() => setCurrentDate(toStockholmDate())} className="px-3 py-1 text-sm font-medium bg-foreground/10 text-foreground rounded-lg hover:bg-foreground/20 transition-colors border border-border">
+                    <button
+                        onClick={() => {
+                            const today = toStockholmDate();
+                            setCurrentDate(today);
+                            const d = today.getDay();
+                            setSelectedMobileDayIndex(d === 0 ? 6 : d - 1);
+                        }}
+                        className="px-3 py-1 text-sm font-medium bg-foreground/10 text-foreground rounded-lg hover:bg-foreground/20 transition-colors border border-border"
+                    >
                         {t('cal_today')}
                     </button>
                     <button onClick={nextWeek} className="p-2 hover:bg-foreground/5 rounded-lg text-foreground/50 transition-colors"><ChevronRight size={20} /></button>
                 </div>
+            </div>
+
+            {/* Mobile Day Selector Strip (Mon–Sun) */}
+            <div className="md:hidden grid grid-cols-7 gap-1 px-2 py-2.5 border-b border-border bg-background/60 shrink-0">
+                {weekDays.map((day, dayIndex) => {
+                    const isSelected = dayIndex === selectedMobileDayIndex;
+                    const isToday = format(day, 'yyyy-MM-dd') === format(toStockholmDate(), 'yyyy-MM-dd');
+                    return (
+                        <button
+                            key={day.toString()}
+                            type="button"
+                            onClick={() => setSelectedMobileDayIndex(dayIndex)}
+                            className={clsx(
+                                "flex flex-col items-center justify-center py-2 rounded-xl transition-all",
+                                isSelected
+                                    ? "bg-[#111] dark:bg-white text-white dark:text-[#111] shadow-sm"
+                                    : isToday
+                                    ? "bg-foreground/5 text-foreground"
+                                    : "text-foreground/60 hover:bg-foreground/5"
+                            )}
+                        >
+                            <span className="text-[10px] font-bold uppercase tracking-tight opacity-70">
+                                {format(day, 'EEE', { locale }).slice(0, 3)}
+                            </span>
+                            <span className="text-sm font-black mt-0.5">{format(day, 'd')}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Conflict Warning */}
@@ -855,9 +895,9 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
             {/* Calendar Grid */}
             <div className="flex-1 overflow-auto no-scrollbar scroll-smooth">
-                <div className="flex flex-col min-w-[600px] md:min-w-[800px] relative">
-                    {/* Sticky Header Row */}
-                    <div className="flex sticky top-0 z-[40] bg-background border-b border-border">
+                <div className="flex flex-col w-full md:min-w-[800px] relative">
+                    {/* Sticky Header Row (Desktop 7-day header) */}
+                    <div className="hidden md:flex sticky top-0 z-[40] bg-background border-b border-border">
                         {/* Time Column Header Placeholder */}
                         <div className="w-12 md:w-16 flex-shrink-0 border-r border-border bg-background h-[68px] sticky left-0 z-[50]" />
                         {/* Days Headers Grid */}
@@ -888,7 +928,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                     <div className="flex relative">
                         {/* Time Column Hours */}
                         <div className="w-12 md:w-16 flex-shrink-0 border-r border-border bg-background transition-colors flex flex-col sticky left-0 z-30">
-                            <div className="h-[68px]" />
+                            <div className="hidden md:block h-[68px]" />
                             <div className="relative bg-background">
                                 {hours.map(hour => (
                                     <div key={hour} className="h-16 flex items-start justify-center text-[10px] font-bold text-foreground/20 pt-1 border-b border-border/10">
@@ -899,11 +939,11 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                         </div>
 
                         {/* Days Columns Body */}
-                        <div className="flex-1 grid grid-cols-7 divide-x divide-border transition-colors">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-7 md:divide-x divide-border transition-colors">
                             {weekDays.map((day, dayIndex) => (
-                                <div key={day.toString()} className="relative">
+                                <div key={day.toString()} className={clsx("relative", dayIndex === selectedMobileDayIndex ? "block" : "hidden md:block")}>
                                     {/* Spacer to match Header Row height */}
-                                    <div className="h-[68px]" />
+                                    <div className="hidden md:block h-[68px]" />
 
                                     {/* Day Slots */}
                                     <div className="relative h-[1152px]"> {/* 18 hours * 64px */}
