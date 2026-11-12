@@ -22,8 +22,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         }
 
         // Upload the file to Vercel Blob
-        const blob = await put(file.name, file, {
+        const blob = await put(file.name || `upload-${Date.now()}`, file, {
             access: 'public',
+            addRandomSuffix: true,
         });
 
         console.log('[Upload API] Uploaded file to Vercel Blob:', blob.url);

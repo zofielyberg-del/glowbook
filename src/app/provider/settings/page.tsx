@@ -400,9 +400,56 @@ function SettingsContent() {
 
     const handleImageUpload = (type: 'profile' | 'background' | 'gallery', file: File) => {
         setIsImageUploading(true);
+
+        const uploadToBlob = async (fileToUpload: File) => {
+            try {
+                const formData = new FormData();
+                formData.append('file', fileToUpload);
+
+                const response = await fetch('/api/blob/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.success || !data.url) {
+                    throw new Error(data.error || 'Uppladdningen misslyckades.');
+                }
+
+                if (type === 'gallery') {
+                    setSalonData(prev => ({
+                        ...prev,
+                        galleryImages: [...(prev.galleryImages || []), data.url]
+                    }));
+                } else {
+                    setSalonData(prev => ({
+                        ...prev,
+                        [type === 'profile' ? 'profileImage' : 'backgroundImage']: data.url
+                    }));
+                }
+            } catch (err: any) {
+                console.error('Image upload error:', err);
+                alert(`Det gick inte att ladda upp bilden: ${err.message}`);
+            } finally {
+                setIsImageUploading(false);
+            }
+        };
+
         const reader = new FileReader();
+        reader.onerror = () => {
+            setIsImageUploading(false);
+            alert('Kunde inte läsa bildfilen. Försök med en JPG- eller PNG-bild.');
+        };
         reader.onloadend = () => {
             const img = new Image();
+            img.onerror = () => {
+                if (file.size <= 4 * 1024 * 1024) {
+                    uploadToBlob(file);
+                } else {
+                    setIsImageUploading(false);
+                    alert('Bildformatet kunde inte komprimeras. Försök med en mindre JPG- eller PNG-bild (max 4 MB).');
+                }
+            };
             img.onload = () => {
                 const canvas = document.createElement('canvas');
                 const MAX_WIDTH = type === 'background' ? 1920 : type === 'gallery' ? 1200 : 1000;
@@ -423,50 +470,19 @@ function SettingsContent() {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
-                
+
                 canvas.toBlob(async (blob) => {
                     if (!blob) {
-                        setIsImageUploading(false);
-                        alert('Kunde inte komprimera bilden.');
+                        if (file.size <= 4 * 1024 * 1024) {
+                            await uploadToBlob(file);
+                        } else {
+                            setIsImageUploading(false);
+                            alert('Kunde inte komprimera bilden.');
+                        }
                         return;
                     }
-
-                    try {
-                        const compressedFile = new File([blob], `${type}-${Date.now()}.jpg`, { type: 'image/jpeg' });
-                        const formData = new FormData();
-                        formData.append('file', compressedFile);
-
-                        const response = await fetch('/api/blob/upload', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        if (!response.ok) {
-                            throw new Error('Uppladdningen misslyckades.');
-                        }
-
-                        const data = await response.json();
-                        if (data.success && data.url) {
-                            if (type === 'gallery') {
-                                setSalonData(prev => ({
-                                    ...prev,
-                                    galleryImages: [...(prev.galleryImages || []), data.url]
-                                }));
-                            } else {
-                                setSalonData(prev => ({
-                                    ...prev,
-                                    [type === 'profile' ? 'profileImage' : 'backgroundImage']: data.url
-                                }));
-                            }
-                        } else {
-                            throw new Error(data.error || 'Okänt fel vid uppladdning');
-                        }
-                    } catch (err: any) {
-                        console.error('Image upload error:', err);
-                        alert(`Det gick inte att ladda upp bilden: ${err.message}`);
-                    } finally {
-                        setIsImageUploading(false);
-                    }
+                    const compressedFile = new File([blob], `${type}-${Date.now()}.jpg`, { type: 'image/jpeg' });
+                    await uploadToBlob(compressedFile);
                 }, 'image/jpeg', 0.85);
             };
             img.src = reader.result as string;
@@ -1259,12 +1275,18 @@ function SettingsContent() {
                                                     <span className="text-[10px] font-bold tracking-widest uppercase text-champagne-300">Laddar upp...</span>
                                                 </div>
                                             )}
-                                            <label className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                                                <input type="file" className="sr-only" onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) handleImageUpload('profile', file);
-                                                }} />
-                                                <div className="bg-card text-foreground px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 text-center border border-border">
+                                            <label className="absolute inset-0 bg-black/25 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end md:items-center justify-center p-3 cursor-pointer">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="sr-only"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        e.target.value = '';
+                                                        if (file) handleImageUpload('profile', file);
+                                                    }}
+                                                />
+                                                <div className="bg-card/95 text-foreground px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 text-center border border-border shadow-md">
                                                     <Camera size={16} /> Uppdatera
                                                 </div>
                                             </label>
@@ -1286,12 +1308,18 @@ function SettingsContent() {
                                                     <span className="text-[10px] font-bold tracking-widest uppercase text-champagne-300">Laddar upp...</span>
                                                 </div>
                                             )}
-                                            <label className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                                                <input type="file" className="sr-only" onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) handleImageUpload('background', file);
-                                                }} />
-                                                <div className="bg-card text-foreground px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 border border-border">
+                                            <label className="absolute inset-0 bg-black/25 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end md:items-center justify-center p-3 cursor-pointer">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="sr-only"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        e.target.value = '';
+                                                        if (file) handleImageUpload('background', file);
+                                                    }}
+                                                />
+                                                <div className="bg-card/95 text-foreground px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 border border-border shadow-md">
                                                     <Camera size={16} /> Ändra bakgrund
                                                 </div>
                                             </label>
