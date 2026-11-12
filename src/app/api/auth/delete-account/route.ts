@@ -40,7 +40,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Konto hittades inte' }, { status: 404 });
         }
 
-        // Cancel any active or trialing Stripe subscriptions immediately
+        // 1. Cancel any active or trialing Stripe subscriptions immediately by subscription ID
         if (salon?.stripe_subscription_id) {
             try {
                 await stripe.subscriptions.cancel(salon.stripe_subscription_id);
@@ -49,17 +49,38 @@ export async function POST(req: Request) {
             }
         }
 
+        // 2. Cancel subscriptions via Stripe customer ID if stored on salon
+        if (salon?.stripe_customer_id) {
+            try {
+                const subs = await stripe.subscriptions.list({ customer: salon.stripe_customer_id, status: 'all', limit: 10 });
+                for (const sub of subs.data) {
+                    if (['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(sub.status)) {
+                        try {
+                            await stripe.subscriptions.cancel(sub.id);
+                        } catch (subCancelErr: any) {
+                            console.error('[Delete Account] Failed to cancel sub for salon customer:', sub.id, subCancelErr?.message);
+                        }
+                    }
+                }
+            } catch (stripeCustErr: any) {
+                console.error('[Delete Account] Failed lookup by salon.stripe_customer_id:', stripeCustErr?.message || stripeCustErr);
+            }
+        }
+
+        // 3. Cancel subscriptions via email lookup across Stripe customers
         const lookupEmail = profile?.email || salon?.owner?.email || normalizedEmail;
         if (lookupEmail) {
             try {
-                const customers = await stripe.customers.list({ email: lookupEmail, limit: 3 });
+                const customers = await stripe.customers.list({ email: lookupEmail, limit: 5 });
                 for (const cust of customers.data) {
                     const subs = await stripe.subscriptions.list({ customer: cust.id, status: 'all', limit: 10 });
                     for (const sub of subs.data) {
-                        if (sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due') {
+                        if (['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(sub.status)) {
                             try {
                                 await stripe.subscriptions.cancel(sub.id);
-                            } catch {}
+                            } catch (subErr: any) {
+                                console.error('[Delete Account] Failed to cancel sub:', sub.id, subErr?.message);
+                            }
                         }
                     }
                 }
