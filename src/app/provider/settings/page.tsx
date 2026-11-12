@@ -982,7 +982,7 @@ function SettingsContent() {
             icon: MessageSquare,
             badge: hasUnreadNotifications
         },
-        { key: 'notifications' as TabKey, label: 'Inställningar', icon: Bell },
+        { key: 'notifications' as TabKey, label: 'Notiser & Policy', icon: Bell },
         { key: 'marketing' as TabKey, label: t('tab_marketing'), icon: Sparkles },
         { key: 'templates' as TabKey, label: t('tab_templates'), icon: ClipboardList },
         ...(salonData.tier === 'luxe' ? [{ key: 'practitioners' as TabKey, label: t('tab_practitioners'), icon: Users }] : []),
@@ -1632,6 +1632,21 @@ function SettingsContent() {
                                         </button>
                                     </div>
                                 </section>
+
+                                {/* Danger Zone: Ta bort konto */}
+                                <section className="p-6 rounded-3xl border border-red-500/20 bg-red-500/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-red-600 dark:text-red-400">Radera konto</h3>
+                                        <p className="text-xs text-foreground/50 mt-0.5">Tar bort salongsprofil, tjänster och avslutar eventuellt aktivt medlemskap permanent.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsDeleteAccountModalOpen(true)}
+                                        className="px-4 py-2.5 rounded-xl text-xs font-bold text-red-500 border border-red-500/30 hover:bg-red-500/10 transition-colors shrink-0 self-start sm:self-center"
+                                    >
+                                        Ta bort konto
+                                    </button>
+                                </section>
                             </>
                         )}
 
@@ -1660,7 +1675,7 @@ function SettingsContent() {
                                                         'Ej aktiverat'
                                                     }
                                                 </span>
-                                                <span className="block text-xs text-white/40 mt-2">{salonData.duration || 1} månader</span>
+                                                <span className="block text-xs text-white/40 mt-2">{salonData.duration || 1} {(salonData.duration || 1) === 1 ? 'månad' : 'månader'}</span>
                                             </div>
                                         </div>
 
@@ -1850,14 +1865,14 @@ function SettingsContent() {
                                                 </button>
                                             )}
                                         </div>
-                                    ) : (
+                                    ) : ['active', 'trialing'].includes((salonData.subscription_status || '').toLowerCase()) ? (
                                         <button
                                             onClick={() => setIsCancelModalOpen(true)}
                                             className="mt-8 w-full py-4 text-xs font-bold text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-2xl border border-transparent hover:border-red-100 transition-all uppercase tracking-widest"
                                         >
                                             Avsluta medlemskap
                                         </button>
-                                    )}
+                                    ) : null}
 
                                     <div className="mt-6 pt-6 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                         <div>
@@ -1899,7 +1914,7 @@ function SettingsContent() {
                                             </div>
                                             <h3 className="text-2xl font-bold text-foreground">Avsluta Medlemskap</h3>
                                             <p className="text-sm text-foreground/50 leading-relaxed">
-                                                Din uppsägning registreras direkt hos Stripe och ditt medlemskap avslutas. Du debiteras inte efter din 3-månaders provperiod och inga framtida avgifter dras.
+                                                Din uppsägning registreras direkt hos Stripe och ditt medlemskap avslutas. Inga framtida avgifter kommer att debiteras.
                                             </p>
                                         </div>
 
