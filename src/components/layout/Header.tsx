@@ -303,7 +303,10 @@ export default function Header() {
                         {/* Mobile hamburger */}
                         <button 
                             className="lg:hidden p-2 text-foreground/80 hover:text-foreground"
-                            onClick={() => setIsMobileMenuOpen(true)}
+                            onClick={() => {
+                                setIsLanguageDropdownOpen(false);
+                                setIsMobileMenuOpen(true);
+                            }}
                             aria-label="Öppna meny"
                         >
                             <AlignJustify size={24} />

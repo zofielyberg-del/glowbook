@@ -1,16 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { Lock, CreditCard } from 'lucide-react';
+import { Lock, CreditCard, Settings, LogOut } from 'lucide-react';
 
 const VALID_STATUSES = ['active', 'trialing', 'canceling'];
 
 export function DashboardGuard({ children }: { children: React.ReactNode }) {
-    const { user, isSalonOwner, isLoading } = useAuth();
+    const pathname = usePathname();
+    const { user, isSalonOwner, isLoading, logout } = useAuth();
     const [isLocked, setIsLocked] = useState(false);
     const [checking, setChecking] = useState(true);
     const [loadingPortal, setLoadingPortal] = useState(false);
+    const isSettingsRoute = pathname?.startsWith('/provider/settings');
 
     const handleManageMembership = async () => {
         if (loadingPortal) return;
@@ -163,28 +167,28 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
 
     if (isLoading || checking) return null;
 
-    if (isLocked) {
+    if (isLocked && !isSettingsRoute) {
         return (
-            <div className="fixed inset-0 z-[9999] bg-background/95 backdrop-blur-xl flex items-center justify-center p-6 text-center">
-                <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in duration-500">
-                    <div className="w-24 h-24 bg-red-500/10 text-red-500 rounded-3xl flex items-center justify-center mx-auto border border-red-500/20">
-                        <Lock size={48} />
+            <div className="fixed inset-0 z-[9999] bg-background/95 backdrop-blur-xl flex items-center justify-center p-6 text-center overflow-y-auto">
+                <div className="max-w-md w-full space-y-6 sm:space-y-8 animate-in fade-in zoom-in duration-500">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-red-500/10 text-red-500 rounded-3xl flex items-center justify-center mx-auto border border-red-500/20">
+                        <Lock size={40} />
                     </div>
                     <div className="space-y-3">
-                        <h1 className="text-3xl font-heading font-bold text-foreground tracking-tight">Systemet är låst</h1>
-                        <p className="text-foreground/60 leading-relaxed">
+                        <h1 className="text-2xl sm:text-3xl font-heading font-bold text-foreground tracking-tight">Systemet är låst</h1>
+                        <p className="text-sm sm:text-base text-foreground/60 leading-relaxed">
                             Din prenumeration har löpt ut eller behöver aktiveras via Stripe.
                             Slutför eller hantera din prenumeration i Stripe-portalen för att låsa upp systemet omedelbart.
                         </p>
                     </div>
 
-                    <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4 text-left">
+                    <div className="bg-card p-5 sm:p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4 text-left">
                         <div className="p-3 bg-foreground/5 rounded-xl text-foreground/40">
                             <CreditCard size={24} />
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold">Väntande aktivering / betalning</p>
-                            <p className="text-xs text-foreground/40">Glowbook {user?.tier?.toUpperCase()} — Prenumeration</p>
+                            <p className="text-xs text-foreground/40 truncate">Glowbook {user?.tier?.toUpperCase()} — Prenumeration</p>
                         </div>
                     </div>
 
@@ -196,9 +200,30 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
                         >
                             {loadingPortal ? 'Laddar...' : 'Hantera medlemskap'}
                         </button>
+                        <Link
+                            href="/onboarding/provider?canceled=true"
+                            className="w-full py-3.5 bg-foreground/5 text-foreground rounded-2xl font-bold text-sm hover:bg-foreground/10 transition-colors"
+                        >
+                            Välj plan & slutför aktivering
+                        </Link>
+                        <div className="flex items-center justify-center gap-4 pt-1">
+                            <Link
+                                href="/provider/settings?tab=membership"
+                                className="inline-flex items-center gap-1.5 text-xs font-bold text-foreground/50 hover:text-foreground transition-colors"
+                            >
+                                <Settings size={13} /> Inställningar / Ta bort konto
+                            </Link>
+                            <span className="text-foreground/20">·</span>
+                            <button
+                                onClick={() => { logout(); window.location.href = '/auth/login'; }}
+                                className="inline-flex items-center gap-1.5 text-xs font-bold text-red-500/80 hover:text-red-500 transition-colors"
+                            >
+                                <LogOut size={13} /> Logga ut
+                            </button>
+                        </div>
                         <button
                             onClick={() => window.location.reload()}
-                            className="text-xs font-bold text-foreground/40 hover:text-foreground transition-colors"
+                            className="text-xs font-bold text-foreground/40 hover:text-foreground transition-colors pt-1"
                         >
                             Jag har aktiverat, uppdatera sidan
                         </button>

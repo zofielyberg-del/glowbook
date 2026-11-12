@@ -893,6 +893,42 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                 )}
             </AnimatePresence>
 
+            {/* Empty week notice in customer booking mode */}
+            {hideAppointments && !weekDays.some((day, dayIndex) =>
+                availability.some(frame => {
+                    if (frame.dayIndex !== dayIndex) return false;
+                    const dayStr = format(day, 'yyyy-MM-dd');
+                    if ((frame as any).date && (frame as any).date !== dayStr) return false;
+                    const weekStartStr = format(startOfWeek(day, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+                    if ((frame as any).week && (frame as any).week !== weekStartStr) return false;
+                    const todayStr = format(toStockholmDate(), 'yyyy-MM-dd');
+                    if (dayStr < todayStr) return false;
+                    if (dayStr === todayStr) {
+                        const [frameHour, frameMin] = frame.startTime.split(':').map(Number);
+                        const frameMins = frameHour * 60 + frameMin;
+                        const now = toStockholmDate();
+                        const currentMins = now.getHours() * 60 + now.getMinutes();
+                        if (frameMins < currentMins + 15) return false;
+                    }
+                    return getAppointmentsInFrame(frame, day).length === 0;
+                })
+            ) && (
+                <div className="px-4 py-3 bg-foreground/[0.03] border-b border-border flex flex-wrap items-center justify-between gap-3 shrink-0">
+                    <div>
+                        <p className="text-xs font-bold text-foreground">Inga lediga tider denna vecka</p>
+                        <p className="text-[11px] text-foreground/50 font-medium">Bläddra till nästa vecka för att se kommande lediga tider.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={nextWeek}
+                        className="px-3.5 py-2 bg-[#111] dark:bg-white text-white dark:text-[#111] text-[10px] font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1.5"
+                    >
+                        <span>Nästa vecka</span>
+                        <ChevronRight size={13} />
+                    </button>
+                </div>
+            )}
+
             {/* Calendar Grid */}
             <div className="flex-1 overflow-auto no-scrollbar scroll-smooth">
                 <div className="flex flex-col w-full md:min-w-[800px] relative">

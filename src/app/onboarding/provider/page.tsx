@@ -229,10 +229,10 @@ export default function ProviderOnboarding() {
         <div className="min-h-screen bg-background transition-all duration-500 flex flex-col">
             <Header />
 
-            <main className="flex-1 flex flex-col items-center justify-center p-6 pt-24 pb-12">
+            <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 pt-24 pb-12 w-full overflow-x-hidden">
 
                 {/* Progress Steps */}
-                <div className="w-full max-w-2xl mb-12">
+                <div className="w-full max-w-2xl mb-8 sm:mb-12">
                     <div className="flex justify-between items-center relative">
                         <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-border -z-10"></div>
                         {[1, 2, 3].map((s) => (
@@ -252,12 +252,12 @@ export default function ProviderOnboarding() {
                 </div>
 
                 <motion.div
-                    className="bg-card w-full max-w-2xl rounded-[32px] shadow-2xl border border-border overflow-hidden relative"
+                    className="bg-card w-full max-w-2xl min-w-0 rounded-[28px] sm:rounded-[32px] shadow-2xl border border-border overflow-hidden relative"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] p-8">
-                        <h2 className="text-2xl font-heading font-bold text-white mb-1">
+                    <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] p-5 sm:p-8">
+                        <h2 className="text-xl sm:text-2xl font-heading font-bold text-white mb-1">
                             {step === 1 && t('onboarding_title_1')}
                             {step === 2 && t('onboarding_title_3')}
                             {step === 3 && t('onboarding_title_4')}
@@ -269,7 +269,7 @@ export default function ProviderOnboarding() {
                         </p>
                     </div>
 
-                    <div className="p-8 min-h-[400px]">
+                    <div className="p-5 sm:p-8 min-h-[360px] sm:min-h-[400px] min-w-0">
                         {/* Stripe/Glowbook Overlay */}
                         {isKlarnaLoading && (
                             <div className="absolute inset-0 bg-background/80 backdrop-blur-md z-[60] flex flex-col items-center justify-center text-center p-8 transition-colors">
@@ -676,7 +676,7 @@ export default function ProviderOnboarding() {
                                             </p>
                                         </div>
 
-                                        <p className="text-[10px] text-foreground/30 text-center px-8 leading-relaxed">
+                                        <p className="text-[10px] text-foreground/30 text-center px-2 sm:px-8 leading-relaxed">
                                             Genom att fortsätta godkänner du våra användarvillkor. Efter 3 månaders gratis provperiod debiteras en förskottsbetalning på {calculatePrice(formData.tier, formData.duration).total} SEK för din valda period via Stripe.
                                         </p>
                                     </div>
@@ -706,7 +706,7 @@ export default function ProviderOnboarding() {
                         ) : (
                             <button
                                 onClick={handleComplete}
-                                className="w-full sm:w-auto justify-center bg-[#111] dark:bg-white text-white dark:text-[#111] px-6 sm:px-10 py-4 sm:py-5 rounded-2xl sm:rounded-full font-black text-base sm:text-lg hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-all flex items-center gap-3 shadow-2xl hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                                className="w-full sm:w-auto justify-center bg-[#111] dark:bg-white text-white dark:text-[#111] px-5 sm:px-10 py-4 sm:py-5 rounded-2xl sm:rounded-full font-black text-sm sm:text-lg hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-all flex items-center gap-3 shadow-2xl hover:scale-[1.02] active:scale-95 text-center"
                             >
                                 Slutför & Aktivera via Stripe
                             </button>

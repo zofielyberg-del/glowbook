@@ -1407,10 +1407,14 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                         </div>
 
                         {!salon.address && (
-                            <div className="absolute inset-0 bg-background/80 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
-                                <AlertTriangle className="text-amber-500 mb-4" size={40} />
-                                <h3 className="text-lg font-bold text-foreground tracking-tight">Vi saknar din adress</h3>
-                                <p className="text-foreground/40 mt-1 text-sm font-medium">Lägg till en adress i dina inställningar för att visa kartan.</p>
+                            <div className="absolute inset-0 bg-background/85 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
+                                <div className="w-12 h-12 rounded-2xl bg-foreground/5 border border-border flex items-center justify-center text-foreground/60 mb-3">
+                                    <MapPin size={22} />
+                                </div>
+                                <h3 className="text-base font-bold text-foreground tracking-tight">Exakt adress ej angiven</h3>
+                                <p className="text-foreground/50 mt-1 text-xs font-medium">
+                                    {salon.municipality ? `Område: ${salon.municipality}, Sverige` : 'Kontakta salongen för exakt vägbeskrivning.'}
+                                </p>
                             </div>
                         )}
                     </div>
