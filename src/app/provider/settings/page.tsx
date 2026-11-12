@@ -792,6 +792,37 @@ function SettingsContent() {
 
     const [isReactivating, setIsReactivating] = useState(false);
     const [cancelConfirmation, setCancelConfirmation] = useState<string | null>(null);
+    const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+    const handleDeleteAccount = async () => {
+        setIsDeletingAccount(true);
+        try {
+            const response = await fetch('/api/auth/delete-account', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ salonId: salonData.id, email: salonData.email }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.success) {
+                localStorage.removeItem('glowbook_salon');
+                sessionStorage.removeItem('glowbook_salon');
+                localStorage.removeItem('glowbook_customer');
+                sessionStorage.removeItem('glowbook_customer');
+                localStorage.removeItem('glowbook_onboarding_draft');
+                sessionStorage.removeItem('glowbook_onboarding_draft');
+                window.dispatchEvent(new Event('glowbook_update'));
+                window.location.href = '/';
+            } else {
+                alert(data.error || 'Kunde inte ta bort kontot.');
+            }
+        } catch (err) {
+            console.error('Error deleting account:', err);
+            alert('Ett nätverksfel uppstod vid borttagning av kontot.');
+        } finally {
+            setIsDeletingAccount(false);
+        }
+    };
 
     const handleCancelMembership = async () => {
         setIsCancelling(true);
@@ -1827,6 +1858,20 @@ function SettingsContent() {
                                             Avsluta medlemskap
                                         </button>
                                     )}
+
+                                    <div className="mt-6 pt-6 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-xs font-bold text-foreground/70">Radera konto permanent</p>
+                                            <p className="text-[11px] text-foreground/40">Tar bort salongsprofil, tjänster och eventuella aktiva prenumerationer permanent.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDeleteAccountModalOpen(true)}
+                                            className="px-4 py-2.5 rounded-xl text-xs font-bold text-red-500 border border-red-500/20 hover:bg-red-500/10 transition-colors shrink-0 self-start sm:self-center"
+                                        >
+                                            Ta bort konto
+                                        </button>
+                                    </div>
                                 </section>
                             </div>
                         )}
@@ -1881,6 +1926,56 @@ function SettingsContent() {
                                                 className="px-8 bg-foreground/5 text-foreground/50 rounded-2xl font-bold hover:bg-foreground/10"
                                             >
                                                 Behåll
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                </>
+                            )}
+                        </AnimatePresence>
+
+                        {/* ===== DELETE ACCOUNT MODAL ===== */}
+                        <AnimatePresence>
+                            {isDeleteAccountModalOpen && (
+                                <>
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        onClick={() => !isDeletingAccount && setIsDeleteAccountModalOpen(false)}
+                                        className="fixed inset-0 bg-background/80 backdrop-blur-md z-[100]"
+                                    />
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-1.5rem)] sm:w-full max-w-md bg-card rounded-[32px] shadow-2xl z-[101] max-h-[90dvh] overflow-y-auto overscroll-contain border border-border p-6 sm:p-8 space-y-6"
+                                    >
+                                        <div className="text-center space-y-2">
+                                            <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-3">
+                                                <Trash2 size={26} />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-foreground">Ta bort konto permanent?</h3>
+                                            <p className="text-sm text-foreground/60 leading-relaxed">
+                                                Detta raderar ditt konto, din salong, tjänster och avslutar eventuell prenumeration hos Stripe omedelbart. Åtgärden kan inte ångras.
+                                            </p>
+                                        </div>
+
+                                        <div className="flex flex-col-reverse sm:flex-row gap-3">
+                                            <button
+                                                type="button"
+                                                disabled={isDeletingAccount}
+                                                onClick={() => setIsDeleteAccountModalOpen(false)}
+                                                className="flex-1 py-3.5 px-4 bg-foreground/5 text-foreground/70 rounded-2xl font-bold text-sm hover:bg-foreground/10 transition-colors"
+                                            >
+                                                Avbryt
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={isDeletingAccount}
+                                                onClick={handleDeleteAccount}
+                                                className="flex-1 bg-red-500 text-white py-3.5 px-4 rounded-2xl font-bold text-sm hover:bg-red-600 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                                            >
+                                                {isDeletingAccount ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Ja, ta bort konto'}
                                             </button>
                                         </div>
                                     </motion.div>
