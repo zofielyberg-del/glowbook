@@ -71,26 +71,36 @@ export async function POST(req: Request) {
             console.log(`[API] Salon ${salon.id} has no Stripe subscription ID. Performing local database cancellation only.`);
         }
 
+        const nextStatus = immediate ? 'canceled' : 'canceling';
+
         // Update DB to reflect cancellation status
         await prisma.salon.update({
             where: { id: salon.id },
-            data: { subscription_status: immediate ? 'canceled' : 'canceling' }
+            data: { subscription_status: nextStatus }
         });
 
-        // Send farewell email
-        if (salon.owner?.email) {
+        // Send farewell / cancellation confirmation email
+        const recipientEmail = salon.owner?.email || salonEmail;
+        let emailSent = false;
+        if (recipientEmail) {
             try {
                 await sendCancellationEmail(
-                    salon.owner.email,
-                    salon.owner.first_name || salon.name,
+                    recipientEmail,
+                    salon.owner?.first_name || salon.name,
                     salon.name
                 );
+                emailSent = true;
             } catch (emailErr) {
                 console.error('Failed to send cancellation email:', emailErr);
             }
         }
 
-        return NextResponse.json({ success: true, message: 'Uppsägning registrerad. Provperiod/betalningsperiod löper ut utan debitering.' });
+        return NextResponse.json({
+            success: true,
+            subscription_status: nextStatus,
+            emailSent,
+            message: 'Ditt medlemskap är nu uppsagt. Provperiod/betalningsperiod löper ut utan debitering.'
+        });
     } catch (error: any) {
         console.error('Cancel subscription error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

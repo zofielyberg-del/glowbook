@@ -786,6 +786,7 @@ function SettingsContent() {
     };
 
     const [isReactivating, setIsReactivating] = useState(false);
+    const [cancelConfirmation, setCancelConfirmation] = useState<string | null>(null);
 
     const handleCancelMembership = async () => {
         setIsCancelling(true);
@@ -797,18 +798,26 @@ function SettingsContent() {
             });
             const data = await response.json();
             if (data.success) {
+                const nextStatus = data.subscription_status || 'canceling';
                 const updated = {
                     ...salonData,
-                    subscription_status: 'canceling'
+                    subscription_status: nextStatus
                 };
                 setSalonData(updated as any);
                 localStorage.setItem('glowbook_salon', JSON.stringify(updated));
                 sessionStorage.setItem('glowbook_salon', JSON.stringify(updated));
+                localStorage.setItem('glowbook_last_mutation', Date.now().toString());
+                sessionStorage.setItem('glowbook_last_mutation', Date.now().toString());
                 window.dispatchEvent(new Event('glowbook_update'));
-                
+
                 setIsCancelModalOpen(false);
+                setCancelConfirmation(
+                    data.emailSent
+                        ? 'Ditt medlemskap är nu uppsagt! En bekräftelse har skickats till din e-post och inga fler avgifter kommer att dras.'
+                        : 'Ditt medlemskap är nu uppsagt! Inga fler avgifter kommer att dras efter innevarande period.'
+                );
                 setSavedSuccess(true);
-                setTimeout(() => setSavedSuccess(false), 3000);
+                setTimeout(() => setSavedSuccess(false), 4000);
             } else {
                 alert(data.error || 'Kunde inte avsluta medlemskap');
             }
@@ -1770,24 +1779,40 @@ function SettingsContent() {
                                         </div>
                                     )}
 
-                                    {salonData.subscription_status === 'canceling' ? (
-                                        <div className="mt-8 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-6 rounded-3xl flex items-center justify-between">
+                                    {cancelConfirmation && (
+                                        <div className="mt-6 bg-emerald-500/10 border border-emerald-500/30 p-5 rounded-3xl flex items-start gap-3">
+                                            <Check size={18} className="text-emerald-500 shrink-0 mt-0.5" />
+                                            <div className="flex-1">
+                                                <p className="text-sm font-bold text-foreground">Medlemskapet är uppsagt</p>
+                                                <p className="text-xs text-foreground/70 mt-0.5 leading-relaxed">{cancelConfirmation}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {['canceling', 'canceled'].includes((salonData.subscription_status || '').toLowerCase()) ? (
+                                        <div className="mt-8 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-6 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center text-amber-600">
+                                                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center text-amber-600 shrink-0">
                                                     <AlertTriangle size={20} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-foreground">Uppsägning pågår</p>
-                                                    <p className="text-xs text-foreground/50">Ditt medlemskap avslutas efter bindningstidens slut.</p>
+                                                    <p className="text-sm font-bold text-foreground">Medlemskapet är uppsagt</p>
+                                                    <p className="text-xs text-foreground/50">
+                                                        {(salonData.subscription_status || '').toLowerCase() === 'canceled'
+                                                            ? 'Ditt medlemskap är avslutat och inga fler avgifter dras.'
+                                                            : 'Ditt medlemskap är uppsagt och avslutas efter innevarande periods slut.'}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <button 
-                                                onClick={handleReactivateMembership}
-                                                disabled={isReactivating}
-                                                className="text-xs font-bold text-amber-600 hover:underline disabled:opacity-50 flex items-center gap-1"
-                                            >
-                                                {isReactivating ? <div className="w-3 h-3 border-2 border-amber-600/30 border-t-amber-600 rounded-full animate-spin" /> : 'Ångra uppsägning'}
-                                            </button>
+                                            {(salonData.subscription_status || '').toLowerCase() === 'canceling' && (
+                                                <button 
+                                                    onClick={handleReactivateMembership}
+                                                    disabled={isReactivating}
+                                                    className="text-xs font-bold text-amber-600 hover:underline disabled:opacity-50 flex items-center gap-1 self-start sm:self-center shrink-0"
+                                                >
+                                                    {isReactivating ? <div className="w-3 h-3 border-2 border-amber-600/30 border-t-amber-600 rounded-full animate-spin" /> : 'Ångra uppsägning'}
+                                                </button>
+                                            )}
                                         </div>
                                     ) : (
                                         <button
