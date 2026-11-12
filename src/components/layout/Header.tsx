@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { 
     Compass, BookOpen, Star, Ticket, HelpCircle, 
     AlignJustify, Sun, Moon, Calendar, User, Settings, 
-    Users, Scissors, ChevronDown, MessageSquare, X, Check, Globe 
+    Users, Scissors, ChevronDown, MessageSquare, X, Check, Globe, LogOut 
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useLanguage } from '@/context/LanguageContext';
@@ -212,29 +212,42 @@ export default function Header() {
                                 {isUserDropdownOpen && (
                                     <>
                                         <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
-                                        <div className="absolute right-0 mt-3 w-52 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-50 p-2">
+                                        <div className="absolute right-0 mt-3 w-60 bg-card/95 dark:bg-[#141416]/95 backdrop-blur-xl border border-border/80 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 p-2 animate-in fade-in zoom-in-95 duration-150">
                                             <Link
                                                 href={isProvider ? "/provider" : isAdmin ? "/admin" : "/profile"}
                                                 onClick={() => setIsUserDropdownOpen(false)}
-                                                className="flex items-center gap-3 px-4 py-3 text-[11px] font-medium uppercase tracking-[0.12em] text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-xl transition-all"
+                                                className={clsx(
+                                                    "flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-2xl transition-all",
+                                                    (pathname === '/provider' || pathname === '/admin' || pathname === '/profile')
+                                                        ? "bg-foreground/[0.07] text-foreground font-semibold"
+                                                        : "text-foreground/75 hover:text-foreground hover:bg-foreground/[0.04]"
+                                                )}
                                             >
-                                                <User size={15} style={{ color: '#C2A26A' }} /> {isProvider ? t('nav_dashboard') : isAdmin ? 'Admin' : t('my_pages')}
+                                                <User size={17} strokeWidth={1.6} className="text-foreground/70" />
+                                                {isProvider ? t('nav_dashboard') : isAdmin ? 'Admin' : t('my_pages')}
                                             </Link>
                                             {isProvider && (
                                                 <Link
                                                     href="/provider/settings"
                                                     onClick={() => setIsUserDropdownOpen(false)}
-                                                    className="flex items-center gap-3 px-4 py-3 text-[11px] font-medium uppercase tracking-[0.12em] text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-xl transition-all"
+                                                    className={clsx(
+                                                        "flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-2xl transition-all",
+                                                        pathname === '/provider/settings'
+                                                            ? "bg-foreground/[0.07] text-foreground font-semibold"
+                                                            : "text-foreground/75 hover:text-foreground hover:bg-foreground/[0.04]"
+                                                    )}
                                                 >
-                                                    <Settings size={15} style={{ color: '#C2A26A' }} /> {t('nav_settings')}
+                                                    <Settings size={17} strokeWidth={1.6} className="text-foreground/70" />
+                                                    {t('nav_settings')}
                                                 </Link>
                                             )}
-                                            <div className="h-px bg-border my-1" />
+                                            <div className="h-px bg-border/60 my-1.5 mx-2" />
                                             <button
                                                 onClick={() => { setIsUserDropdownOpen(false); logout(); window.location.href = '/auth/login'; }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-medium uppercase tracking-[0.12em] text-red-500 hover:bg-red-500/5 rounded-xl transition-all"
+                                                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium text-red-500 hover:bg-red-500/8 rounded-2xl transition-all"
                                             >
-                                                <X size={15} /> {t('logout')}
+                                                <LogOut size={17} strokeWidth={1.6} />
+                                                {t('logout')}
                                             </button>
                                         </div>
                                     </>
@@ -338,104 +351,122 @@ export default function Header() {
                         </div>
                         
                         {/* Menu items */}
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 20px' }}>
+                        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5">
                             {showLoggedInUI && (
-                                <div style={{ marginBottom: '24px', padding: '20px', borderRadius: '20px', background: 'rgba(194, 162, 106, 0.08)', border: '1px solid rgba(194, 162, 106, 0.2)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                                        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#C2A26A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0B0B0C' }}>
-                                            <User size={20} />
-                                        </div>
-                                        <div>
-                                            <p style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#C2A26A', marginBottom: '2px' }}>Inloggad</p>
-                                            <p style={{ fontSize: '16px', fontWeight: 500, color: theme === 'dark' ? '#F1EFF7' : '#111112' }}>
-                                                {(() => {
-                                                    if (isProvider) {
-                                                        if (user) {
-                                                            const tier = (user.tier || user.membership_tier || 'bas').toLowerCase();
-                                                            if (tier === 'luxe') {
-                                                                return user.name || 'Studio Luxe';
-                                                            }
-                                                            return user.firstName || 'Studio Partner';
+                                <div className="flex items-center gap-3.5 px-4 py-3.5 rounded-3xl bg-card border border-border/70 shadow-sm">
+                                    <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-[#C2A26A]/60 bg-[#C2A26A]/15 flex items-center justify-center shrink-0">
+                                        {user?.profileImage ? (
+                                            <img src={user.profileImage} alt="Profilbild" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User size={20} strokeWidth={1.6} className="text-[#C2A26A]" />
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#C2A26A]">Inloggad</p>
+                                        <p className="text-base font-semibold text-foreground truncate">
+                                            {(() => {
+                                                if (isProvider) {
+                                                    if (user) {
+                                                        const tier = (user.tier || user.membership_tier || 'bas').toLowerCase();
+                                                        if (tier === 'luxe') {
+                                                            return user.name || 'Studio Luxe';
                                                         }
-                                                        return 'Studio Partner';
+                                                        return user.firstName || user.name || 'Studio Partner';
                                                     }
-                                                    return user?.firstName || 'Glow Member';
-                                                })()}
-                                            </p>
-                                        </div>
+                                                    return 'Studio Partner';
+                                                }
+                                                return user?.firstName || 'Glow Member';
+                                            })()}
+                                        </p>
                                     </div>
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {[
-                                    ...(showLoggedInUI ? (
-                                        isProviderPortal ? [
-                                            { href: "/provider", icon: Calendar, label: t('nav_dashboard') },
-                                            { href: "/provider/customers", icon: Users, label: t('dash_nav_customers') },
-                                            { href: "/provider/services", icon: Scissors, label: t('dash_nav_services') },
-                                            { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
-                                            { href: "/provider/settings", icon: Settings, label: t('nav_settings') },
-                                        ] : isProvider ? [
-                                            { href: "/provider", icon: User, label: t('nav_dashboard') },
+                            <div className="bg-card border border-border/70 rounded-3xl p-2 shadow-sm">
+                                <div className="flex flex-col gap-0.5">
+                                    {[
+                                        ...(showLoggedInUI ? (
+                                            isProviderPortal ? [
+                                                { href: "/provider", icon: Calendar, label: t('nav_dashboard') },
+                                                { href: "/provider/customers", icon: Users, label: t('dash_nav_customers') },
+                                                { href: "/provider/services", icon: Scissors, label: t('dash_nav_services') },
+                                                { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
+                                                { href: "/provider/settings", icon: Settings, label: t('nav_settings'), dividerBefore: true },
+                                            ] : isProvider ? [
+                                                { href: "/provider", icon: User, label: t('nav_dashboard') },
+                                                { href: "/explore", icon: Compass, label: t('discover') },
+                                                { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
+                                                { href: "/provider/settings", icon: Settings, label: t('nav_settings'), dividerBefore: true },
+                                            ] : isAdmin ? [
+                                                { href: "/admin", icon: User, label: 'Admin' },
+                                                { href: "/explore", icon: Compass, label: t('discover') },
+                                                { href: "/support", icon: HelpCircle, label: t('nav_support'), dividerBefore: true },
+                                            ] : [
+                                                { href: "/profile", icon: User, label: t('my_pages') },
+                                                { href: "/explore", icon: Compass, label: t('discover') },
+                                                { href: "/support", icon: HelpCircle, label: t('nav_support'), dividerBefore: true },
+                                            ]
+                                        ) : [
                                             { href: "/explore", icon: Compass, label: t('discover') },
-                                            { href: "/provider/settings?tab=inbox", icon: MessageSquare, label: t('nav_inbox') },
-                                            { href: "/provider/settings", icon: Settings, label: t('nav_settings') },
-                                        ] : isAdmin ? [
-                                            { href: "/admin", icon: User, label: 'Admin' },
-                                            { href: "/explore", icon: Compass, label: t('discover') },
-                                            { href: "/support", icon: HelpCircle, label: t('nav_support') },
-                                        ] : [
-                                            { href: "/profile", icon: User, label: t('my_pages') },
-                                            { href: "/explore", icon: Compass, label: t('discover') },
-                                            { href: "/support", icon: HelpCircle, label: t('nav_support') },
-                                        ]
-                                    ) : [
-                                        { href: "/explore", icon: Compass, label: t('discover') },
-                                        { href: "/guides", icon: BookOpen, label: t('nav_guides') },
-                                        { href: "/rewards", icon: Star, label: t('nav_rewards') },
-                                        { href: "/giftcards", icon: Ticket, label: t('nav_giftcards') },
-                                        { href: "/support", icon: HelpCircle, label: t('nav_support') },
-                                    ])
-                                ].map((item) => (
-                                    <Link 
-                                        key={item.href}
-                                        href={item.href} 
-                                        onClick={() => setIsMobileMenuOpen(false)} 
-                                        style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', borderRadius: '16px', color: theme === 'dark' ? '#F1EFF7' : '#111112', fontSize: '14px', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.05)' }}
-                                    >
-                                        <item.icon size={18} style={{ color: '#C2A26A' }} />
-                                        {item.label}
-                                    </Link>
-                                ))}
+                                            { href: "/guides", icon: BookOpen, label: t('nav_guides') },
+                                            { href: "/rewards", icon: Star, label: t('nav_rewards') },
+                                            { href: "/giftcards", icon: Ticket, label: t('nav_giftcards') },
+                                            { href: "/support", icon: HelpCircle, label: t('nav_support'), dividerBefore: true },
+                                        ])
+                                    ].map((item: any) => {
+                                        const isActive = pathname === item.href;
+                                        return (
+                                            <div key={item.href}>
+                                                {item.dividerBefore && <div className="h-px bg-border/60 my-1.5 mx-2" />}
+                                                <Link
+                                                    href={item.href}
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                    className={clsx(
+                                                        "flex items-center gap-3.5 px-4 py-3.5 rounded-2xl text-[15px] transition-all",
+                                                        isActive
+                                                            ? "bg-foreground/[0.07] text-foreground font-semibold"
+                                                            : "text-foreground/75 hover:text-foreground hover:bg-foreground/[0.04] font-medium"
+                                                    )}
+                                                >
+                                                    <item.icon size={19} strokeWidth={1.6} className={isActive ? "text-foreground" : "text-foreground/55"} />
+                                                    <span>{item.label}</span>
+                                                </Link>
+                                            </div>
+                                        );
+                                    })}
 
-                                {!showLoggedInUI && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-                                        <Link 
-                                            href="/auth/register?role=provider" 
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '9999px', border: '1px solid #C2A26A', color: theme === 'dark' ? '#F1EFF7' : '#111112', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.14em', textDecoration: 'none' }}
-                                        >
-                                            <Star size={15} style={{ color: '#C2A26A' }} /> {t('action_register')}
-                                        </Link>
-                                        <Link 
-                                            href="/auth/login" 
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '9999px', background: theme === 'dark' ? '#F1EFF7' : '#111112', color: theme === 'dark' ? '#0B0B0C' : '#F9F9F8', fontSize: '12px', fontWeight: 600, textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.14em' }}
-                                        >
-                                            <User size={15} /> {t('action_login')}
-                                        </Link>
-                                    </div>
-                                )}
+                                    {showLoggedInUI && (
+                                        <>
+                                            <div className="h-px bg-border/60 my-1.5 mx-2" />
+                                            <button
+                                                onClick={() => { setIsMobileMenuOpen(false); logout(); window.location.href = '/auth/login'; }}
+                                                className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl text-[15px] font-medium text-red-500 hover:bg-red-500/8 transition-all text-left"
+                                            >
+                                                <LogOut size={19} strokeWidth={1.6} />
+                                                <span>{t('logout')}</span>
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
-                            {showLoggedInUI && (
-                                <button
-                                    onClick={() => { setIsMobileMenuOpen(false); logout(); window.location.href = '/auth/login'; }}
-                                    style={{ marginTop: '24px', width: '100%', padding: '14px', borderRadius: '16px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', border: '1px solid rgba(239,68,68,0.15)', cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase' }}
-                                >
-                                    <X size={16} /> {t('logout')}
-                                </button>
+                            {!showLoggedInUI && (
+                                <div className="flex flex-col gap-3 pt-1">
+                                    <Link
+                                        href="/auth/register?role=provider"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className="flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-[#C2A26A] text-foreground text-sm font-semibold transition-all hover:bg-[#C2A26A]/10"
+                                    >
+                                        <Star size={16} strokeWidth={1.6} className="text-[#C2A26A]" /> {t('action_register')}
+                                    </Link>
+                                    <Link
+                                        href="/auth/login"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-foreground text-background text-sm font-semibold transition-all"
+                                    >
+                                        <User size={16} strokeWidth={1.6} /> {t('action_login')}
+                                    </Link>
+                                </div>
                             )}
                         </div>
 
