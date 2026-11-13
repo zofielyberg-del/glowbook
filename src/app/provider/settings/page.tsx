@@ -2361,6 +2361,12 @@ function SettingsContent() {
                                     <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
                                         Glowbook verkar för en sund, professionell och vit skönhetsbransch. Genom att ta betalt digitalt via Stripe redovisas alla intäkter transparent och säkert direkt till salongens bankkonto. Du slipper risken och osäkerheten med oredovisade kontanter eller uteblivna betalningar på plats, och aktiverar automatiskt <strong>No-Show skydd och kortgaranti</strong> för alla dina bokningar.
                                     </p>
+                                    <div className="pt-2 border-t border-emerald-500/20 flex items-start gap-2 text-[11px] text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
+                                        <Info size={14} className="shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+                                        <span>
+                                            <strong>Transparens om kortavgifter:</strong> Glowbook tar 0 % i bokningsprovision. Stripe tillämpar sedvanlig standardiserad transaktionsavgift (f.n. ca 1,5 % + 1,80 kr per transaktion för europeiska standardkort) direkt vid utbetalning för att garantera banksäkerhet, bedrägeriskydd och direkta bankutbetalningar.
+                                        </span>
+                                    </div>
                                 </div>
                                 {((salonData.tier || 'bas').toLowerCase() === 'bas') ? (
                                     <section className="bg-card p-10 rounded-[40px] border border-border shadow-sm text-center space-y-6 relative overflow-hidden">

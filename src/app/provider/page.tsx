@@ -739,6 +739,9 @@ export default function ProviderDashboard() {
                                     <p className="text-xs sm:text-sm text-foreground/75 leading-relaxed">
                                         Genom att koppla ditt företag till <strong>Stripe (tar 2 min med BankID)</strong> aktiverar du automatisk kortgaranti och skydd mot uteblivna kunder. Alla betalningar går 100 % vitt och transparent direkt in på ditt bankkonto. Du slipper jaga obetalda fakturor eller hantera osäkra kontanter på plats.
                                     </p>
+                                    <p className="text-[11px] text-foreground/50 leading-relaxed">
+                                        Transparens: Sedvanlig standardiserad kortavgift via Stripe tillkommer (f.n. ca 1,5 % + 1,80 kr per transaktion inom EU/EES).
+                                    </p>
                                 </div>
                                 <Link
                                     href="/provider/settings?tab=payments"
@@ -749,13 +752,18 @@ export default function ProviderDashboard() {
                             </div>
                         </motion.div>
                     ) : (
-                        <div className="mb-10 p-4 px-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                                <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
-                                <span>Stripe & No-Show skydd aktivt: Din salong är skyddad med automatisk kortgaranti och digitala vita betalningar.</span>
+                        <div className="mb-10 p-5 px-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                                    <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                    <span>Stripe & No-Show skydd aktivt: Automatisk kortgaranti & säkra digitala betalningar</span>
+                                </div>
+                                <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400/90 pl-7 leading-relaxed">
+                                    Transparens: Stripe drar sedvanlig standardiserad transaktionsavgift (f.n. ca 1,5 % + 1,80 kr per transaktion för EU-kort) direkt vid utbetalning för att garantera banksäkerhet och BankID-verifiering.
+                                </p>
                             </div>
-                            <Link href="/provider/settings?tab=payments" className="text-[11px] font-bold text-emerald-600 hover:underline shrink-0">
-                                Hantera betalningar →
+                            <Link href="/provider/settings?tab=payments" className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline shrink-0 pl-7 sm:pl-0">
+                                Hantera hos Stripe →
                             </Link>
                         </div>
                     )}
