@@ -721,7 +721,7 @@ export default function ProviderDashboard() {
                         </div>
                     </div>
 
-                    {/* Högsynlig Tipsruta: Säkerhet, Vita Intäkter & No-Show Skydd */}
+                    {/* Högsynlig Tipsruta: Säkerhet, Spårbara Intäkter & No-Show Skydd */}
                     {!(user?.stripe_account_id || user?.stripeConnected) ? (
                         <motion.div
                             initial={{ opacity: 0, y: 15 }}
@@ -737,7 +737,7 @@ export default function ProviderDashboard() {
                                         Skydda din salong mot no-shows med Stripe
                                     </h3>
                                     <p className="text-xs sm:text-sm text-foreground/75 leading-relaxed">
-                                        Genom att koppla ditt företag till <strong>Stripe (tar 2 min med BankID)</strong> aktiverar du automatisk kortgaranti och skydd mot uteblivna kunder. Alla betalningar går 100 % vitt och transparent direkt in på ditt bankkonto. Du slipper jaga obetalda fakturor eller hantera osäkra kontanter på plats.
+                                        Genom att koppla ditt företag till <strong>Stripe (tar 2 min med BankID)</strong> aktiverar du automatisk kortgaranti och skydd mot uteblivna kunder. Alla betalningar hanteras säkert, spårbart och transparent direkt in på ditt bankkonto. Du slipper jaga obetalda fakturor eller hantera osäkra kontanter på plats.
                                     </p>
                                     <p className="text-[11px] text-foreground/50 leading-relaxed">
                                         Transparens: Sedvanlig standardiserad kortavgift via Stripe tillkommer (f.n. ca 1,5 % + 1,80 kr per transaktion inom EU/EES).
