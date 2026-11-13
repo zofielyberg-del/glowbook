@@ -695,7 +695,7 @@ export default function ProviderDashboard() {
 
                 <main className="max-w-7xl mx-auto px-6 py-12 pt-24">
                     {/* Welcome Hero */}
-                    <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
                                 <h1 className="text-4xl font-heading font-bold text-foreground">
@@ -720,6 +720,45 @@ export default function ProviderDashboard() {
                             </motion.button>
                         </div>
                     </div>
+
+                    {/* Högsynlig Tipsruta: Säkerhet, Vita Intäkter & No-Show Skydd */}
+                    {!(user?.stripe_account_id || user?.stripeConnected) ? (
+                        <motion.div
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-10 p-6 sm:p-8 rounded-[32px] bg-gradient-to-r from-champagne-500/15 via-amber-500/10 to-transparent border border-champagne-500/30 shadow-lg relative overflow-hidden"
+                        >
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+                                <div className="space-y-2 max-w-2xl">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-champagne-500/20 text-champagne-900 dark:text-champagne-200 text-[10px] font-black uppercase tracking-wider">
+                                        <Sparkles size={12} className="text-champagne-600 dark:text-champagne-400" /> Tips för maximal trygghet
+                                    </div>
+                                    <h3 className="text-xl sm:text-2xl font-heading font-bold text-foreground">
+                                        Skydda din salong mot no-shows med Stripe
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-foreground/75 leading-relaxed">
+                                        Genom att koppla ditt företag till <strong>Stripe (tar 2 min med BankID)</strong> aktiverar du automatisk kortgaranti och skydd mot uteblivna kunder. Alla betalningar går 100 % vitt och transparent direkt in på ditt bankkonto. Du slipper jaga obetalda fakturor eller hantera osäkra kontanter på plats.
+                                    </p>
+                                </div>
+                                <Link
+                                    href="/provider/settings?tab=payments"
+                                    className="shrink-0 px-6 py-3.5 bg-foreground text-background hover:bg-champagne-600 hover:text-white rounded-2xl font-bold text-xs transition-all shadow-md hover:scale-[1.02] active:scale-95 flex items-center gap-2"
+                                >
+                                    <CreditCard size={16} /> Koppla Stripe med BankID →
+                                </Link>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <div className="mb-10 p-4 px-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                                <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+                                <span>Stripe & No-Show skydd aktivt: Din salong är skyddad med automatisk kortgaranti och digitala vita betalningar.</span>
+                            </div>
+                            <Link href="/provider/settings?tab=payments" className="text-[11px] font-bold text-emerald-600 hover:underline shrink-0">
+                                Hantera betalningar →
+                            </Link>
+                        </div>
+                    )}
 
                     {/* Onboarding Get Started Guide - Döljs helt när alla 5 steg är klara */}
                     {completedStepsCount < 5 && isGuideMinimized !== null && (

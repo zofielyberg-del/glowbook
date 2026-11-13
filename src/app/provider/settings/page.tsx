@@ -2352,6 +2352,16 @@ function SettingsContent() {
                         {/* ===== BETALNINGAR TAB ===== */}
                         {activeTab === 'payments' && (
                             <div className="space-y-8">
+                                {/* Säkerhetstips & Branschrekommendation */}
+                                <div className="p-6 sm:p-8 rounded-[32px] bg-gradient-to-br from-emerald-500/10 via-champagne-500/10 to-transparent border border-emerald-500/20 space-y-3">
+                                    <div className="flex items-center gap-2.5 text-emerald-700 dark:text-emerald-400 font-bold text-sm sm:text-base">
+                                        <Shield size={22} className="text-emerald-600 shrink-0" />
+                                        <span>Glowbook Branschstandard: 100 % Vita Intäkter & No-Show Skydd</span>
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
+                                        Glowbook verkar för en sund, professionell och vit skönhetsbransch. Genom att ta betalt digitalt via Stripe redovisas alla intäkter transparent och säkert direkt till salongens bankkonto. Du slipper risken och osäkerheten med oredovisade kontanter eller uteblivna betalningar på plats, och aktiverar automatiskt <strong>No-Show skydd och kortgaranti</strong> för alla dina bokningar.
+                                    </p>
+                                </div>
                                 {((salonData.tier || 'bas').toLowerCase() === 'bas') ? (
                                     <section className="bg-card p-10 rounded-[40px] border border-border shadow-sm text-center space-y-6 relative overflow-hidden">
                                         <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12">
