@@ -32,6 +32,7 @@ export default function RegisterContent() {
     const [selectedCountry, setSelectedCountry] = useState(NORDIC_COUNTRIES[0]);
     const [selectedMunicipality, setSelectedMunicipality] = useState('');
     const [error, setError] = useState('');
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
     const router = useRouter();
 
     // Initial sync from language context (e.g. if browser detected Norska)
@@ -55,6 +56,11 @@ export default function RegisterContent() {
         // Basic validation - email, phone, and names are mandatory for all
         if (!firstName || !lastName || !email || !phone || (role === 'provider' && !selectedMunicipality)) {
             setError(t('msg_fill_all_fields'));
+            return;
+        }
+
+        if (!agreedToTerms) {
+            setError('Du måste godkänna villkoren för att skapa ett konto.');
             return;
         }
 
@@ -311,9 +317,52 @@ export default function RegisterContent() {
                                 </div>
                             )}
 
+                            {/* Obligatoriskt godkännande av villkor */}
+                            <div className="pt-2 border-t border-border/40 space-y-2">
+                                <label className="flex items-start gap-2.5 cursor-pointer group select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={agreedToTerms}
+                                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                        className="mt-0.5 w-4 h-4 rounded border-border text-champagne-600 focus:ring-champagne-500 cursor-pointer accent-champagne-600 shrink-0"
+                                    />
+                                    {role === 'customer' ? (
+                                        <span className="text-xs text-foreground/80 leading-relaxed font-medium">
+                                            Jag godkänner Glowbooks{' '}
+                                            <Link href="/policies" target="_blank" className="text-champagne-600 underline font-semibold hover:text-champagne-700">
+                                                användarvillkor
+                                            </Link>{' '}
+                                            och{' '}
+                                            <Link href="/policies#integritetspolicy" target="_blank" className="text-champagne-600 underline font-semibold hover:text-champagne-700">
+                                                integritetspolicy (GDPR)
+                                            </Link>
+                                            .
+                                        </span>
+                                    ) : (
+                                        <span className="text-xs text-foreground/80 leading-relaxed font-medium">
+                                            Jag har läst och godkänner Glowbooks{' '}
+                                            <Link href="/policies#utforarvillkor" target="_blank" className="text-champagne-600 underline font-semibold hover:text-champagne-700">
+                                                Utförarvillkor
+                                            </Link>{' '}
+                                            och{' '}
+                                            <Link href="/policies#integritetspolicy" target="_blank" className="text-champagne-600 underline font-semibold hover:text-champagne-700">
+                                                Personuppgiftsbiträdesavtal (DPA)
+                                            </Link>
+                                            . Jag intygar att verksamheten innehar F-skatt samt erforderliga ansvars- och behandlingsskadeförsäkringar.
+                                        </span>
+                                    )}
+                                </label>
+                            </div>
+
                             <button
                                 type="submit"
-                                className="w-full bg-[#111] dark:bg-white text-white dark:text-[#111] py-3 rounded-lg font-bold hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-colors shadow-lg"
+                                disabled={!agreedToTerms}
+                                className={clsx(
+                                    "w-full py-3.5 rounded-xl font-bold transition-all shadow-lg text-sm",
+                                    agreedToTerms
+                                        ? "bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-champagne-600 dark:hover:bg-champagne-300 cursor-pointer hover:scale-[1.01] active:scale-95"
+                                        : "bg-foreground/10 text-foreground/30 cursor-not-allowed shadow-none"
+                                )}
                             >
                                 {t('action_register')}
                             </button>

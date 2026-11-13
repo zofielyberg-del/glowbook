@@ -219,6 +219,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [selectedService, setSelectedService] = useState<any>(null);
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [bookingStep, setBookingStep] = useState(1); // 1: Select Service, 2: Select Time, 3: Confirm
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
     const [selectedPractitioner, setSelectedPractitioner] = useState<any>(null);
     const [selectedTime, setSelectedTime] = useState<{ day: string; time: string; fullDate: string; dayIndex: number } | null>(null);
@@ -407,10 +408,12 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         return cleaned.length >= 8;
     };
 
-    const isFormValid = customerInfo.firstName.trim().length > 1 &&
+    const isBasicInfoValid = customerInfo.firstName.trim().length > 1 &&
         customerInfo.lastName.trim().length > 1 &&
         validateEmail(customerInfo.email) &&
         validatePhone(customerInfo.phone);
+
+    const isFormValid = isBasicInfoValid && agreedToTerms;
 
 
 
@@ -1917,27 +1920,60 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             </span>
                                                         </div>
 
+                                                        {/* Obligatorisk avtals- och avbokningskryssruta */}
+                                                        <div className="pt-4 border-t border-border/60 space-y-2.5">
+                                                            <label className="flex items-start gap-2.5 cursor-pointer group select-none">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={agreedToTerms}
+                                                                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                                                    className="mt-0.5 w-4 h-4 rounded border-border text-champagne-600 focus:ring-champagne-500 cursor-pointer accent-champagne-600 shrink-0"
+                                                                />
+                                                                <span className="text-[11px] leading-tight text-foreground/80 font-medium">
+                                                                    Jag godkänner Glowbooks{' '}
+                                                                    <Link href="/policies" target="_blank" className="text-champagne-600 underline font-semibold hover:text-champagne-700">
+                                                                        användarvillkor
+                                                                    </Link>{' '}
+                                                                    och salongens{' '}
+                                                                    <Link href="/policies#avbokning-och-no-show" target="_blank" className="text-champagne-600 underline font-semibold hover:text-champagne-700">
+                                                                        avbokningspolicy
+                                                                    </Link>
+                                                                    .
+                                                                </span>
+                                                            </label>
+                                                            <div className="p-3 rounded-2xl bg-foreground/[0.03] border border-border/40 text-[10px] text-foreground/60 leading-relaxed">
+                                                                <strong className="text-foreground/80 font-semibold block mb-0.5">Avbokningspolicy:</strong>
+                                                                Fri avbokning senast 24 timmar innan bokad tid. Vid sen avbokning eller uteblivet besök (no-show) har salongen laglig rätt att debitera behandlingsbeloppet i enlighet med gällande distansavtalslagstiftning.
+                                                            </div>
+                                                        </div>
+
                                                         <button
                                                             disabled={!isFormValid || (selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid) || isBooking}
                                                             onClick={handleConfirmBooking}
                                                             className={clsx(
                                                                 "w-full py-5 rounded-2xl font-bold text-sm transition-all shadow-xl active:scale-95",
                                                                 isFormValid && (selectedPaymentMethod !== 'giftcard' || giftCardStatus?.valid) && !isBooking
-                                                                    ? "bg-foreground text-background hover:bg-champagne-600 hover:text-white shadow-black/10"
+                                                                    ? "bg-foreground text-background hover:bg-champagne-600 hover:text-white shadow-black/10 cursor-pointer"
                                                                     : "bg-foreground/5 text-foreground/20 cursor-not-allowed shadow-none"
                                                             )}
                                                         >
                                                             {isBooking
                                                                 ? t('booking_btn_booking')
-                                                                : !isFormValid
+                                                                : !isBasicInfoValid
                                                                     ? t('booking_btn_fill_info')
-                                                                    : selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid
-                                                                        ? t('booking_btn_validate_gc')
-                                                                        : `✓ ${t('salon_book_now')}`}
+                                                                    : !agreedToTerms
+                                                                        ? 'Godkänn villkoren för att boka'
+                                                                        : selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid
+                                                                            ? t('booking_btn_validate_gc')
+                                                                            : `✓ ${t('salon_book_now')}`}
                                                         </button>
                                                         {!isFormValid && (
-                                                            <p className="text-[10px] text-center text-red-500/60 font-medium">
-                                                                {t('booking_validation_error')}
+                                                            <p className="text-[10px] text-center font-medium">
+                                                                {!isBasicInfoValid ? (
+                                                                    <span className="text-red-500/60">{t('booking_validation_error')}</span>
+                                                                ) : (
+                                                                    <span className="text-amber-600">Vänligen kryssa i rutan ovan för att godkänna villkoren och slutföra bokningen.</span>
+                                                                )}
                                                             </p>
                                                         )}
 

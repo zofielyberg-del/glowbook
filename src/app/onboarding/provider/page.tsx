@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, Store, MapPin, User, ShieldCheck, Star, CreditCard, Sparkles, Hourglass } from "lucide-react";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { NORDIC_COUNTRIES, getMunicipalities } from "@/data/nordic-data";
 import { MEMBERSHIP_DURATIONS, calculateMembershipPrice } from "@/lib/pricing";
@@ -37,6 +38,7 @@ export default function ProviderOnboarding() {
 
     const [hasPreFilledLocation, setHasPreFilledLocation] = useState(false);
     const [hasPreFilledName, setHasPreFilledName] = useState(false);
+    const [agreedToProviderTerms, setAgreedToProviderTerms] = useState(false);
 
 
     // Initial load from sessionStorage or localStorage (preserves fields & step if returning from cancelled Stripe Checkout)
@@ -676,9 +678,30 @@ export default function ProviderOnboarding() {
                                             </p>
                                         </div>
 
-                                        <p className="text-[10px] text-foreground/30 text-center px-2 sm:px-8 leading-relaxed">
-                                            Genom att fortsätta godkänner du våra användarvillkor. Efter 3 månaders gratis provperiod debiteras en förskottsbetalning på {calculatePrice(formData.tier, formData.duration).total} SEK för din valda period via Stripe.
-                                        </p>
+                                        <div className="p-5 rounded-2xl bg-foreground/[0.03] border border-border/60 text-left space-y-3">
+                                            <label className="flex items-start gap-3 cursor-pointer select-none">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={agreedToProviderTerms}
+                                                    onChange={(e) => setAgreedToProviderTerms(e.target.checked)}
+                                                    className="mt-1 w-4 h-4 rounded border-border text-champagne-600 focus:ring-champagne-500 cursor-pointer accent-champagne-600 shrink-0"
+                                                />
+                                                <span className="text-xs text-foreground/80 leading-relaxed font-medium">
+                                                    Jag har läst och godkänner Glowbooks{' '}
+                                                    <Link href="/policies#utforarvillkor" target="_blank" className="text-champagne-600 underline font-semibold hover:text-champagne-700">
+                                                        Utförarvillkor
+                                                    </Link>{' '}
+                                                    och{' '}
+                                                    <Link href="/policies#integritetspolicy" target="_blank" className="text-champagne-600 underline font-semibold hover:text-champagne-700">
+                                                        Personuppgiftsbiträdesavtal (DPA)
+                                                    </Link>
+                                                    . Jag intygar att verksamheten innehar godkänd F-skatt samt erforderliga ansvars- och behandlingsskadeförsäkringar. Jag bekräftar att salongen bär det fulla ansvaret för utförda behandlingar gentemot slutkunder.
+                                                </span>
+                                            </label>
+                                            <p className="text-[11px] text-foreground/40 leading-relaxed pl-7">
+                                                Efter 90 dagars fri provperiod debiteras {calculatePrice(formData.tier, formData.duration).monthly} SEK/mån ({calculatePrice(formData.tier, formData.duration).total} SEK för vald period) via Stripe. Du kan avsluta när som helst under provperioden utan kostnad.
+                                            </p>
+                                        </div>
                                     </div>
                                 </motion.div>
                             )}
@@ -706,7 +729,13 @@ export default function ProviderOnboarding() {
                         ) : (
                             <button
                                 onClick={handleComplete}
-                                className="w-full sm:w-auto justify-center bg-[#111] dark:bg-white text-white dark:text-[#111] px-5 sm:px-10 py-4 sm:py-5 rounded-2xl sm:rounded-full font-black text-sm sm:text-lg hover:bg-champagne-600 dark:hover:bg-champagne-300 transition-all flex items-center gap-3 shadow-2xl hover:scale-[1.02] active:scale-95 text-center"
+                                disabled={!agreedToProviderTerms}
+                                className={clsx(
+                                    "w-full sm:w-auto justify-center px-5 sm:px-10 py-4 sm:py-5 rounded-2xl sm:rounded-full font-black text-sm sm:text-lg transition-all flex items-center gap-3 shadow-2xl text-center",
+                                    agreedToProviderTerms
+                                        ? "bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-champagne-600 dark:hover:bg-champagne-300 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                                        : "bg-foreground/10 text-foreground/30 cursor-not-allowed shadow-none"
+                                )}
                             >
                                 Slutför & Aktivera via Stripe
                             </button>
