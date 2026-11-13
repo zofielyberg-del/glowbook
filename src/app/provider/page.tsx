@@ -730,14 +730,14 @@ export default function ProviderDashboard() {
                         >
                             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
                                 <div className="space-y-2 max-w-2xl">
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-champagne-500/20 text-champagne-900 dark:text-champagne-200 text-[10px] font-black uppercase tracking-wider">
-                                        <Sparkles size={12} className="text-champagne-600 dark:text-champagne-400" /> Tips för maximal trygghet
+                                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-champagne-500/20 text-champagne-900 dark:text-champagne-200 text-[10px] font-black uppercase tracking-wider">
+                                        Tips för maximal trygghet
                                     </div>
                                     <h3 className="text-xl sm:text-2xl font-heading font-bold text-foreground">
                                         Skydda din salong mot no-shows med Stripe
                                     </h3>
                                     <p className="text-xs sm:text-sm text-foreground/75 leading-relaxed">
-                                        Genom att koppla ditt företag till <strong>Stripe (tar 2 min med BankID)</strong> aktiverar du automatisk kortgaranti och skydd mot uteblivna kunder. Alla betalningar hanteras säkert, spårbart och transparent direkt in på ditt bankkonto. Du slipper jaga obetalda fakturor eller hantera osäkra kontanter på plats.
+                                        Genom att koppla ditt företag till <strong>Stripe (tar ca 5–10 min med BankID)</strong> aktiverar du automatisk kortgaranti och skydd mot uteblivna kunder. Alla betalningar hanteras säkert, spårbart och transparent direkt in på ditt bankkonto. Du slipper jaga obetalda fakturor eller hantera osäkra kontanter på plats.
                                     </p>
                                     <p className="text-[11px] text-foreground/50 leading-relaxed">
                                         Transparens: Sedvanlig standardiserad kortavgift via Stripe tillkommer (f.n. ca 1,5 % + 1,80 kr per transaktion inom EU/EES).
