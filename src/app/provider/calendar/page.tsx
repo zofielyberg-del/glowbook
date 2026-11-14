@@ -11,6 +11,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { format, addDays, startOfWeek } from "date-fns";
 import { sv } from "date-fns/locale";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 export default function CalendarPage() {
     const { t } = useLanguage();
@@ -209,8 +210,9 @@ export default function CalendarPage() {
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col transition-colors duration-300">
-            <Header />
+        <PermissionGate allowedRoles={['salon_owner', 'practitioner', 'admin']}>
+            <div className="min-h-screen bg-background flex flex-col transition-colors duration-300">
+                <Header />
 
             <main className="flex-1 p-6 pt-24 grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-[1600px] mx-auto w-full">
 
@@ -417,6 +419,7 @@ export default function CalendarPage() {
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+            </div>
+        </PermissionGate>
     );
 }

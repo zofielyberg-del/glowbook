@@ -6,6 +6,7 @@ import { Wallet, CreditCard, Banknote, CheckCircle2, AlertCircle, Filter, BarCha
 import Header from "@/components/layout/Header";
 import { useLanguage } from "@/context/LanguageContext";
 import clsx from "clsx";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 // Mock Toggle
 const HAS_FINANCE_DATA = false;
@@ -27,8 +28,9 @@ export default function FinancePage() {
     const pendingRevenue = transactions.reduce((acc, t) => t.status === 'pending' ? acc + t.amount : acc, 0);
 
     return (
-        <div className="min-h-screen bg-champagne-50">
-            <Header />
+        <PermissionGate allowedRoles={['salon_owner', 'practitioner', 'admin']}>
+            <div className="min-h-screen bg-champagne-50">
+                <Header />
             <main className="max-w-7xl mx-auto px-6 pt-24 pb-12">
                 <div className="mb-12">
                     <h1 className="text-3xl font-heading font-bold text-premium-black">{t('provider_finance_title')}</h1>
@@ -82,6 +84,7 @@ export default function FinancePage() {
                     </div>
                 )}
             </main>
-        </div>
+            </div>
+        </PermissionGate>
     );
 }

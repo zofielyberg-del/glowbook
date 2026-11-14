@@ -6,6 +6,7 @@ import { Plus, Search, Clock, DollarSign, Edit, Trash2, Camera, Image as ImageIc
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 // Services are stored per-provider and added manually
 const MOCK_SERVICES: { id: string, name: string, price: number, duration: number, description: string }[] = [];
@@ -363,8 +364,9 @@ export default function ServicesPage() {
     const currentPlaceholder = PLACEHOLDERS[category as keyof typeof PLACEHOLDERS] || PLACEHOLDERS["Naglar"];
 
     return (
-        <div className="min-h-screen bg-[#faf8f5] dark:bg-[#0c0c0a] text-foreground transition-colors duration-300">
-            <Header />
+        <PermissionGate allowedRoles={['salon_owner', 'practitioner', 'admin']}>
+            <div className="min-h-screen bg-[#faf8f5] dark:bg-[#0c0c0a] text-foreground transition-colors duration-300">
+                <Header />
             <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16 space-y-12">
 
 
@@ -816,6 +818,7 @@ export default function ServicesPage() {
                 </AnimatePresence>
 
             </div>
-        </div>
+            </div>
+        </PermissionGate>
     );
 }

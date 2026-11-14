@@ -63,7 +63,7 @@ export default function Header() {
     const isAdminPortal = pathname?.startsWith('/admin');
     const isCustomerPortal = pathname?.startsWith('/profile');
 
-    const showLoggedInUI = isLoggedIn || isProviderPortal || isAdminPortal || isCustomerPortal;
+    const showLoggedInUI = Boolean(isLoggedIn);
 
     // Lock body scroll when mobile menu is open
     useEffect(() => {

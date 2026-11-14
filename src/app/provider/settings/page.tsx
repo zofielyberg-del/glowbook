@@ -9,6 +9,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import WeeklyScheduleGrid from "@/components/schedule/WeeklyScheduleGrid";
 import { useLanguage } from "@/context/LanguageContext";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 import { NORDIC_COUNTRIES, getMunicipalities } from "@/data/nordic-data";
 import { TIER_PRICES, MEMBERSHIP_DURATIONS, calculateMembershipPrice } from "@/lib/pricing";
 import { slugifySalonName } from "@/lib/slug";
@@ -81,9 +82,11 @@ function ChangePasswordForm({ email }: { email: string }) {
 
 export default function SettingsPage() {
     return (
-        <Suspense fallback={null}>
-            <SettingsContent />
-        </Suspense>
+        <PermissionGate allowedRoles={['salon_owner', 'practitioner', 'admin']}>
+            <Suspense fallback={null}>
+                <SettingsContent />
+            </Suspense>
+        </PermissionGate>
     );
 }
 

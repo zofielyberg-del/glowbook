@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Lock, CreditCard, Settings, LogOut } from 'lucide-react';
@@ -10,11 +10,24 @@ const VALID_STATUSES = ['active', 'trialing', 'canceling'];
 
 export function DashboardGuard({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const { user, isSalonOwner, isLoading, logout } = useAuth();
+    const router = useRouter();
+    const { user, isSalonOwner, isPractitioner, isAdmin, isLoading, logout } = useAuth();
     const [isLocked, setIsLocked] = useState(false);
     const [checking, setChecking] = useState(true);
     const [loadingPortal, setLoadingPortal] = useState(false);
     const isSettingsRoute = pathname?.startsWith('/provider/settings');
+
+    const isAuthorized = Boolean(
+        user && (isSalonOwner || isPractitioner || isAdmin || user.role === 'admin' || user.role === 'salon_owner' || user.role === 'practitioner')
+    );
+
+    // Immediately kick unauthenticated users / non-providers to login
+    useEffect(() => {
+        if (!isLoading && !isAuthorized) {
+            const redirectUrl = pathname ? `/auth/login?redirect=${encodeURIComponent(pathname)}` : '/auth/login';
+            router.replace(redirectUrl);
+        }
+    }, [isLoading, isAuthorized, pathname, router]);
 
     const handleManageMembership = async () => {
         if (loadingPortal) return;
@@ -44,7 +57,7 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
     };
 
     useEffect(() => {
-        if (isLoading) return;
+        if (isLoading || !isAuthorized) return;
 
         let cancelled = false;
 
@@ -163,9 +176,15 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
         return () => {
             cancelled = true;
         };
-    }, [user, isSalonOwner, isLoading]);
+    }, [user, isSalonOwner, isLoading, isAuthorized]);
 
-    if (isLoading || checking) return null;
+    if (isLoading || !isAuthorized || checking) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="w-8 h-8 rounded-full border-2 border-[#C2A26A]/20 border-t-[#C2A26A] animate-spin" />
+            </div>
+        );
+    }
 
     if (isLocked && !isSettingsRoute) {
         return (

@@ -6,6 +6,7 @@ import clsx from "clsx";
 import Header from "@/components/layout/Header";
 import { useLanguage } from "@/context/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 type Customer = {
     id: string;
@@ -267,8 +268,9 @@ export default function CustomersPage() {
     );
 
     return (
-        <div className="min-h-screen bg-[#faf8f5] dark:bg-[#0c0c0a] text-foreground transition-colors duration-300">
-            <Header />
+        <PermissionGate allowedRoles={['salon_owner', 'practitioner', 'admin']}>
+            <div className="min-h-screen bg-[#faf8f5] dark:bg-[#0c0c0a] text-foreground transition-colors duration-300">
+                <Header />
             <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                     <div>
@@ -540,6 +542,7 @@ export default function CustomersPage() {
                     )}
                 </AnimatePresence>
             </main>
-        </div>
+            </div>
+        </PermissionGate>
     );
 }
