@@ -40,8 +40,16 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: 84%; /* ~13.4px på mobilen – ger omedelbart mer luft och rymd åt hela mobillayouten */
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Förhindrar att iOS Safari tvingar oönskad inzoomning vid klick i formulärfält på mobil */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
 /* Elegant, luftig lyxskalning för desktop och laptops */
