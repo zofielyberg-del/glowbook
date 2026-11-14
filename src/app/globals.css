@@ -39,6 +39,24 @@
   --border: #232326;
 }
 
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+/* Elegant, luftig lyxskalning för desktop och laptops */
+@media (min-width: 768px) {
+  html {
+    font-size: 85%; /* Ger exakt den slanka, rymliga känslan med generösa marginaler */
+  }
+}
+
+@media (min-width: 1536px) {
+  html {
+    font-size: 87.5%; /* Balanserad skala på större widescreen-skärmar */
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
