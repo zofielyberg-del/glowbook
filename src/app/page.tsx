@@ -250,29 +250,29 @@ export default function Home() {
     <div className="min-h-screen bg-background dark:bg-black transition-colors duration-500 font-body">
       <Header />
 
-      <main className="pt-24 pb-24 gpu relative">
+      <main className="pt-16 sm:pt-24 pb-16 sm:pb-24 gpu relative">
         {/* Editorial Hero Section */}
-        <section className="relative px-4 sm:px-6 py-16 sm:py-24 md:py-32 lg:py-40 flex flex-col items-center text-center overflow-hidden">
+        <section className="relative px-3 sm:px-6 py-10 sm:py-24 md:py-32 lg:py-40 flex flex-col items-center text-center overflow-hidden">
           <FlowingBackground />
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-            className="relative z-10 max-w-4xl mx-auto space-y-6 sm:space-y-8"
+            className="relative z-10 max-w-4xl mx-auto space-y-4 sm:space-y-8"
           >
             {/* Main Headline in Cormorant Garamond */}
-            <div className="space-y-4">
-              <h1 className="font-heading text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-normal text-foreground leading-[1.05] tracking-tight">
+            <div className="space-y-3 sm:space-y-4">
+              <h1 className="font-heading text-3xl sm:text-6xl md:text-7xl lg:text-8xl font-normal text-foreground leading-[1.08] tracking-tight">
                 {t('home_hero_title_1') || 'Din tid.'} <br className="hidden sm:inline" />
                 <span className="italic font-light text-champagne-500">{t('home_hero_title_2') || 'Din skönhet.'}</span>
               </h1>
               
               {/* Minimal Luxury Divider */}
-              <div className="w-12 h-px bg-champagne-500/50 mx-auto" />
+              <div className="w-10 sm:w-12 h-px bg-champagne-500/50 mx-auto" />
             </div>
 
             {/* Subtitle */}
-            <p className="text-xs sm:text-sm md:text-base uppercase tracking-[0.22em] text-foreground/50 dark:text-white/50 max-w-xl mx-auto font-medium leading-relaxed">
+            <p className="text-[11px] sm:text-sm md:text-base uppercase tracking-[0.14em] sm:tracking-[0.22em] text-foreground/50 dark:text-white/50 max-w-xl mx-auto font-medium leading-relaxed px-2">
               {(() => {
                 const subtitle = t('home_hero_subtitle');
                 const [line1, line2] = subtitle.split('\n');
@@ -300,9 +300,9 @@ export default function Home() {
             </p>
 
             {/* Editorial Search Bar */}
-            <div className="flex flex-col gap-6 sm:gap-8 items-center w-full max-w-3xl pt-6 sm:pt-10">
+            <div className="flex flex-col gap-4 sm:gap-8 items-center w-full max-w-3xl pt-3 sm:pt-10">
               <div className="w-full relative group">
-                <div className="relative bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.5)] border border-black/10 dark:border-white/10 p-2 sm:p-2.5 flex flex-col md:flex-row items-center gap-2 transition-all duration-300 hover:border-champagne-500/40">
+                <div className="relative bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.5)] border border-black/10 dark:border-white/10 p-1.5 sm:p-2.5 flex flex-col md:flex-row items-center gap-2 transition-all duration-300 hover:border-champagne-500/40">
                   {/* Text Input */}
                   <div className="flex-[2] flex items-center px-4 min-w-0 w-full relative">
                     <Search className="text-champagne-600 shrink-0" size={20} strokeWidth={2} />
@@ -436,13 +436,13 @@ export default function Home() {
               </div>
 
               {/* Sub-CTA targeted at salons */}
-              <div className="flex items-center gap-2 pt-1 text-center">
+              <div className="flex items-center justify-center gap-2 pt-2 text-center w-full">
                 <Link
                   href="/auth/register?role=provider"
-                  className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/50 hover:text-champagne-600 transition-colors inline-flex items-center gap-2 group"
+                  className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.14em] sm:tracking-[0.2em] text-foreground/50 hover:text-champagne-600 transition-colors inline-flex flex-wrap items-center justify-center gap-1.5 group text-center"
                 >
                   <span>{t('home_hero_provider_ask')}</span>
-                  <span className="text-champagne-600 underline underline-offset-4 group-hover:text-champagne-700">{t('home_hero_provider_cta')}</span>
+                  <span className="text-champagne-600 font-semibold group-hover:text-champagne-700">{t('home_hero_provider_cta')}</span>
                 </Link>
               </div>
             </div>

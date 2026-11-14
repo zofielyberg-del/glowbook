@@ -40,7 +40,7 @@
 }
 
 html {
-  font-size: 84%; /* ~13.4px på mobilen – ger omedelbart mer luft och rymd åt hela mobillayouten */
+  font-size: 78%; /* ~12.5px på mobil – minimerar komponenter och ger en slank, rymlig smartphone-upplevelse */
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
 }
