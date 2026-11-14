@@ -1092,10 +1092,10 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                 <div
                                                     onClick={(e) => handleFrameClick(frame, e, day)}
                                                     className={clsx(
-                                                        "group/frame absolute inset-x-0.5 rounded-lg z-[5] cursor-pointer transition-all",
+                                                        "group/frame absolute inset-x-0.5 rounded-lg z-[5] cursor-pointer transition-all duration-200",
                                                         isEditing
                                                             ? "ring-2 ring-emerald-400 ring-offset-1 ring-offset-background shadow-xl shadow-emerald-500/20 z-[15]"
-                                                            : "hover:shadow-md hover:shadow-emerald-500/15 hover:z-10"
+                                                            : "hover:z-10"
                                                     )}
                                                     style={getItemStyle(frame)}
                                                 >
@@ -1121,22 +1121,24 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                             <div
                                                                 key={si}
                                                                 className={clsx(
-                                                                    "absolute inset-x-0 bg-gradient-to-b from-emerald-500/20 via-emerald-500/10 to-emerald-500/5 transition-all group-hover/frame:from-emerald-500/30 group-hover/frame:to-emerald-500/15 overflow-hidden",
+                                                                    "absolute inset-x-0 bg-gradient-to-b from-emerald-500/20 via-emerald-500/10 to-emerald-500/5 transition-all duration-300 group-hover/frame:from-emerald-500/35 group-hover/frame:via-emerald-500/20 group-hover/frame:to-emerald-500/10 overflow-hidden",
                                                                     si === 0 && "rounded-t-lg",
                                                                     si === segments.length - 1 && "rounded-b-lg"
                                                                 )}
                                                                 style={{ top: `${segTopPx}px`, height: `${segHeightPx}px` }}
                                                             >
-                                                                {/* Shine effect strictly contained inside the slot — never spills to adjacent days */}
-                                                                <div className="absolute inset-0 opacity-0 group-hover/frame:opacity-100 transition-opacity bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent -translate-x-full group-hover/frame:translate-x-full duration-700 pointer-events-none" />
+                                                                {/* Mjukt in-place sken som lyser på EXAKT samma dag och tid — inget svep mot nästa dag */}
+                                                                <div className="absolute inset-0 opacity-0 group-hover/frame:opacity-100 transition-opacity duration-300 bg-emerald-400/10 pointer-events-none" />
                                                             </div>
                                                         );
                                                     })}
 
                                                     {/* Frame border & label */}
                                                     <div className={clsx(
-                                                        "absolute inset-0 rounded-lg border-2 pointer-events-none",
-                                                        hasBookings ? "border-emerald-500/30" : "border-emerald-500/50"
+                                                        "absolute inset-0 rounded-lg border-2 pointer-events-none transition-all duration-300",
+                                                        hasBookings
+                                                            ? "border-emerald-500/30"
+                                                            : "border-emerald-500/50 group-hover/frame:border-emerald-400 group-hover/frame:shadow-[0_0_15px_rgba(16,185,129,0.25)]"
                                                     )} />
                                                     
                                                     {/* Frame label */}
