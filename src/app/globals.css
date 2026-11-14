@@ -47,13 +47,13 @@ html {
 /* Elegant, luftig lyxskalning för desktop och laptops */
 @media (min-width: 768px) {
   html {
-    font-size: 85%; /* Ger exakt den slanka, rymliga känslan med generösa marginaler */
+    font-size: 80%; /* 12.8px – klockren 80%-känsla med maximal rymd och elegans */
   }
 }
 
 @media (min-width: 1536px) {
   html {
-    font-size: 87.5%; /* Balanserad skala på större widescreen-skärmar */
+    font-size: 82.5%; /* ~13.2px – perfekt luftighet även på bredare widescreen */
   }
 }
 
