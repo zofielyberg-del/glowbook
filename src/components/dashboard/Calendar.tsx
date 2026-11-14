@@ -1095,7 +1095,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                         "group/frame absolute inset-x-0.5 rounded-lg z-[5] cursor-pointer transition-all",
                                                         isEditing
                                                             ? "ring-2 ring-emerald-400 ring-offset-1 ring-offset-background shadow-xl shadow-emerald-500/20 z-[15]"
-                                                            : "hover:shadow-lg hover:z-10"
+                                                            : "hover:shadow-md hover:shadow-emerald-500/15 hover:z-10"
                                                     )}
                                                     style={getItemStyle(frame)}
                                                 >
@@ -1121,14 +1121,14 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                             <div
                                                                 key={si}
                                                                 className={clsx(
-                                                                    "absolute inset-x-0 bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent transition-all group-hover/frame:from-emerald-500/30",
+                                                                    "absolute inset-x-0 bg-gradient-to-b from-emerald-500/20 via-emerald-500/10 to-emerald-500/5 transition-all group-hover/frame:from-emerald-500/30 group-hover/frame:to-emerald-500/15 overflow-hidden",
                                                                     si === 0 && "rounded-t-lg",
                                                                     si === segments.length - 1 && "rounded-b-lg"
                                                                 )}
                                                                 style={{ top: `${segTopPx}px`, height: `${segHeightPx}px` }}
                                                             >
-                                                                {/* Shine effect for each segment */}
-                                                                <div className="absolute inset-0 opacity-0 group-hover/frame:opacity-100 transition-opacity bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/frame:translate-x-full duration-1000 transform skew-x-12" />
+                                                                {/* Shine effect strictly contained inside the slot — never spills to adjacent days */}
+                                                                <div className="absolute inset-0 opacity-0 group-hover/frame:opacity-100 transition-opacity bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent -translate-x-full group-hover/frame:translate-x-full duration-700 pointer-events-none" />
                                                             </div>
                                                         );
                                                     })}
