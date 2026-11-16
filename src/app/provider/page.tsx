@@ -455,7 +455,7 @@ export default function ProviderDashboard() {
                 <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
                         <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#C2A26A]">
-                            Översikt · Stockholm
+                            Översikt
                         </span>
                     </div>
                     <h1 
