@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import Header from "@/components/layout/Header";
-import { Plus, Search, Clock, DollarSign, Edit, Trash2, Camera, Image as ImageIcon, X, Check, Save, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Plus, Search, Clock, DollarSign, Edit, Trash2, Camera, Image as ImageIcon, X, Check, Save, RefreshCw, CheckCircle2, XCircle, Package } from "lucide-react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
@@ -132,6 +133,63 @@ export default function ServicesPage() {
     const [salonTier, setSalonTier] = useState('bas');
     const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
     const [customCategoryName, setCustomCategoryName] = useState('');
+
+    const searchParams = useSearchParams();
+    const currentTab = searchParams ? searchParams.get('tab') : null;
+    const isProductsTab = currentTab === 'products';
+
+    // Retail Products State & Handlers
+    const [products, setProducts] = useState<any[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return parsed.products || [];
+            }
+        } catch {}
+        return [];
+    });
+    const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+    const [productForm, setProductForm] = useState({ name: '', price: '', stock: '10', category: 'Eftervård', description: '' });
+
+    const handleSaveProduct = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!productForm.name || !productForm.price) return;
+        const newProd = {
+            id: Date.now().toString(),
+            name: productForm.name,
+            price: Number(productForm.price),
+            stock: Number(productForm.stock || 1),
+            category: productForm.category || 'Eftervård',
+            description: productForm.description || ''
+        };
+        const updated = [...products, newProd];
+        setProducts(updated);
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            const next = { ...parsed, products: updated };
+            localStorage.setItem('glowbook_salon', JSON.stringify(next));
+            sessionStorage.setItem('glowbook_salon', JSON.stringify(next));
+            window.dispatchEvent(new Event('glowbook_update'));
+        }
+        setProductForm({ name: '', price: '', stock: '10', category: 'Eftervård', description: '' });
+        setIsProductModalOpen(false);
+    };
+
+    const handleDeleteProduct = (id: string) => {
+        const updated = products.filter(p => p.id !== id);
+        setProducts(updated);
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            const next = { ...parsed, products: updated };
+            localStorage.setItem('glowbook_salon', JSON.stringify(next));
+            sessionStorage.setItem('glowbook_salon', JSON.stringify(next));
+            window.dispatchEvent(new Event('glowbook_update'));
+        }
+    };
 
     const getAvailableCategories = () => {
         const salonCategories = [
@@ -365,13 +423,114 @@ export default function ServicesPage() {
 
     return (
         <PermissionGate allowedRoles={['salon_owner', 'practitioner', 'admin']}>
-            <div className="min-h-screen bg-[#faf8f5] dark:bg-[#0c0c0a] text-foreground transition-colors duration-300">
-                <Header />
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16 space-y-12">
+            <div className="p-5 sm:p-8 lg:p-10 max-w-7xl mx-auto space-y-8">
+                
+                {/* Header & Sub-Tabs */}
+                <div className="space-y-4 pb-4 border-b border-white/[0.06]">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#C2A26A]">
+                                Utbud & Meny
+                            </span>
+                        </div>
+                        <h1 
+                            className="text-3xl sm:text-4xl font-normal text-white tracking-tight"
+                            style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", Georgia, serif' }}
+                        >
+                            {isProductsTab ? 'Produkter & Eftervård' : 'Tjänster & Behandlingar'}
+                        </h1>
+                        <p className="text-xs text-neutral-400 mt-1">
+                            {isProductsTab 
+                                ? 'Hantera dina eftervårdsprodukter och produkter till försäljning i salongen.' 
+                                : 'Skapa och redigera behandlingar, priser och tider som dina kunder kan boka.'}
+                        </p>
+                    </div>
 
+                    <div className="flex items-center gap-2 pt-1">
+                        <Link
+                            href="/provider/services"
+                            className={clsx(
+                                "px-4 py-2 rounded-xl text-xs font-medium transition-all",
+                                !isProductsTab
+                                    ? "bg-white/[0.08] text-[#DFCA9B] border border-white/[0.1]"
+                                    : "text-neutral-400 hover:text-white hover:bg-white/[0.04]"
+                            )}
+                        >
+                            Tjänster ({services.length})
+                        </Link>
+                        <Link
+                            href="/provider/services?tab=products"
+                            className={clsx(
+                                "px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-2",
+                                isProductsTab
+                                    ? "bg-white/[0.08] text-[#DFCA9B] border border-white/[0.1]"
+                                    : "text-neutral-400 hover:text-white hover:bg-white/[0.04]"
+                            )}
+                        >
+                            <Package size={14} />
+                            <span>Produkter & Eftervård ({products.length})</span>
+                        </Link>
+                    </div>
+                </div>
 
-                {/* Services Section */}
-                <section>
+                {/* Products View */}
+                {isProductsTab ? (
+                    <section className="space-y-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-base font-medium text-white">Produktsortiment & Eftervård</h2>
+                                <p className="text-xs text-neutral-400">Lägg till produkter som kunder kan köpa i samband med sitt besök.</p>
+                            </div>
+                            <button
+                                onClick={() => setIsProductModalOpen(true)}
+                                className="px-5 py-2.5 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-semibold tracking-wide uppercase transition-all shadow-md active:scale-95 flex items-center gap-2"
+                            >
+                                <Plus size={16} /> Lägg till produkt
+                            </button>
+                        </div>
+
+                        {products.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {products.map((prod) => (
+                                    <div key={prod.id} className="p-5 rounded-2xl bg-[#111114] border border-white/[0.08] space-y-3 flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider bg-white/[0.05] text-neutral-300">
+                                                    {prod.category || 'Eftervård'}
+                                                </span>
+                                                <button
+                                                    onClick={() => handleDeleteProduct(prod.id)}
+                                                    className="p-1.5 text-neutral-500 hover:text-red-400 transition-colors"
+                                                    title="Ta bort produkt"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                            <h3 className="text-sm font-medium text-white mt-2">{prod.name}</h3>
+                                            {prod.description && (
+                                                <p className="text-xs text-neutral-400 mt-1 line-clamp-2">{prod.description}</p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between pt-3 border-t border-white/[0.05] text-xs">
+                                            <span className="text-neutral-400">Lager: {prod.stock || 0} st</span>
+                                            <span className="font-semibold text-white">{prod.price} {currency}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-12 rounded-2xl bg-[#111114] border border-white/[0.08] text-center space-y-3">
+                                <Package size={28} className="mx-auto text-neutral-500" strokeWidth={1.5} />
+                                <div>
+                                    <p className="text-sm font-medium text-white">Inga produkter tillagda än</p>
+                                    <p className="text-xs text-neutral-400 mt-0.5">Klicka på &quot;Lägg till produkt&quot; för att skapa ditt eftervårdssortiment.</p>
+                                </div>
+                            </div>
+                        )}
+                    </section>
+                ) : (
+                    /* Existing Services Section */
+                    <section>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                         <div>
                             <div className="flex items-center gap-3">
@@ -467,6 +626,118 @@ export default function ServicesPage() {
                         ))}
                     </div>
                 </section>
+                )}
+
+                {/* Create Product Modal */}
+                <AnimatePresence>
+                    {isProductModalOpen && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100]"
+                                onClick={() => setIsProductModalOpen(false)}
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:w-full max-w-lg bg-[#141417] rounded-3xl shadow-2xl z-[101] border border-white/[0.1] overflow-hidden"
+                            >
+                                <div className="p-6 border-b border-white/[0.08] flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-medium text-white">Lägg till produkt</h3>
+                                        <p className="text-xs text-neutral-400 mt-0.5">Eftervård eller produkt till försäljning i salongen</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => setIsProductModalOpen(false)}
+                                        className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.05]"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleSaveProduct} className="p-6 space-y-4">
+                                    <div>
+                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                            Produktnamn *
+                                        </label>
+                                        <input
+                                            required
+                                            type="text"
+                                            value={productForm.name}
+                                            onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                                            placeholder="T.ex. Nagelolja 15ml eller Fransserum"
+                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                                Pris ({currency}) *
+                                            </label>
+                                            <input
+                                                required
+                                                type="number"
+                                                value={productForm.price}
+                                                onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                                                placeholder="199"
+                                                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white focus:border-[#C2A26A] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                                Lagersaldo (st)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={productForm.stock}
+                                                onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                                                placeholder="10"
+                                                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white focus:border-[#C2A26A] outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                            Kategori
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={productForm.category}
+                                            onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                                            placeholder="Eftervård"
+                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white focus:border-[#C2A26A] outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                            Beskrivning
+                                        </label>
+                                        <textarea
+                                            rows={2}
+                                            value={productForm.description}
+                                            onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                                            placeholder="Kort beskrivning av produktens fördelar..."
+                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none resize-none"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        className="w-full py-3.5 bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] font-semibold text-xs tracking-wider uppercase rounded-xl transition-all shadow-md active:scale-95"
+                                    >
+                                        Spara produkt
+                                    </button>
+                                </form>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
 
 
 
@@ -817,7 +1088,6 @@ export default function ServicesPage() {
                     )}
                 </AnimatePresence>
 
-            </div>
             </div>
         </PermissionGate>
     );

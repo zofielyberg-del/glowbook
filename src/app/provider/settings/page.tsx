@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Header from "@/components/layout/Header";
 import { motion, AnimatePresence } from "framer-motion";
 import { Save, Shield, CreditCard, LogOut, ChevronRight, ChevronDown, User, Store, Bell, Check, MapPin, Star, AlertTriangle, Clock, Info, X, Camera, Image as ImageIcon, Sparkles, MessageSquare, ClipboardList, Users, Upload, ExternalLink, Plus, CheckCircle2, XCircle, Instagram, ArrowRight, Trash2, Wallet, Lock, RefreshCw } from "lucide-react";
 import Link from "next/link";
@@ -992,71 +991,67 @@ function SettingsContent() {
     ];
 
     return (
-        <div className="min-h-screen bg-background transition-colors duration-300">
-            <Header />
-
-            <main className="max-w-7xl mx-auto px-6 pt-24 pb-12">
-                <div className="mb-10 text-center md:text-left flex flex-col md:flex-row md:items-end gap-3">
+        <div className="p-5 sm:p-8 lg:p-10 max-w-7xl mx-auto space-y-8">
+            <main className="w-full space-y-8">
+                <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-white/[0.06]">
                     <div>
-                        <h1 className="text-3xl font-heading font-bold text-foreground inline-flex items-center gap-2">
-                            {t('settings_title')}
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#C2A26A]">
+                                {activeTab === 'inbox' ? 'Kommunikation' : activeTab === 'marketing' ? 'Tillväxt' : activeTab === 'loyalty' ? 'Kundrelationer' : 'Inställningar'}
+                            </span>
+                        </div>
+                        <h1 
+                            className="text-3xl sm:text-4xl font-normal text-white tracking-tight inline-flex items-center gap-2"
+                            style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", Georgia, serif' }}
+                        >
+                            {activeTab === 'inbox' ? 'Inkorg & Meddelanden' : activeTab === 'marketing' ? 'Marknadsföring' : activeTab === 'loyalty' ? 'Lojalitet & Rewards' : (t('settings_title') || 'Inställningar')}
                             {salonData.isVerified && (
-                                <div className="p-1 bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/20" title="Verifierad Utförare">
-                                    <Check size={14} strokeWidth={4} />
+                                <div className="p-1 bg-[#C2A26A] text-black rounded-full shadow-lg" title="Verifierad Utförare">
+                                    <Check size={12} strokeWidth={3} />
                                 </div>
                             )}
                         </h1>
-                        <p className="text-foreground/50">{t('settings_desc')}</p>
+                        <p className="text-xs text-neutral-400 mt-1">
+                            {activeTab === 'inbox' 
+                                ? 'Meddelanden från kunder, bokningsförfrågningar och Glowbook Support.' 
+                                : activeTab === 'marketing' 
+                                ? 'Dela din profil, skapa direktlänkar till dina sociala medier och nå nya kunder.' 
+                                : activeTab === 'loyalty' 
+                                ? 'Belöna dina återkommande kunder med poäng och personliga erbjudanden.' 
+                                : (t('settings_desc') || 'Hantera din profil, dina uppgifter och ditt medlemskap.')}
+                        </p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Sidebar Tabs */}
-                    <div className="lg:col-span-1 space-y-2">
-                        {TABS.map((tab) => {
-                            const Icon = tab.icon;
-                            return (
-                                <button
-                                    key={tab.key}
-                                    onClick={() => {
-                                        setActiveTab(tab.key);
-                                        if (tab.key === 'inbox') {
-                                            // Handle marking as read if needed? 
-                                            // Or maybe mark all as read when opening?
-                                        }
-                                    }}
-                                    className={clsx(
-                                        "w-full flex items-center justify-between p-4 rounded-2xl transition-all group relative",
-                                        activeTab === tab.key
-                                            ? "bg-foreground text-background shadow-lg"
-                                            : "hover:bg-foreground/5 text-foreground/40 hover:text-foreground"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={clsx(
-                                            "p-2 rounded-xl transition-colors",
-                                            activeTab === tab.key ? "bg-background/10" : "bg-foreground/5 group-hover:bg-foreground/10"
-                                        )}>
-                                            <Icon size={18} />
-                                        </div>
-                                        <span className="font-bold text-sm tracking-tight">{tab.label}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {(tab as any).badge && (
-                                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                        )}
-                                        <ChevronRight size={16} className={clsx(
-                                            "transition-transform",
-                                            activeTab === tab.key ? "translate-x-0 opacity-100" : "-translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
-                                        )} />
-                                    </div>
-                                </button>
-                            );
-                        })}
+                {/* Sub-tab pills for system/configuration settings */}
+                {['profile', 'practitioners', 'membership', 'payments', 'notifications', 'templates'].includes(activeTab) && (
+                    <div className="flex flex-wrap gap-2 pb-4 border-b border-white/[0.06]">
+                        {[
+                            { key: 'profile', label: 'Profil & Verksamhet' },
+                            ...(salonData.tier === 'luxe' ? [{ key: 'practitioners', label: 'Personal & Schema' }] : []),
+                            { key: 'membership', label: 'Medlemskap' },
+                            { key: 'payments', label: 'Betalningar & Stripe' },
+                            { key: 'notifications', label: 'Notiser & Policy' },
+                            { key: 'templates', label: 'Meddelandemallar' },
+                        ].map((item) => (
+                            <button
+                                key={item.key}
+                                onClick={() => setActiveTab(item.key as any)}
+                                className={clsx(
+                                    "px-4 py-2 rounded-xl text-xs font-medium transition-all",
+                                    activeTab === item.key
+                                        ? "bg-white/[0.08] text-[#DFCA9B] border border-white/[0.1]"
+                                        : "text-neutral-400 hover:text-white hover:bg-white/[0.04]"
+                                )}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
                     </div>
+                )}
 
-                    {/* Content Area */}
-                    <div className="lg:col-span-2 space-y-8">
+                {/* Full-width Content Area */}
+                <div className="w-full space-y-8">
 
                         {/* ===== PROFIL & KONTO TAB ===== */}
                         {activeTab === 'profile' && (
@@ -3281,7 +3276,6 @@ function SettingsContent() {
                             </div>
                         )}
                     </div>
-                </div >
 
                 {/* Auto-save floating indicator */}
                 {saveStatus !== 'idle' && (

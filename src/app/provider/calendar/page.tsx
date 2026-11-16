@@ -1,7 +1,6 @@
 
 'use client';
 
-import Header from "@/components/layout/Header";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar as CalendarIcon, Clock, Plus, ChevronLeft, Save, Trash2, CalendarDays } from "lucide-react";
@@ -211,10 +210,25 @@ export default function CalendarPage() {
 
     return (
         <PermissionGate allowedRoles={['salon_owner', 'practitioner', 'admin']}>
-            <div className="min-h-screen bg-background flex flex-col transition-colors duration-300">
-                <Header />
+            <div className="p-5 sm:p-8 lg:p-10 max-w-7xl mx-auto space-y-6">
+                <div className="space-y-1.5 pb-2 border-b border-white/[0.06]">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#C2A26A]">
+                            Schema & Bokningar
+                        </span>
+                    </div>
+                    <h1 
+                        className="text-3xl sm:text-4xl font-normal text-white tracking-tight"
+                        style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", Georgia, serif' }}
+                    >
+                        Kalender & Schema
+                    </h1>
+                    <p className="text-xs text-neutral-400">
+                        Hantera din tillgänglighet, blocka tider och se alla inbokade besök.
+                    </p>
+                </div>
 
-            <main className="flex-1 p-6 pt-24 grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-[1600px] mx-auto w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 w-full">
 
                 {/* Left Sidebar: Controls */}
                 <div className="lg:col-span-1 space-y-6">
@@ -266,7 +280,7 @@ export default function CalendarPage() {
                 <div className="lg:col-span-3 h-full min-h-[540px] lg:min-h-[800px]">
                     <Calendar onCancelAppointment={handleCancelAppointment} />
                 </div>
-            </main>
+            </div>
 
             {/* Modal: Post Times (Time Framing) */}
             <AnimatePresence>

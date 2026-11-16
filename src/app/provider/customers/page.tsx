@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Search, UserPlus, Mail, Phone, Calendar, MoreVertical, Filter, Users, X, Check, ArrowUpRight, CheckCircle2, Trash2 } from "lucide-react";
 import clsx from "clsx";
-import Header from "@/components/layout/Header";
 import { useLanguage } from "@/context/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { PermissionGate } from "@/components/auth/PermissionGate";
@@ -269,22 +268,32 @@ export default function CustomersPage() {
 
     return (
         <PermissionGate allowedRoles={['salon_owner', 'practitioner', 'admin']}>
-            <div className="min-h-screen bg-[#faf8f5] dark:bg-[#0c0c0a] text-foreground transition-colors duration-300">
-                <Header />
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-                    <div>
-                        <h1 className="text-4xl font-heading font-black text-foreground tracking-tight">Kunder</h1>
-                        <p className="text-foreground/40 text-sm font-medium mt-1">
-                            Dina slutkunder sparas automatiskt vid bokning. Lägg till eller sök efter kunder i ditt nätverk.
-                        </p>
+            <div className="p-5 sm:p-8 lg:p-10 max-w-7xl mx-auto space-y-8">
+                <div className="space-y-1.5 pb-2 border-b border-white/[0.06]">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#C2A26A]">
+                            Kundregister & Journal
+                        </span>
                     </div>
-                    <button
-                        onClick={() => setIsInviteModalOpen(true)}
-                        className="bg-foreground text-background px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-champagne-600 hover:text-white transition-all shadow-lg active:scale-95 text-sm"
-                    >
-                        <UserPlus size={18} /> Lägg till ny kund
-                    </button>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h1 
+                                className="text-3xl sm:text-4xl font-normal text-white tracking-tight"
+                                style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", Georgia, serif' }}
+                            >
+                                Kunder & Journal
+                            </h1>
+                            <p className="text-xs text-neutral-400 mt-1">
+                                Dina kunder sparas automatiskt vid bokning. Lägg till eller sök efter kunder i ditt register.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setIsInviteModalOpen(true)}
+                            className="px-5 py-2.5 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-semibold tracking-wide uppercase transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+                        >
+                            <UserPlus size={16} /> Lägg till ny kund
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filters and Search */}
@@ -541,7 +550,6 @@ export default function CustomersPage() {
                         </>
                     )}
                 </AnimatePresence>
-            </main>
             </div>
         </PermissionGate>
     );
