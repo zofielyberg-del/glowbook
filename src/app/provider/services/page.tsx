@@ -151,9 +151,45 @@ export default function ServicesPage() {
         return [];
     });
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-    const [productForm, setProductForm] = useState({ name: '', price: '', stock: '10', category: 'Eftervård', description: '' });
+    const [productForm, setProductForm] = useState({ name: '', price: '', stock: '10', category: 'Eftervård', description: '', image: '', recommendation: '' });
 
-    const handleSaveProduct = (e: React.FormEvent) => {
+    // Sync products from server on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed.products) && parsed.products.length > 0) {
+                    setProducts(parsed.products);
+                }
+                if (parsed.id) {
+                    fetch(`/api/salons/get?id=${parsed.id}`)
+                        .then(r => r.json())
+                        .then(d => {
+                            if (d.success && d.salon && Array.isArray(d.salon.products)) {
+                                setProducts(d.salon.products);
+                                const next = { ...parsed, products: d.salon.products };
+                                localStorage.setItem('glowbook_salon', JSON.stringify(next));
+                                sessionStorage.setItem('glowbook_salon', JSON.stringify(next));
+                            }
+                        })
+                        .catch(() => {});
+                }
+            } catch {}
+        }
+    }, []);
+
+    const handleProductImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setProductForm(prev => ({ ...prev, image: reader.result as string }));
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleSaveProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!productForm.name || !productForm.price) return;
         const newProd = {
@@ -162,10 +198,13 @@ export default function ServicesPage() {
             price: Number(productForm.price),
             stock: Number(productForm.stock || 1),
             category: productForm.category || 'Eftervård',
-            description: productForm.description || ''
+            description: productForm.description || '',
+            image: productForm.image || '',
+            recommendation: productForm.recommendation || `Köp till ${productForm.name} för bästa resultat och hållbarhet!`
         };
         const updated = [...products, newProd];
         setProducts(updated);
+
         const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         if (saved) {
             const parsed = JSON.parse(saved);
@@ -173,14 +212,28 @@ export default function ServicesPage() {
             localStorage.setItem('glowbook_salon', JSON.stringify(next));
             sessionStorage.setItem('glowbook_salon', JSON.stringify(next));
             window.dispatchEvent(new Event('glowbook_update'));
+
+            const salonId = parsed.id || parsed.salonId;
+            if (salonId) {
+                try {
+                    await fetch('/api/salons/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: salonId, products: updated })
+                    });
+                } catch (err) {
+                    console.error('Failed to sync products to DB:', err);
+                }
+            }
         }
-        setProductForm({ name: '', price: '', stock: '10', category: 'Eftervård', description: '' });
+        setProductForm({ name: '', price: '', stock: '10', category: 'Eftervård', description: '', image: '', recommendation: '' });
         setIsProductModalOpen(false);
     };
 
-    const handleDeleteProduct = (id: string) => {
+    const handleDeleteProduct = async (id: string) => {
         const updated = products.filter(p => p.id !== id);
         setProducts(updated);
+
         const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
         if (saved) {
             const parsed = JSON.parse(saved);
@@ -188,6 +241,19 @@ export default function ServicesPage() {
             localStorage.setItem('glowbook_salon', JSON.stringify(next));
             sessionStorage.setItem('glowbook_salon', JSON.stringify(next));
             window.dispatchEvent(new Event('glowbook_update'));
+
+            const salonId = parsed.id || parsed.salonId;
+            if (salonId) {
+                try {
+                    await fetch('/api/salons/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: salonId, products: updated })
+                    });
+                } catch (err) {
+                    console.error('Failed to sync delete products to DB:', err);
+                }
+            }
         }
     };
 
@@ -492,10 +558,15 @@ export default function ServicesPage() {
                         {products.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {products.map((prod) => (
-                                    <div key={prod.id} className="p-5 rounded-2xl bg-[#111114] border border-white/[0.08] space-y-3 flex flex-col justify-between">
+                                    <div key={prod.id} className="p-5 rounded-2xl bg-[#111114] border border-white/[0.08] space-y-3 flex flex-col justify-between overflow-hidden">
                                         <div>
+                                            {prod.image && (
+                                                <div className="w-full h-36 rounded-xl overflow-hidden bg-black/40 mb-3 border border-white/[0.05]">
+                                                    <img src={prod.image} alt={prod.name} className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
                                             <div className="flex items-center justify-between gap-2">
-                                                <span className="px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider bg-white/[0.05] text-neutral-300">
+                                                <span className="px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider bg-white/[0.05] text-[#DFCA9B] border border-white/[0.08]">
                                                     {prod.category || 'Eftervård'}
                                                 </span>
                                                 <button
@@ -507,6 +578,11 @@ export default function ServicesPage() {
                                                 </button>
                                             </div>
                                             <h3 className="text-sm font-medium text-white mt-2">{prod.name}</h3>
+                                            {prod.recommendation && (
+                                                <p className="text-[11px] text-[#C2A26A] mt-1 italic">
+                                                    &quot;{prod.recommendation}&quot;
+                                                </p>
+                                            )}
                                             {prod.description && (
                                                 <p className="text-xs text-neutral-400 mt-1 line-clamp-2">{prod.description}</p>
                                             )}
@@ -703,13 +779,64 @@ export default function ServicesPage() {
 
                                     <div>
                                         <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-                                            Kategori
+                                            Produktbild (valfritt)
+                                        </label>
+                                        <div className="flex items-center gap-3">
+                                            {productForm.image ? (
+                                                <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-white/[0.1] shrink-0">
+                                                    <img src={productForm.image} alt="Preview" className="w-full h-full object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setProductForm(prev => ({ ...prev, image: '' }))}
+                                                        className="absolute top-1 right-1 p-0.5 bg-black/80 rounded-full text-white hover:text-red-400"
+                                                    >
+                                                        <X size={10} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <label className="w-14 h-14 rounded-xl border border-dashed border-white/[0.15] hover:border-[#C2A26A] flex flex-col items-center justify-center cursor-pointer text-neutral-400 hover:text-white transition-colors shrink-0">
+                                                    <Camera size={16} />
+                                                    <span className="text-[8px] mt-1 font-medium">Ladda upp</span>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={handleProductImageUpload}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            )}
+                                            <input
+                                                type="text"
+                                                value={productForm.image || ''}
+                                                onChange={(e) => setProductForm(prev => ({ ...prev, image: e.target.value }))}
+                                                placeholder="eller klistra in bild-URL..."
+                                                className="flex-1 px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                            Säljpitch vid checkout (rekommendation till kund)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={productForm.recommendation || ''}
+                                            onChange={(e) => setProductForm(prev => ({ ...prev, recommendation: e.target.value }))}
+                                            placeholder="T.ex. Köp till en nagelolja för bästa hållbarhet!"
+                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                            Kategori / Passar till
                                         </label>
                                         <input
                                             type="text"
                                             value={productForm.category}
-                                            onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                                            placeholder="Eftervård"
+                                            onChange={(e) => setProductForm(prev => ({ ...prev, category: e.target.value }))}
+                                            placeholder="T.ex. Naglar, Eftervård, Hårvård..."
                                             className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white focus:border-[#C2A26A] outline-none"
                                         />
                                     </div>
@@ -721,7 +848,7 @@ export default function ServicesPage() {
                                         <textarea
                                             rows={2}
                                             value={productForm.description}
-                                            onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                                            onChange={(e) => setProductForm(prev => ({ ...productForm, description: e.target.value }))}
                                             placeholder="Kort beskrivning av produktens fördelar..."
                                             className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none resize-none"
                                         />

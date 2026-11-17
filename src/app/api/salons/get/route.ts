@@ -72,10 +72,16 @@ export async function GET(req: Request) {
             where: { salon_id: salon.id }
         });
 
+        const availabilityArr: any[] = Array.isArray(salon.availability) ? salon.availability : [];
+        const prodBlock = availabilityArr.find((a: any) => a && (a.type === 'products' || a.type === 'addons'));
+        const productsList = (prodBlock as any)?.list || [];
+
         return NextResponse.json({
             success: true,
             salon: {
                 ...salon,
+                products: productsList,
+                addons: productsList,
                 hasAppointments: totalAppointments > 0,
                 firstName: salon.owner?.first_name || '',
                 lastName: salon.owner?.last_name || '',

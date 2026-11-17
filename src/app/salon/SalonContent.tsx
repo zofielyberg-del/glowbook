@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/layout/Header";
-import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, Lock, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award } from "lucide-react";
+import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, Lock, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Calendar from "@/components/dashboard/Calendar";
 import clsx from "clsx";
@@ -216,6 +216,14 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         const reviewsBlock = availability.find((a: any) => a && a.type === 'reviews');
         return reviewsBlock?.list || [];
     }, [salon?.availability]);
+
+    const products = useMemo(() => {
+        if (Array.isArray(salon?.products) && salon.products.length > 0) return salon.products;
+        const availability = Array.isArray(salon?.availability) ? salon.availability : [];
+        const prodBlock = availability.find((a: any) => a && (a.type === 'products' || a.type === 'addons'));
+        return prodBlock?.list || [];
+    }, [salon?.products, salon?.availability]);
+
     const [selectedService, setSelectedService] = useState<any>(null);
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [bookingStep, setBookingStep] = useState(1); // 1: Select Service, 2: Select Time, 3: Confirm
@@ -264,10 +272,10 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
     const addonsPrice = useMemo(() => {
         return selectedAddons.reduce((acc, id) => {
-            const addon = (salon?.addons || []).find((a: any) => a.id === id);
+            const addon = [...(salon?.addons || []), ...products].find((a: any) => a.id === id);
             return acc + Number(addon?.price || 0);
         }, 0);
-    }, [selectedAddons, salon?.addons]);
+    }, [selectedAddons, salon?.addons, products]);
 
     const salonRewards = useMemo(() => normalizeRewardTiers(salon?.custom_rewards), [salon?.custom_rewards]);
 
@@ -483,13 +491,21 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             const end_time = new Date(localStart.getTime() + (selectedService.duration || 30) * 60000).toISOString();
 
             // 1. Create Appointment (atomically handles non-Stripe gift card & Glowpoints deduction)
+            const addedProductItems = selectedAddons
+                .map(id => [...(salon?.addons || []), ...products].find((p: any) => p.id === id))
+                .filter(Boolean);
+            const addedProductNames = addedProductItems.map((p: any) => p.name).join(', ');
+            const finalServiceName = addedProductNames 
+                ? `${selectedService.name} (+ ${addedProductNames})`
+                : selectedService.name;
+
             const bookingResponse = await fetch('/api/bookings/confirm', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     salonId: salon.id,
                     serviceId: selectedService.id,
-                    serviceName: selectedService.name,
+                    serviceName: finalServiceName,
                     practitionerId: selectedPractitioner?.id || 'owner',
                     startTime: selectedTime.time,
                     date: selectedTime.fullDate,
@@ -1167,6 +1183,91 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                 </div>
                             </div>
                         ))}
+
+                        {/* Products & Aftercare Section on Salon Page */}
+                        {products.length > 0 && (
+                            <div className="space-y-6 pt-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-px flex-1 bg-border/50"></div>
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#C2A26A] whitespace-nowrap">
+                                        PRODUKTER & EFTERVÅRD
+                                    </h3>
+                                    <div className="h-px flex-1 bg-border/50"></div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {products.map((prod: any) => {
+                                        const isSelected = selectedAddons.includes(prod.id);
+                                        return (
+                                            <div
+                                                key={prod.id}
+                                                className="p-5 md:p-6 rounded-3xl border border-border bg-card hover:border-[#C2A26A]/40 transition-all flex flex-col justify-between overflow-hidden group shadow-sm"
+                                            >
+                                                <div>
+                                                    {prod.image && (
+                                                        <div className="w-full h-44 rounded-2xl overflow-hidden bg-black/30 mb-3 border border-border/50">
+                                                            <img src={prod.image} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-foreground/5 text-foreground/60 border border-border/50">
+                                                            {prod.category || 'Eftervård'}
+                                                        </span>
+                                                        <span className="text-sm font-bold text-foreground">
+                                                            {prod.price} {salon.currency || 'kr'}
+                                                        </span>
+                                                    </div>
+                                                    <h4 className="text-base font-bold text-foreground mt-2">{prod.name}</h4>
+                                                    {prod.recommendation && (
+                                                        <p className="text-xs text-[#C2A26A] mt-1 italic leading-snug">
+                                                            &quot;{prod.recommendation}&quot;
+                                                        </p>
+                                                    )}
+                                                    {prod.description && (
+                                                        <p className="text-xs text-foreground/50 mt-1 line-clamp-2">{prod.description}</p>
+                                                    )}
+                                                </div>
+
+                                                <div className="pt-4 mt-3 border-t border-border/40 flex items-center justify-between">
+                                                    <span className="text-[11px] text-foreground/40 font-medium">
+                                                        Finns på salongen
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (selectedAddons.includes(prod.id)) {
+                                                                setSelectedAddons(prev => prev.filter(id => id !== prod.id));
+                                                            } else {
+                                                                setSelectedAddons(prev => [...prev, prod.id]);
+                                                                if (!selectedService && salon?.services && salon.services.length > 0) {
+                                                                    handleServiceSelect(salon.services[0]);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className={clsx(
+                                                            "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95",
+                                                            isSelected
+                                                                ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                                                                : "bg-foreground/5 hover:bg-[#C2A26A] hover:text-[#0B0B0C] text-foreground border border-border/50"
+                                                        )}
+                                                    >
+                                                        {isSelected ? (
+                                                            <>
+                                                                <Check size={14} /> Vald i bokning
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Plus size={14} /> Köp med bokning
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* About Section */}
@@ -1634,6 +1735,74 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                         />
                                                     </div>
 
+                                                    {/* Smart Aftercare / Product Recommendation in Checkout */}
+                                                    {products.length > 0 && (
+                                                        <div className="space-y-3 pt-6 border-t border-border">
+                                                            <div className="flex items-center justify-between">
+                                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#C2A26A] flex items-center gap-1.5">
+                                                                    <Package size={14} /> Rekommenderad eftervård & tillval
+                                                                </h4>
+                                                                <span className="text-[10px] text-foreground/40 font-medium">Fås direkt på salongen</span>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-1 gap-2.5">
+                                                                {products.map((prod: any) => {
+                                                                    const isSelected = selectedAddons.includes(prod.id);
+                                                                    return (
+                                                                        <div
+                                                                            key={prod.id}
+                                                                            className={clsx(
+                                                                                "p-3.5 sm:p-4 rounded-2xl border transition-all flex items-center justify-between gap-3",
+                                                                                isSelected 
+                                                                                    ? "bg-emerald-500/10 border-emerald-500/40 ring-1 ring-emerald-500/30"
+                                                                                    : "bg-foreground/[0.02] border-border hover:border-[#C2A26A]/40"
+                                                                            )}
+                                                                        >
+                                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                                {prod.image ? (
+                                                                                    <img src={prod.image} alt={prod.name} className="w-12 h-12 rounded-xl object-cover shrink-0 border border-border" />
+                                                                                ) : (
+                                                                                    <div className="w-12 h-12 rounded-xl bg-foreground/5 flex items-center justify-center text-foreground/40 shrink-0">
+                                                                                        <Package size={20} />
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="min-w-0">
+                                                                                    <p className="text-xs font-bold text-foreground truncate">{prod.name}</p>
+                                                                                    <p className="text-[11px] text-[#C2A26A] line-clamp-1 italic">
+                                                                                        {prod.recommendation || `Bästa hållbarhet för din behandling`}
+                                                                                    </p>
+                                                                                    <p className="text-xs font-semibold text-foreground/70 mt-0.5">
+                                                                                        +{prod.price} {salon.currency || 'kr'}
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    if (isSelected) {
+                                                                                        setSelectedAddons(prev => prev.filter(id => id !== prod.id));
+                                                                                    } else {
+                                                                                        setSelectedAddons(prev => [...prev, prod.id]);
+                                                                                    }
+                                                                                }}
+                                                                                className={clsx(
+                                                                                    "px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1 active:scale-95",
+                                                                                    isSelected
+                                                                                        ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                                                                                        : "bg-foreground/5 hover:bg-[#C2A26A] hover:text-[#0B0B0C] text-foreground border border-border/50"
+                                                                                )}
+                                                                            >
+                                                                                {isSelected ? <Check size={14} /> : <Plus size={14} />}
+                                                                                <span>{isSelected ? 'Tillagd' : 'Köp till'}</span>
+                                                                            </button>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                     <div className="space-y-4 pt-4">
                                                         <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">{t('booking_payment_method')}</h4>
                                                         <div className="grid grid-cols-1 gap-3">
@@ -1881,7 +2050,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             {selectedAddons.length > 0 && (
                                                                 <div className="pt-2 border-t border-border/50 space-y-2">
                                                                     {selectedAddons.map(id => {
-                                                                        const addon = (salon.addons || []).find((a: any) => a.id === id);
+                                                                        const addon = [...(salon.addons || []), ...products].find((a: any) => a.id === id);
                                                                         return (
                                                                             <div key={id} className="flex justify-between items-center text-[10px]">
                                                                                 <span className="text-foreground/40">+ {addon?.name}</span>

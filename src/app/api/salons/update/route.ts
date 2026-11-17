@@ -77,6 +77,18 @@ export async function POST(req: Request) {
                 finalAvailability = [...filteredAvail, mergedSettings];
             }
 
+            if (salonInfo.products !== undefined && Array.isArray(salonInfo.products)) {
+                const currentAvail = Array.isArray(finalAvailability) ? finalAvailability : (Array.isArray(existing?.availability) ? existing.availability : []);
+                const filteredAvail = currentAvail.filter((a: any) => a && a.type !== 'products' && a.type !== 'addons');
+                finalAvailability = [
+                    ...filteredAvail,
+                    {
+                        type: 'products',
+                        list: salonInfo.products
+                    }
+                ];
+            }
+
             if (salonInfo.verificationDocumentUrl) {
                 const currentAvail = Array.isArray(finalAvailability) ? finalAvailability : [];
                 const filteredAvail = currentAvail.filter((a: any) => a && a.type !== 'verification');
