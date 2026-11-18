@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Header from "@/components/layout/Header";
 import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, Lock, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award, Package, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -238,6 +238,15 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [isBooking, setIsBooking] = useState(false);
     const [galleryLightbox, setGalleryLightbox] = useState<number | null>(null);
     const [viewingProduct, setViewingProduct] = useState<any | null>(null);
+    const modalScrollRef = useRef<HTMLDivElement>(null);
+
+    // Ensure checkout modal always starts from the top on step changes
+    useEffect(() => {
+        if (isBookingModalOpen && modalScrollRef.current) {
+            modalScrollRef.current.scrollTo({ top: 0, behavior: 'instant' });
+        }
+    }, [bookingStep, isBookingModalOpen]);
+
     const [giftCardCode, setGiftCardCode] = useState('');
     const [giftCardStatus, setGiftCardStatus] = useState<{ valid: boolean; balance: number; message: string } | null>(null);
     const [isCustomerLoggedIn, setIsCustomerLoggedIn] = useState(false);
@@ -1575,7 +1584,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-auto p-5 md:p-8 bg-card no-scrollbar">
+                            <div ref={modalScrollRef} className="flex-1 overflow-auto p-5 md:p-8 bg-card no-scrollbar">
                                 {bookingStep === 2 ? (
                                     <div className="space-y-8">
                                         <div className="bg-champagne-50/70 dark:bg-champagne-950/30 p-5 rounded-3xl border border-champagne-200 dark:border-champagne-900/40 flex items-center gap-3.5 text-neutral-950 dark:text-neutral-50 shadow-sm">
@@ -2469,37 +2478,26 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                     </div>
                                 </div>
 
-                                {viewingProduct.recommendation && (
-                                    <div className="p-4 rounded-2xl bg-[#C2A26A]/5 border border-[#C2A26A]/20">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#C2A26A] block mb-1">
-                                            Rekommenderas för dig
-                                        </span>
-                                        <p className="text-xs text-foreground/80 italic leading-relaxed">
-                                            &quot;{viewingProduct.recommendation}&quot;
-                                        </p>
-                                    </div>
-                                )}
-
                                 {viewingProduct.description && (
-                                    <div className="space-y-1.5">
-                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-foreground/40">Beskrivning</h4>
-                                        <p className="text-xs text-foreground/70 leading-relaxed whitespace-pre-wrap">{viewingProduct.description}</p>
+                                    <div className="space-y-2">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C2A26A]">Beskrivning</h4>
+                                        <p className="text-sm text-foreground/80 leading-relaxed font-sans whitespace-pre-wrap">{viewingProduct.description}</p>
                                     </div>
                                 )}
 
                                 {/* Ingredients & Product information section */}
-                                <div className="space-y-2 pt-2 border-t border-border">
+                                <div className="space-y-2.5 pt-3 border-t border-border/80">
                                     <div className="flex items-center justify-between">
-                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-foreground/40 flex items-center gap-1.5">
-                                            <Shield size={12} className="text-[#C2A26A]" /> Innehåll & Ingredienser (INCI)
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C2A26A] flex items-center gap-1.5">
+                                            <Shield size={13} className="text-[#C2A26A]" /> Innehåll & Ingredienser (INCI)
                                         </h4>
                                         {viewingProduct.brand && (
-                                            <span className="text-[10px] text-[#C2A26A] font-semibold">{viewingProduct.brand}</span>
+                                            <span className="text-xs font-semibold text-foreground/60">{viewingProduct.brand}</span>
                                         )}
                                     </div>
-                                    <div className="p-4 rounded-2xl bg-foreground/[0.02] border border-border/80">
+                                    <div className="p-5 rounded-2xl bg-foreground/[0.02] border border-border/70 shadow-sm">
                                         {viewingProduct.ingredients ? (
-                                            <p className="text-xs text-foreground/80 font-mono leading-relaxed break-words whitespace-pre-wrap">
+                                            <p className="text-sm text-foreground/90 leading-relaxed font-sans break-words whitespace-pre-wrap">
                                                 {viewingProduct.ingredients}
                                             </p>
                                         ) : (
@@ -2508,7 +2506,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                             </p>
                                         )}
                                     </div>
-                                    <p className="text-[10px] text-foreground/40 leading-normal pl-1">
+                                    <p className="text-[11px] text-foreground/45 leading-normal pl-1">
                                         Viktigt för dig med allergier eller särskilda ingredienspreferenser.
                                     </p>
                                 </div>
