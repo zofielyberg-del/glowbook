@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Header from "@/components/layout/Header";
-import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, Lock, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award, Package, Info } from "lucide-react";
+import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, Lock, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award, Package, Info, ShoppingBag, Store, Minus, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Calendar from "@/components/dashboard/Calendar";
 import clsx from "clsx";
@@ -246,6 +246,92 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             modalScrollRef.current.scrollTo({ top: 0, behavior: 'instant' });
         }
     }, [bookingStep, isBookingModalOpen]);
+
+    // Cart & Click-and-collect state
+    const [cart, setCart] = useState<Array<{ id: string; name: string; brand?: string; price: number; quantity: number; image?: string; category?: string }>>([]);
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isCheckingOutOrder, setIsCheckingOutOrder] = useState(false);
+    const [orderConfirmation, setOrderConfirmation] = useState<any | null>(null);
+
+    const addToCart = (product: any) => {
+        setCart(prev => {
+            const existing = prev.find(item => item.id === product.id);
+            if (existing) {
+                return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+            }
+            return [...prev, {
+                id: product.id,
+                name: product.name,
+                brand: product.brand || '',
+                price: Number(product.price) || 0,
+                quantity: 1,
+                image: product.image || '',
+                category: product.category || 'Eftervård'
+            }];
+        });
+        setIsCartOpen(true);
+    };
+
+    const updateCartQuantity = (productId: string, delta: number) => {
+        setCart(prev => {
+            return prev.map(item => {
+                if (item.id === productId) {
+                    const newQty = item.quantity + delta;
+                    return newQty > 0 ? { ...item, quantity: newQty } : null;
+                }
+                return item;
+            }).filter(Boolean) as any[];
+        });
+    };
+
+    const removeFromCart = (productId: string) => {
+        setCart(prev => prev.filter(item => item.id !== productId));
+    };
+
+    const cartTotal = useMemo(() => {
+        return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    }, [cart]);
+
+    const cartItemsCount = useMemo(() => {
+        return cart.reduce((sum, item) => sum + item.quantity, 0);
+    }, [cart]);
+
+    const handlePlaceOrder = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (cart.length === 0 || !customerInfo.firstName || !customerInfo.email) return;
+
+        setIsCheckingOutOrder(true);
+        try {
+            const res = await fetch('/api/orders/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    salonId: salon.id || salon.slug,
+                    items: cart,
+                    customerInfo: {
+                        firstName: customerInfo.firstName,
+                        lastName: customerInfo.lastName,
+                        email: customerInfo.email,
+                        phone: customerInfo.phone
+                    },
+                    paymentMethod: selectedPaymentMethod === 'stripe' ? 'stripe' : 'onsite'
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setOrderConfirmation(data);
+                setCart([]);
+                setIsCartOpen(false);
+            } else {
+                alert(data.error || 'Något gick fel vid beställningen.');
+            }
+        } catch (err: any) {
+            alert(err.message || 'Kunde inte slutföra beställningen.');
+        } finally {
+            setIsCheckingOutOrder(false);
+        }
+    };
 
     const [giftCardCode, setGiftCardCode] = useState('');
     const [giftCardStatus, setGiftCardStatus] = useState<{ valid: boolean; balance: number; message: string } | null>(null);
@@ -1254,10 +1340,16 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                     </button>
                                                 </div>
 
-                                                <div className="pt-4 mt-3 border-t border-border/40 flex items-center justify-between">
-                                                    <span className="text-[11px] text-foreground/40 font-medium">
-                                                        Finns på salongen
-                                                    </span>
+                                                <div className="pt-4 mt-3 border-t border-border/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => addToCart(prod)}
+                                                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
+                                                    >
+                                                        <ShoppingBag size={14} />
+                                                        <span>Köp & hämta i salong</span>
+                                                    </button>
+
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -1271,19 +1363,19 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             }
                                                         }}
                                                         className={clsx(
-                                                            "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95",
+                                                            "px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95",
                                                             isSelected
                                                                 ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                                                                : "bg-foreground/5 hover:bg-[#C2A26A] hover:text-[#0B0B0C] text-foreground border border-border/50"
+                                                                : "bg-foreground/5 hover:bg-foreground/10 text-foreground/80 border border-border/60"
                                                         )}
                                                     >
                                                         {isSelected ? (
                                                             <>
-                                                                <Check size={14} /> Vald i bokning
+                                                                <Check size={14} /> Vald med bokning
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <Plus size={14} /> Köp med bokning
+                                                                <Plus size={14} /> Välj med bokning
                                                             </>
                                                         )}
                                                     </button>
@@ -2527,7 +2619,18 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             </div>
 
                             {/* Modal Footer */}
-                            <div className="p-5 border-t border-border bg-foreground/[0.02] shrink-0">
+                            <div className="p-5 border-t border-border bg-foreground/[0.02] shrink-0 flex flex-col sm:flex-row gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        addToCart(viewingProduct);
+                                        setViewingProduct(null);
+                                    }}
+                                    className="flex-1 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-[#C2A26A] text-[#0B0B0C] hover:bg-[#DFCA9B] transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg"
+                                >
+                                    <ShoppingBag size={16} /> Köp & hämta på salong ({viewingProduct.price} {salon.currency || 'kr'})
+                                </button>
+
                                 {(() => {
                                     const isSelected = selectedAddons.includes(viewingProduct.id);
                                     return (
@@ -2545,25 +2648,405 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                 setViewingProduct(null);
                                             }}
                                             className={clsx(
-                                                "w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg",
+                                                "py-3.5 px-5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-95",
                                                 isSelected
                                                     ? "bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20"
-                                                    : "bg-[#C2A26A] text-[#0B0B0C] hover:bg-[#DFCA9B]"
+                                                    : "bg-foreground/5 hover:bg-foreground/10 text-foreground/80 border border-border"
                                             )}
                                         >
                                             {isSelected ? (
                                                 <>
-                                                    <X size={16} /> Ta bort från bokning
+                                                    <X size={15} /> Ta bort från bokning
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Plus size={16} /> Köp med bokning (+{viewingProduct.price} {salon.currency || 'kr'})
+                                                    <Plus size={15} /> Välj med bokning
                                                 </>
                                             )}
                                         </button>
                                     );
                                 })()}
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Floating Cart Button (when items in cart) */}
+            {cartItemsCount > 0 && !isCartOpen && (
+                <div className="fixed bottom-6 right-6 z-40 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <button
+                        type="button"
+                        onClick={() => setIsCartOpen(true)}
+                        className="px-6 py-3.5 rounded-full bg-[#111114] text-white border border-[#C2A26A]/50 hover:border-[#C2A26A] shadow-2xl flex items-center gap-3 group active:scale-95 transition-all"
+                    >
+                        <div className="w-8 h-8 rounded-full bg-[#C2A26A] text-[#0B0B0C] font-bold text-xs flex items-center justify-center">
+                            {cartItemsCount}
+                        </div>
+                        <div className="text-left">
+                            <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider leading-none mb-0.5">Varukorg · Hämta på plats</span>
+                            <span className="text-xs font-bold text-white group-hover:text-[#DFCA9B]">{cartTotal} {salon.currency || 'kr'}</span>
+                        </div>
+                        <ChevronRight size={16} className="text-[#C2A26A] group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                </div>
+            )}
+
+            {/* Cart & Click-and-collect Modal */}
+            <AnimatePresence>
+                {isCartOpen && (
+                    <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsCartOpen(false)}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-xl max-h-[92vh] bg-card rounded-[32px] border border-border shadow-2xl flex flex-col overflow-hidden z-10"
+                        >
+                            {/* Header */}
+                            <div className="p-6 border-b border-border flex items-center justify-between shrink-0 bg-foreground/[0.02]">
+                                <div className="space-y-0.5">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C2A26A] flex items-center gap-1.5">
+                                        <ShoppingBag size={14} /> VARUKORG · HÄMTA PÅ SALONG
+                                    </span>
+                                    <h3 className="text-lg font-bold text-foreground">
+                                        {salon.name}
+                                    </h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCartOpen(false)}
+                                    className="w-9 h-9 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Form / Content */}
+                            <form onSubmit={handlePlaceOrder} className="flex-1 overflow-y-auto p-6 space-y-6 max-h-[calc(92vh-150px)]">
+                                {/* Pickup notice banner */}
+                                <div className="p-4 rounded-2xl bg-foreground/[0.03] border border-border flex items-start gap-3.5">
+                                    <div className="w-10 h-10 rounded-xl bg-[#C2A26A]/10 text-[#C2A26A] flex items-center justify-center shrink-0">
+                                        <Store size={20} />
+                                    </div>
+                                    <div className="text-xs space-y-1">
+                                        <p className="font-bold text-foreground">Hämtas på plats hos {salon.name}</p>
+                                        <p className="text-foreground/60 leading-relaxed">
+                                            {salon.address}{salon.municipality || salon.city ? `, ${salon.municipality || salon.city}` : ''}
+                                        </p>
+                                        <p className="text-[11px] text-[#C2A26A] font-semibold">
+                                            Redo att hämtas under salongens ordinarie öppettider
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Cart Items */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                                            Produkter ({cartItemsCount})
+                                        </h4>
+                                        {cart.length > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setCart([])}
+                                                className="text-[10px] font-bold text-foreground/40 hover:text-red-500 uppercase tracking-wider transition-colors"
+                                            >
+                                                Töm varukorg
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {cart.length === 0 ? (
+                                        <div className="p-8 text-center text-foreground/40 rounded-2xl border border-dashed border-border space-y-2">
+                                            <ShoppingBag size={28} className="mx-auto opacity-40" />
+                                            <p className="text-xs font-medium">Din varukorg är tom</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2.5">
+                                            {cart.map(item => (
+                                                <div
+                                                    key={item.id}
+                                                    className="p-3.5 rounded-2xl bg-foreground/[0.02] border border-border flex items-center justify-between gap-3"
+                                                >
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        {item.image ? (
+                                                            <img src={item.image} alt={item.name} className="w-12 h-12 rounded-xl object-cover border border-border shrink-0" />
+                                                        ) : (
+                                                            <div className="w-12 h-12 rounded-xl bg-foreground/5 flex items-center justify-center text-foreground/40 shrink-0">
+                                                                <Package size={20} />
+                                                            </div>
+                                                        )}
+                                                        <div className="min-w-0">
+                                                            {item.brand && (
+                                                                <span className="text-[9px] font-bold uppercase tracking-wider text-[#C2A26A] block">
+                                                                    {item.brand}
+                                                                </span>
+                                                            )}
+                                                            <p className="text-xs font-bold text-foreground truncate">{item.name}</p>
+                                                            <p className="text-xs font-semibold text-foreground/70 mt-0.5">
+                                                                {item.price} {salon.currency || 'kr'} / st
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-3 shrink-0">
+                                                        <div className="flex items-center gap-2 bg-foreground/5 rounded-xl p-1 border border-border/50">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => updateCartQuantity(item.id, -1)}
+                                                                className="w-6 h-6 rounded-lg bg-background hover:bg-foreground/10 flex items-center justify-center text-foreground transition-colors"
+                                                            >
+                                                                <Minus size={12} />
+                                                            </button>
+                                                            <span className="text-xs font-bold text-foreground min-w-[16px] text-center">
+                                                                {item.quantity}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => updateCartQuantity(item.id, 1)}
+                                                                className="w-6 h-6 rounded-lg bg-background hover:bg-foreground/10 flex items-center justify-center text-foreground transition-colors"
+                                                            >
+                                                                <Plus size={12} />
+                                                            </button>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeFromCart(item.id)}
+                                                            className="p-1.5 text-foreground/40 hover:text-red-500 transition-colors"
+                                                            title="Ta bort"
+                                                        >
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Customer Information */}
+                                {cart.length > 0 && (
+                                    <div className="space-y-3 pt-3 border-t border-border">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                                            Dina uppgifter för upphämtning
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-semibold text-foreground/40 uppercase">Förnamn *</label>
+                                                <input
+                                                    required
+                                                    type="text"
+                                                    placeholder="Anna"
+                                                    value={customerInfo.firstName}
+                                                    onChange={(e) => setCustomerInfo({ ...customerInfo, firstName: e.target.value })}
+                                                    className="w-full bg-foreground/[0.03] border border-border rounded-xl px-4 py-2.5 text-xs text-foreground focus:border-[#C2A26A] outline-none"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-semibold text-foreground/40 uppercase">Efternamn</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Svensson"
+                                                    value={customerInfo.lastName}
+                                                    onChange={(e) => setCustomerInfo({ ...customerInfo, lastName: e.target.value })}
+                                                    className="w-full bg-foreground/[0.03] border border-border rounded-xl px-4 py-2.5 text-xs text-foreground focus:border-[#C2A26A] outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-semibold text-foreground/40 uppercase">E-postadress *</label>
+                                                <input
+                                                    required
+                                                    type="email"
+                                                    placeholder="anna@example.com"
+                                                    value={customerInfo.email}
+                                                    onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+                                                    className="w-full bg-foreground/[0.03] border border-border rounded-xl px-4 py-2.5 text-xs text-foreground focus:border-[#C2A26A] outline-none"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-semibold text-foreground/40 uppercase">Telefonnummer</label>
+                                                <input
+                                                    type="tel"
+                                                    placeholder="070-123 45 67"
+                                                    value={customerInfo.phone}
+                                                    onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                                                    className="w-full bg-foreground/[0.03] border border-border rounded-xl px-4 py-2.5 text-xs text-foreground focus:border-[#C2A26A] outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Payment Method */}
+                                {cart.length > 0 && (
+                                    <div className="space-y-3 pt-3 border-t border-border">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                                            Betalsätt
+                                        </h4>
+                                        <div className="grid grid-cols-1 gap-2.5">
+                                            <div
+                                                onClick={() => setSelectedPaymentMethod('onsite')}
+                                                className={clsx(
+                                                    "p-3.5 rounded-xl border transition-all cursor-pointer flex items-center gap-3",
+                                                    selectedPaymentMethod === 'onsite'
+                                                        ? "border-[#C2A26A] bg-[#C2A26A]/5 ring-1 ring-[#C2A26A]"
+                                                        : "border-border bg-foreground/[0.01] hover:border-foreground/20"
+                                                )}
+                                            >
+                                                <div className={clsx("w-8 h-8 rounded-lg flex items-center justify-center text-xs", selectedPaymentMethod === 'onsite' ? "bg-[#C2A26A] text-[#0B0B0C]" : "bg-foreground/5 text-foreground/50")}>
+                                                    <Wallet size={16} />
+                                                </div>
+                                                <div className="flex-1 text-left">
+                                                    <p className="text-xs font-bold text-foreground">Betala vid upphämtning</p>
+                                                    <p className="text-[10px] text-foreground/40">Kort, Swish eller kontant i salongen</p>
+                                                </div>
+                                            </div>
+
+                                            {salon.stripe_account_id && (
+                                                <div
+                                                    onClick={() => setSelectedPaymentMethod('stripe')}
+                                                    className={clsx(
+                                                        "p-3.5 rounded-xl border transition-all cursor-pointer flex items-center gap-3",
+                                                        selectedPaymentMethod === 'stripe'
+                                                            ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500"
+                                                            : "border-border bg-foreground/[0.01] hover:border-foreground/20"
+                                                    )}
+                                                >
+                                                    <div className={clsx("w-8 h-8 rounded-lg flex items-center justify-center text-xs", selectedPaymentMethod === 'stripe' ? "bg-blue-500 text-white" : "bg-foreground/5 text-foreground/50")}>
+                                                        <CreditCard size={16} />
+                                                    </div>
+                                                    <div className="flex-1 text-left">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-xs font-bold text-foreground">Betala online direkt</p>
+                                                            <span className="text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black uppercase tracking-wider">Klarna & Kort</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-foreground/40">Säker betalning direkt via Stripe</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Footer / Total & Submit */}
+                                {cart.length > 0 && (
+                                    <div className="pt-4 border-t border-border space-y-3">
+                                        <div className="flex justify-between items-center text-sm font-bold text-foreground">
+                                            <span>Totalt att betala</span>
+                                            <span className="text-xl text-[#C2A26A]">{cartTotal} {salon.currency || 'kr'}</span>
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={isCheckingOutOrder || !customerInfo.firstName || !customerInfo.email}
+                                            className="w-full py-4 rounded-2xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                                        >
+                                            {isCheckingOutOrder ? (
+                                                <span>Skapar beställning...</span>
+                                            ) : (
+                                                <>
+                                                    <ShoppingBag size={16} />
+                                                    <span>Slutför beställning · {cartTotal} {salon.currency || 'kr'}</span>
+                                                </>
+                                            )}
+                                        </button>
+                                        <p className="text-[10px] text-center text-foreground/40">
+                                            Orderbekräftelse skickas till {customerInfo.email || 'din e-post'}.
+                                        </p>
+                                    </div>
+                                )}
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Order Confirmation Screen */}
+            <AnimatePresence>
+                {orderConfirmation && (
+                    <div className="fixed inset-0 z-[170] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setOrderConfirmation(null)}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-lg bg-card rounded-[36px] border border-border shadow-2xl p-6 sm:p-8 flex flex-col text-center space-y-6 z-10 overflow-hidden"
+                        >
+                            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mx-auto flex items-center justify-center shadow-lg">
+                                <Check size={32} strokeWidth={2.5} />
+                            </div>
+
+                            <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C2A26A]">
+                                    ORDERBEKRÄFTELSE
+                                </span>
+                                <h3 className="text-2xl font-heading font-bold text-foreground">
+                                    Tack för din beställning!
+                                </h3>
+                                <p className="text-xs text-foreground/50">
+                                    Ordernummer: <strong className="text-foreground font-mono font-bold tracking-wider">#{orderConfirmation.orderNumber}</strong>
+                                </p>
+                            </div>
+
+                            {/* Pickup details box */}
+                            <div className="p-5 rounded-2xl bg-foreground/[0.03] border border-border/80 text-left space-y-2.5">
+                                <div className="flex items-center gap-2 text-[#C2A26A] text-xs font-bold uppercase tracking-wider">
+                                    <Store size={16} />
+                                    <span>Hämtas på plats hos</span>
+                                </div>
+                                <div>
+                                    <p className="text-base font-bold text-foreground">{orderConfirmation.salonName}</p>
+                                    <p className="text-xs text-foreground/60">{orderConfirmation.salonAddress}{orderConfirmation.salonCity ? `, ${orderConfirmation.salonCity}` : ''}</p>
+                                </div>
+                                <p className="text-[11px] text-foreground/50 pt-2 border-t border-border/50">
+                                    Visa upp detta ordernummer eller ditt namn när du hämtar dina varor i salongen.
+                                </p>
+                            </div>
+
+                            {/* Items summary */}
+                            <div className="space-y-2 text-left">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 block">
+                                    Beställda produkter
+                                </span>
+                                <div className="p-4 rounded-2xl bg-foreground/[0.02] border border-border space-y-2 text-xs">
+                                    {orderConfirmation.items?.map((it: any) => (
+                                        <div key={it.id} className="flex justify-between items-center">
+                                            <span className="text-foreground font-medium">{it.quantity}x {it.name}</span>
+                                            <span className="font-bold text-foreground">{it.price * it.quantity} kr</span>
+                                        </div>
+                                    ))}
+                                    <div className="pt-2 border-t border-border flex justify-between items-center font-bold text-sm text-foreground">
+                                        <span>Totalt</span>
+                                        <span className="text-[#C2A26A]">{orderConfirmation.totalPrice} kr</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="text-xs text-foreground/60 leading-relaxed">
+                                En bekräftelse har skickats till <strong className="text-foreground">{orderConfirmation.customerInfo?.email}</strong>.
+                            </p>
+
+                            <button
+                                type="button"
+                                onClick={() => setOrderConfirmation(null)}
+                                className="w-full py-4 rounded-2xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95"
+                            >
+                                Klart
+                            </button>
                         </motion.div>
                     </div>
                 )}

@@ -1000,3 +1000,108 @@ export const sendPunchCardWelcomeEmail = async (
     });
 };
 
+/**
+ * 11. Product Order Confirmation for Click & Collect (Hämta på plats på salongen)
+ */
+export const sendProductOrderConfirmationEmail = async ({
+    email,
+    customerName,
+    orderNumber,
+    salonName,
+    salonAddress,
+    salonCity,
+    salonPhone,
+    items,
+    totalPrice,
+    currency = 'kr',
+    paymentMethod
+}: {
+    email: string;
+    customerName: string;
+    orderNumber: string;
+    salonName: string;
+    salonAddress?: string;
+    salonCity?: string;
+    salonPhone?: string;
+    items: Array<{ name: string; brand?: string; price: number; quantity: number }>;
+    totalPrice: number;
+    currency?: string;
+    paymentMethod: string;
+}) => {
+    const itemsListHtml = items.map(item => `
+        <tr style="border-bottom: 1px solid #EFEFEA;">
+            <td style="padding: 12px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; color: #111112;">
+                ${item.brand ? `<span style="font-size: 10px; font-weight: 700; color: #C2A26A; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 2px;">${item.brand}</span>` : ''}
+                <strong>${item.name}</strong>
+                <span style="color: #888884; font-size: 12px; display: block;">Antal: ${item.quantity} st</span>
+            </td>
+            <td style="padding: 12px 0; text-align: right; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 700; color: #111112;">
+                ${item.price * item.quantity} ${currency}
+            </td>
+        </tr>
+    `).join('');
+
+    const htmlContent = `
+        <div style="text-align: center; margin-bottom: 24px;">
+            <span style="display: inline-block; padding: 4px 12px; background: rgba(194, 162, 106, 0.12); color: #C2A26A; border-radius: 100px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                Orderbekräftelse · Hämta på salong
+            </span>
+        </div>
+        <h1 style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 24px; font-weight: 700; color: #111112; margin: 0 0 12px 0; text-align: center; letter-spacing: -0.5px;">
+            Tack för din beställning!
+        </h1>
+        <p style="color: #666660; margin: 0 0 24px 0; font-size: 15px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+            Ordernummer: <strong>#${orderNumber}</strong>
+        </p>
+
+        <div style="background: #F9F9F7; border: 1px solid #EFEFEA; border-radius: 20px; padding: 24px; margin: 24px 0;">
+            <h3 style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #C2A26A; font-weight: 700; margin: 0 0 12px 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                Upphämtningsplats
+            </h3>
+            <p style="margin: 0; font-size: 16px; font-weight: 700; color: #111112; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                ${salonName}
+            </p>
+            <p style="margin: 4px 0 0 0; font-size: 14px; color: #666660; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                ${salonAddress || ''}${salonCity ? `, ${salonCity}` : ''}
+            </p>
+            ${salonPhone ? `<p style="margin: 4px 0 0 0; font-size: 13px; color: #888884; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">Telefon: ${salonPhone}</p>` : ''}
+            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #E8E8E2; font-size: 13px; color: #555550; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                Visa upp denna orderbekräftelse eller uppge ditt namn vid upphämtning.
+            </div>
+        </div>
+
+        <div style="margin: 28px 0;">
+            <h3 style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #888884; font-weight: 700; margin: 0 0 12px 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                Beställda produkter
+            </h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                ${itemsListHtml}
+                <tr>
+                    <td style="padding: 16px 0 8px 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 15px; font-weight: 700; color: #111112;">
+                        Totalt belopp
+                    </td>
+                    <td style="padding: 16px 0 8px 0; text-align: right; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 18px; font-weight: 700; color: #111112;">
+                        ${totalPrice} ${currency}
+                    </td>
+                </tr>
+            </table>
+            <p style="margin: 8px 0 0 0; font-size: 13px; color: #888884; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                Betalsätt: <strong>${paymentMethod}</strong>
+            </p>
+        </div>
+
+        <div style="text-align: center; margin: 32px 0 16px 0;">
+            <a href="https://www.glowbook.se" style="display: inline-block; background-color: #C2A26A; color: #0B0B0C; padding: 14px 36px; border-radius: 100px; text-decoration: none; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                Tillbaka till Glowbook
+            </a>
+        </div>
+    `;
+
+    return await sendWithFallback({
+        fromName: salonName ? `${salonName} via Glowbook` : 'Glowbook',
+        to: email,
+        subject: `Orderbekräftelse #${orderNumber} - ${salonName}`,
+        html: getHtmlWrapper(htmlContent),
+    });
+};
+
