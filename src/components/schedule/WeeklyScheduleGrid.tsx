@@ -64,13 +64,13 @@ const DAY_NAMES = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'
 const DAY_SHORT = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 7); // 07:00 - 21:00
 const DAY_COLORS = [
-    { bg: 'bg-blue-500', border: 'border-blue-400/40', text: 'text-blue-300', fill: 'bg-blue-500/25', accent: 'bg-blue-400' },
-    { bg: 'bg-violet-500', border: 'border-violet-400/40', text: 'text-violet-300', fill: 'bg-violet-500/25', accent: 'bg-violet-400' },
-    { bg: 'bg-emerald-500', border: 'border-emerald-400/40', text: 'text-emerald-300', fill: 'bg-emerald-500/25', accent: 'bg-emerald-400' },
-    { bg: 'bg-amber-500', border: 'border-amber-400/40', text: 'text-amber-300', fill: 'bg-amber-500/25', accent: 'bg-amber-400' },
-    { bg: 'bg-rose-500', border: 'border-rose-400/40', text: 'text-rose-300', fill: 'bg-rose-500/25', accent: 'bg-rose-400' },
-    { bg: 'bg-cyan-500', border: 'border-cyan-400/40', text: 'text-cyan-300', fill: 'bg-cyan-500/25', accent: 'bg-cyan-400' },
-    { bg: 'bg-slate-400', border: 'border-slate-400/40', text: 'text-slate-300', fill: 'bg-slate-500/25', accent: 'bg-slate-400' },
+    { bg: 'bg-champagne-500', border: 'border-champagne-400/40', text: 'text-champagne-300', fill: 'bg-champagne-500/25', accent: 'bg-champagne-400' },
+    { bg: 'bg-champagne-500', border: 'border-champagne-400/40', text: 'text-champagne-300', fill: 'bg-champagne-500/25', accent: 'bg-champagne-400' },
+    { bg: 'bg-champagne-500', border: 'border-champagne-400/40', text: 'text-champagne-300', fill: 'bg-champagne-500/25', accent: 'bg-champagne-400' },
+    { bg: 'bg-champagne-500', border: 'border-champagne-400/40', text: 'text-champagne-300', fill: 'bg-champagne-500/25', accent: 'bg-champagne-400' },
+    { bg: 'bg-champagne-500', border: 'border-champagne-400/40', text: 'text-champagne-300', fill: 'bg-champagne-500/25', accent: 'bg-champagne-400' },
+    { bg: 'bg-champagne-500', border: 'border-champagne-400/40', text: 'text-champagne-300', fill: 'bg-champagne-500/25', accent: 'bg-champagne-400' },
+    { bg: 'bg-champagne-500', border: 'border-champagne-400/40', text: 'text-champagne-300', fill: 'bg-champagne-500/25', accent: 'bg-champagne-400' },
 ];
 
 function timeToMins(t: string): number {
@@ -393,7 +393,7 @@ export default function WeeklyScheduleGrid({ practitioner, appointments = [], on
                                 {DAY_SHORT.map((day, i) => {
                                     const dayBookings = getBookingsForDay(i);
                                     return (
-                                        <div key={i} className="flex-1 px-1">
+                                        <div key={i} className="flex-1 px-2">
                                             <button
                                                 onClick={() => toggleDay(i)}
                                                 className={clsx(
@@ -436,7 +436,7 @@ export default function WeeklyScheduleGrid({ practitioner, appointments = [], on
                                     return (
                                         <div
                                             key={dayIndex}
-                                            className="flex-1 relative px-0.5"
+                                            className="flex-1 relative px-1"
                                             style={{ height: gridHeight }}
                                         >
                                             {/* Hour grid lines */}
@@ -467,7 +467,7 @@ export default function WeeklyScheduleGrid({ practitioner, appointments = [], on
                                                             isEditing ? null : { day: dayIndex, slot: slotIndex }
                                                         )}
                                                         className={clsx(
-                                                            "absolute left-1 right-1 rounded-lg cursor-pointer transition-all duration-200 group overflow-hidden",
+                                                            "absolute left-2 right-2 rounded-xl cursor-pointer transition-all duration-200 group overflow-hidden",
                                                             isEditing
                                                                 ? `${colors.fill} ring-2 ring-offset-1 ring-offset-[#0a0a0a] ${colors.border.replace('border-', 'ring-')}`
                                                                 : `${colors.fill} border ${colors.border} hover:brightness-125`
