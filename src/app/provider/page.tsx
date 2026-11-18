@@ -16,6 +16,8 @@ import {
     Mail, 
     ArrowUpRight,
     Sparkles,
+    ShoppingBag,
+    Package,
     X
 } from "lucide-react";
 import Link from "next/link";
@@ -383,6 +385,32 @@ export default function ProviderDashboard() {
             return timeA.localeCompare(timeB);
         });
 
+    const isProductOrder = (item: any) => {
+        if (!item) return false;
+        const name = (item.service || item.service_name || '').toLowerCase();
+        return name.startsWith('produktorder') || name.includes('produktorder') || item.type === 'product_order' || item.isProductOrder === true;
+    };
+
+    const getPaymentMethodInfo = (method?: string | null) => {
+        if (!method) return { label: 'Betalas på plats i salong', isPaidOnline: false, isGiftCard: false };
+        const m = method.toLowerCase();
+        if (m.includes('stripe') || m.includes('klarna') || m.includes('card') || m.includes('kort') || m.includes('paid') || m.includes('online')) {
+            return { label: 'Betald online (Kort/Klarna)', isPaidOnline: true, isGiftCard: false };
+        }
+        if (m.includes('giftcard') || m.includes('presentkort')) {
+            return { label: 'Betald med Presentkort', isPaidOnline: true, isGiftCard: true };
+        }
+        return { label: 'Betalas på plats i salong', isPaidOnline: false, isGiftCard: false };
+    };
+
+    const isBankIdVerified = (item: any) => {
+        if (!item || isProductOrder(item)) return false;
+        return Boolean(item.bankid_verified || item.is_bankid_verified);
+    };
+
+    const productOrdersCount = UPCOMING_TODAY.filter(isProductOrder).length;
+    const treatmentsCount = UPCOMING_TODAY.length - productOrdersCount;
+
     const nextCustomer = UPCOMING_TODAY.find((apt: any) => apt.status !== 'completed' && apt.status !== 'cancelled');
 
     const todayRevenue = UPCOMING_TODAY.reduce((sum: number, apt: any) => {
@@ -465,7 +493,18 @@ export default function ProviderDashboard() {
                         {getGreeting()}, {salonName}
                     </h1>
                     <p className="text-xs text-neutral-400 capitalize">
-                        {format(toStockholmDate(), 'EEEE, d MMMM yyyy', { locale: sv })} · {UPCOMING_TODAY.length} bokningar schemalagda idag
+                        {format(toStockholmDate(), 'EEEE, d MMMM yyyy', { locale: sv })}
+                        {' · '}
+                        {treatmentsCount > 0 && (
+                            <span>{treatmentsCount} {treatmentsCount === 1 ? 'bokning' : 'bokningar'} schemalagda</span>
+                        )}
+                        {treatmentsCount > 0 && productOrdersCount > 0 && <span>, </span>}
+                        {productOrdersCount > 0 && (
+                            <span className="text-[#DFCA9B]">{productOrdersCount} {productOrdersCount === 1 ? 'produktorder för upphämtning' : 'produktordrar för upphämtning'}</span>
+                        )}
+                        {treatmentsCount === 0 && productOrdersCount === 0 && (
+                            <span>0 bokningar schemalagda idag</span>
+                        )}
                     </p>
                 </div>
 
@@ -506,7 +545,10 @@ export default function ProviderDashboard() {
                             {todayRevenue.toLocaleString('sv-SE')} <span className="text-sm font-normal text-neutral-400">{currency}</span>
                         </p>
                         <p className="text-[11px] text-neutral-400 mt-1">
-                            {UPCOMING_TODAY.length} bokningar idag
+                            {treatmentsCount > 0 && `${treatmentsCount} ${treatmentsCount === 1 ? 'bokning' : 'bokningar'}`}
+                            {treatmentsCount > 0 && productOrdersCount > 0 && ' · '}
+                            {productOrdersCount > 0 && `${productOrdersCount} ${productOrdersCount === 1 ? 'produktorder' : 'produktordrar'}`}
+                            {treatmentsCount === 0 && productOrdersCount === 0 && '0 ordrar/bokningar idag'}
                         </p>
                     </div>
                 </div>
@@ -552,11 +594,11 @@ export default function ProviderDashboard() {
                 </div>
             </div>
 
-            {/* SPOTLIGHT: NÄSTA KUND IDAG (Strictly typography & details, zero images) */}
+            {/* SPOTLIGHT: NÄSTA KUND / AKTUELL PRODUKTORDER */}
             <section className="space-y-3">
                 <div className="flex items-center justify-between">
                     <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-                        Nästa kund
+                        {nextCustomer && isProductOrder(nextCustomer) ? 'Aktuell produktorder' : 'Nästa kund'}
                     </h2>
                     <Link 
                         href="/provider/calendar" 
@@ -567,59 +609,78 @@ export default function ProviderDashboard() {
                 </div>
 
                 {nextCustomer ? (
-                    <div className="p-6 sm:p-7 rounded-2xl bg-[#121215] border border-[#C2A26A]/30 space-y-6 relative overflow-hidden shadow-xl">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.06]">
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-[#C2A26A]/15 text-[#DFCA9B] border border-[#C2A26A]/30">
-                                        Nästa besök
-                                    </span>
-                                    <span className="text-xs text-neutral-400 font-medium">
-                                        Kl. {nextCustomer.startTime || (nextCustomer.start_time ? format(toStockholmDate(new Date(nextCustomer.start_time)), 'HH:mm') : 'Idag')}
-                                    </span>
+                    (() => {
+                        const isProd = isProductOrder(nextCustomer);
+                        const payInfo = getPaymentMethodInfo(nextCustomer.payment_method || nextCustomer.paymentMethod);
+                        const hasBankId = isBankIdVerified(nextCustomer);
+                        const timeDisplay = nextCustomer.startTime || (nextCustomer.start_time ? format(toStockholmDate(new Date(nextCustomer.start_time)), 'HH:mm') : 'Idag');
+
+                        return (
+                            <div className="p-6 sm:p-7 rounded-2xl bg-[#121215] border border-[#C2A26A]/30 space-y-6 relative overflow-hidden shadow-xl">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.06]">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-[#C2A26A]/15 text-[#DFCA9B] border border-[#C2A26A]/30">
+                                                {isProd ? 'Produktorder · Upphämtning i salong' : 'Nästa besök'}
+                                            </span>
+                                            <span className="text-xs text-neutral-400 font-medium">
+                                                Kl. {timeDisplay}
+                                            </span>
+                                        </div>
+                                        <h3 
+                                            className="text-2xl sm:text-3xl font-normal text-white pt-1"
+                                            style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", Georgia, serif' }}
+                                        >
+                                            {nextCustomer.clientName || nextCustomer.customer_name || 'Inbokad kund'}
+                                        </h3>
+                                        <p className="text-xs text-neutral-300">
+                                            {nextCustomer.service || nextCustomer.service_name || (isProd ? 'Produktorder' : 'Behandling')}
+                                            {!isProd && ` · ${nextCustomer.duration || 60} min`}
+                                            {` · ${Number(nextCustomer.price || nextCustomer.total_price || 0).toLocaleString('sv-SE')} ${currency}`}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => handleApproveAppointment(nextCustomer.id)}
+                                            className="px-5 py-2.5 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-semibold tracking-wide uppercase transition-all shadow-md active:scale-95"
+                                        >
+                                            {isProd ? 'Markera som utlämnad' : 'Markera som klar'}
+                                        </button>
+                                        <button
+                                            onClick={() => handleCancelAppointment(nextCustomer.id)}
+                                            className="px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-red-500/10 text-neutral-400 hover:text-red-400 border border-white/[0.08] text-xs font-medium transition-colors"
+                                        >
+                                            {isProd ? 'Avbryt order' : 'Avboka'}
+                                        </button>
+                                    </div>
                                 </div>
-                                <h3 
-                                    className="text-2xl sm:text-3xl font-normal text-white pt-1"
-                                    style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", Georgia, serif' }}
-                                >
-                                    {nextCustomer.clientName || nextCustomer.customer_name || 'Inbokad kund'}
-                                </h3>
-                                <p className="text-xs text-neutral-300">
-                                    {nextCustomer.service || nextCustomer.service_name || 'Behandling'} · {nextCustomer.duration || 60} min · {Number(nextCustomer.price || nextCustomer.total_price || 0).toLocaleString('sv-SE')} {currency}
-                                </p>
-                            </div>
 
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => handleApproveAppointment(nextCustomer.id)}
-                                    className="px-5 py-2.5 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-semibold tracking-wide uppercase transition-all shadow-md active:scale-95"
-                                >
-                                    Markera som klar
-                                </button>
-                                <button
-                                    onClick={() => handleCancelAppointment(nextCustomer.id)}
-                                    className="px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-red-500/10 text-neutral-400 hover:text-red-400 border border-white/[0.08] text-xs font-medium transition-colors"
-                                >
-                                    Avboka
-                                </button>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-neutral-400">
+                                    <div className="flex items-center gap-2">
+                                        <Phone size={14} className="text-neutral-500 shrink-0" />
+                                        <span className="text-neutral-300">{nextCustomer.clientPhone || nextCustomer.customer_phone || 'Inget telefonnummer angivet'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Mail size={14} className="text-neutral-500 shrink-0" />
+                                        <span className="text-neutral-300 truncate">{nextCustomer.clientEmail || nextCustomer.customer_email || 'Ingen e-post'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <CreditCard size={14} className={payInfo.isPaidOnline ? "text-emerald-400 shrink-0" : "text-[#C2A26A] shrink-0"} />
+                                        <span className={payInfo.isPaidOnline ? "text-emerald-400 font-medium" : "text-[#DFCA9B] font-medium"}>
+                                            Betalsätt: {payInfo.label}
+                                        </span>
+                                    </div>
+                                    {hasBankId && (
+                                        <div className="flex items-center gap-2 sm:col-span-3">
+                                            <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
+                                            <span className="text-emerald-400/90 font-medium">BankID verifierad</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-neutral-400">
-                            <div className="flex items-center gap-2">
-                                <Phone size={14} className="text-neutral-500 shrink-0" />
-                                <span className="text-neutral-300">{nextCustomer.clientPhone || nextCustomer.customer_phone || 'Inget telefonnummer angivet'}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Mail size={14} className="text-neutral-500 shrink-0" />
-                                <span className="text-neutral-300 truncate">{nextCustomer.clientEmail || nextCustomer.customer_email || 'Ingen e-post'}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
-                                <span className="text-emerald-400/90 font-medium">BankID & Kortgaranti verifierad</span>
-                            </div>
-                        </div>
-                    </div>
+                        );
+                    })()
                 ) : (
                     <div className="p-8 rounded-2xl bg-[#111114] border border-white/[0.08] text-center space-y-3">
                         <Clock size={24} className="mx-auto text-neutral-500" strokeWidth={1.5} />
@@ -635,10 +696,10 @@ export default function ProviderDashboard() {
             <section className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-                        Dagens schema
+                        Dagens schema & ordrar
                     </h2>
                     <span className="text-xs text-neutral-500">
-                        {UPCOMING_TODAY.length} inbokade tider
+                        {UPCOMING_TODAY.length} {UPCOMING_TODAY.length === 1 ? 'aktiv händelse' : 'aktiva händelser'}
                     </span>
                 </div>
 
@@ -648,6 +709,8 @@ export default function ProviderDashboard() {
                             const timeStr = item.startTime || (item.start_time ? format(toStockholmDate(new Date(item.start_time)), 'HH:mm') : '--:--');
                             const isCancelled = item.status === 'cancelled';
                             const isCompleted = item.status === 'completed';
+                            const isProd = isProductOrder(item);
+                            const payInfo = getPaymentMethodInfo(item.payment_method || item.paymentMethod);
 
                             return (
                                 <div 
@@ -663,9 +726,16 @@ export default function ProviderDashboard() {
                                         </div>
                                         <div className="w-1 h-8 rounded-full bg-neutral-700 shrink-0" />
                                         <div className="min-w-0">
-                                            <p className={clsx("text-sm font-medium truncate", isCancelled ? "line-through text-neutral-400" : "text-white")}>
-                                                {item.clientName || item.customer_name || 'Kund'}
-                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <p className={clsx("text-sm font-medium truncate", isCancelled ? "line-through text-neutral-400" : "text-white")}>
+                                                    {item.clientName || item.customer_name || 'Kund'}
+                                                </p>
+                                                {isProd && (
+                                                    <span className="px-2 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider bg-[#C2A26A]/15 text-[#DFCA9B] border border-[#C2A26A]/30 shrink-0">
+                                                        Upphämtning
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className="text-xs text-neutral-400 truncate">
                                                 {item.service || item.service_name || 'Behandling'}
                                             </p>
@@ -673,9 +743,14 @@ export default function ProviderDashboard() {
                                     </div>
 
                                     <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pt-2 sm:pt-0 border-t border-white/[0.04] sm:border-t-0">
-                                        <span className="text-xs font-medium text-neutral-300">
-                                            {Number(item.price || item.total_price || 0).toLocaleString('sv-SE')} {currency}
-                                        </span>
+                                        <div className="text-right">
+                                            <span className="text-xs font-semibold text-neutral-200 block">
+                                                {Number(item.price || item.total_price || 0).toLocaleString('sv-SE')} {currency}
+                                            </span>
+                                            <span className={clsx("text-[10px] block font-medium", payInfo.isPaidOnline ? "text-emerald-400/90" : "text-[#DFCA9B]")}>
+                                                {payInfo.label}
+                                            </span>
+                                        </div>
 
                                         {isCancelled ? (
                                             <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-red-500/10 text-red-400 border border-red-500/20">
@@ -683,14 +758,14 @@ export default function ProviderDashboard() {
                                             </span>
                                         ) : isCompleted ? (
                                             <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                                                <CheckCircle2 size={12} /> Genomförd
+                                                <CheckCircle2 size={12} /> {isProd ? 'Utlämnad' : 'Genomförd'}
                                             </span>
                                         ) : (
                                             <button
                                                 onClick={() => handleApproveAppointment(item.id)}
                                                 className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-emerald-500/20 hover:text-emerald-300 text-neutral-300 text-[11px] font-medium border border-white/[0.08] transition-colors"
                                             >
-                                                Markera som klar
+                                                {isProd ? 'Markera utlämnad' : 'Markera som klar'}
                                             </button>
                                         )}
                                     </div>

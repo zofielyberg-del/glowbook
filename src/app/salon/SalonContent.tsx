@@ -320,6 +320,47 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
             const data = await res.json();
             if (data.success) {
+                // If the provider is viewing their own salon in the same browser, immediately update local cache
+                try {
+                    const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (parsed.id === salon.id || parsed.slug === salon.slug) {
+                            const newOrderApt = {
+                                id: data.orderId || `ord-${Date.now()}`,
+                                clientName: `${customerInfo.firstName} ${customerInfo.lastName || ''}`.trim(),
+                                customer_name: `${customerInfo.firstName} ${customerInfo.lastName || ''}`.trim(),
+                                clientEmail: customerInfo.email,
+                                customer_email: customerInfo.email,
+                                clientPhone: customerInfo.phone || '-',
+                                customer_phone: customerInfo.phone || '-',
+                                service: `Produktorder (${cart.map((c: any) => `${c.quantity || 1}x ${c.name}`).join(', ')})`,
+                                service_name: `Produktorder (${cart.map((c: any) => `${c.quantity || 1}x ${c.name}`).join(', ')})`,
+                                price: data.totalPrice,
+                                total_price: data.totalPrice,
+                                duration: 0,
+                                duration_minutes: 0,
+                                startTime: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Stockholm' }),
+                                start_time: new Date().toISOString(),
+                                date: new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' }),
+                                booking_date: new Date().toISOString(),
+                                paymentMethod: selectedPaymentMethod === 'stripe' ? 'stripe' : 'onsite',
+                                payment_method: selectedPaymentMethod === 'stripe' ? 'Kort/Klarna (Stripe Online)' : 'Betala vid upphämtning',
+                                status: 'confirmed',
+                                isProductOrder: true,
+                                bankid_verified: false
+                            };
+                            parsed.appointments = [newOrderApt, ...(parsed.appointments || []).filter((a: any) => a.id !== newOrderApt.id)];
+                            localStorage.setItem('glowbook_salon', JSON.stringify(parsed));
+                            sessionStorage.setItem('glowbook_salon', JSON.stringify(parsed));
+                            window.dispatchEvent(new Event('glowbook_update'));
+                            window.dispatchEvent(new Event('storage'));
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to update local cache with order:', e);
+                }
+
                 setOrderConfirmation(data);
                 setCart([]);
                 setIsCartOpen(false);

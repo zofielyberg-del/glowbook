@@ -1227,13 +1227,13 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
                                                     )}
                                                     {apt.clientPhone && apt.clientPhone !== '-' && (
                                                         <div className="text-[8px] text-pink-700/80 dark:text-pink-300/80 truncate font-medium">
-                                                            📞 {apt.clientPhone}
+                                                            Tel: {apt.clientPhone}
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
                                             <div className="text-[8px] font-black text-pink-600 dark:text-pink-400 text-right mt-1.5 shrink-0 self-end px-1.5 py-0.5 bg-pink-100/50 dark:bg-pink-900/40 rounded">
-                                                {apt.startTime} ({apt.duration} min)
+                                                {apt.startTime} {apt.duration > 0 ? `(${apt.duration} min)` : ''}
                                             </div>
                                         </div>
                                     ))}
