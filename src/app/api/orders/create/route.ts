@@ -37,6 +37,7 @@ export async function POST(req: Request) {
                 municipality: true,
                 country: true,
                 stripe_account_id: true,
+                availability: true,
                 owner: {
                     select: {
                         phone: true
@@ -79,6 +80,45 @@ export async function POST(req: Request) {
             }
         });
 
+        // Automatically decrement product inventory stock in database
+        const availabilityArr = Array.isArray(salon.availability) ? (salon.availability as any[]) : [];
+        const prodBlock = availabilityArr.find((a: any) => a && (a.type === 'products' || a.type === 'addons'));
+        let updatedProductsList: any[] = [];
+
+        if (prodBlock && Array.isArray(prodBlock.list)) {
+            let stockUpdated = false;
+            updatedProductsList = prodBlock.list.map((prod: any) => {
+                const boughtItem = items.find((it: any) => 
+                    (it.id && String(it.id) === String(prod.id)) || 
+                    (it.name && it.name.trim().toLowerCase() === (prod.name || '').trim().toLowerCase())
+                );
+                if (boughtItem) {
+                    const qty = Math.max(1, Number(boughtItem.quantity) || 1);
+                    const currentStock = typeof prod.stock === 'number' ? prod.stock : (parseInt(prod.stock, 10) || 0);
+                    const newStock = Math.max(0, currentStock - qty);
+                    stockUpdated = true;
+                    return { ...prod, stock: newStock };
+                }
+                return prod;
+            });
+
+            if (stockUpdated) {
+                const filteredAvail = availabilityArr.filter((a: any) => a && a.type !== 'products' && a.type !== 'addons');
+                const finalAvailability = [
+                    ...filteredAvail,
+                    { type: 'products', list: updatedProductsList }
+                ];
+                try {
+                    await prisma.salon.update({
+                        where: { id: salon.id },
+                        data: { availability: finalAvailability }
+                    });
+                } catch (stockErr) {
+                    console.error('Failed updating product stock in DB:', stockErr);
+                }
+            }
+        }
+
         // Send order confirmation email asynchronously
         try {
             await sendProductOrderConfirmationEmail({
@@ -118,7 +158,8 @@ export async function POST(req: Request) {
                 email: customerInfo.email,
                 phone: customerInfo.phone
             },
-            paymentMethod: paymentMethod
+            paymentMethod: paymentMethod,
+            updatedProducts: updatedProductsList
         });
 
     } catch (err: any) {

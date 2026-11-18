@@ -217,12 +217,24 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         return reviewsBlock?.list || [];
     }, [salon?.availability]);
 
+    const [productStockOverrides, setProductStockOverrides] = useState<Record<string, number>>({});
+
     const products = useMemo(() => {
-        if (Array.isArray(salon?.products) && salon.products.length > 0) return salon.products;
-        const availability = Array.isArray(salon?.availability) ? salon.availability : [];
-        const prodBlock = availability.find((a: any) => a && (a.type === 'products' || a.type === 'addons'));
-        return prodBlock?.list || [];
-    }, [salon?.products, salon?.availability]);
+        let list: any[] = [];
+        if (Array.isArray(salon?.products) && salon.products.length > 0) {
+            list = salon.products;
+        } else {
+            const availability = Array.isArray(salon?.availability) ? salon.availability : [];
+            const prodBlock = availability.find((a: any) => a && (a.type === 'products' || a.type === 'addons'));
+            list = prodBlock?.list || [];
+        }
+        return list.map((p: any) => {
+            if (productStockOverrides[p.id] !== undefined) {
+                return { ...p, stock: productStockOverrides[p.id] };
+            }
+            return p;
+        });
+    }, [salon?.products, salon?.availability, productStockOverrides]);
 
     const [selectedService, setSelectedService] = useState<any>(null);
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -254,9 +266,16 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [orderConfirmation, setOrderConfirmation] = useState<any | null>(null);
 
     const addToCart = (product: any) => {
+        const stock = typeof product.stock === 'number' ? product.stock : (parseInt(product.stock, 10) ?? 999);
+        if (product.stock !== undefined && product.stock !== null && stock <= 0) {
+            return;
+        }
         setCart(prev => {
             const existing = prev.find(item => item.id === product.id);
             if (existing) {
+                if (product.stock !== undefined && product.stock !== null && existing.quantity >= stock) {
+                    return prev;
+                }
                 return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
             }
             return [...prev, {
@@ -276,6 +295,15 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
         setCart(prev => {
             return prev.map(item => {
                 if (item.id === productId) {
+                    if (delta > 0) {
+                        const matchingProd = products.find((p: any) => p.id === productId);
+                        if (matchingProd && matchingProd.stock !== undefined && matchingProd.stock !== null) {
+                            const stock = typeof matchingProd.stock === 'number' ? matchingProd.stock : (parseInt(matchingProd.stock, 10) || 0);
+                            if (item.quantity + delta > stock) {
+                                return item;
+                            }
+                        }
+                    }
                     const newQty = item.quantity + delta;
                     return newQty > 0 ? { ...item, quantity: newQty } : null;
                 }
@@ -320,12 +348,45 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
             const data = await res.json();
             if (data.success) {
+                // Update product inventory locally
+                if (Array.isArray(data.updatedProducts) && data.updatedProducts.length > 0) {
+                    const overrides: Record<string, number> = {};
+                    data.updatedProducts.forEach((p: any) => {
+                        overrides[p.id] = typeof p.stock === 'number' ? p.stock : (parseInt(p.stock, 10) || 0);
+                    });
+                    setProductStockOverrides(prev => ({ ...prev, ...overrides }));
+                } else {
+                    setProductStockOverrides(prev => {
+                        const next = { ...prev };
+                        cart.forEach((c: any) => {
+                            const matching = products.find((p: any) => p.id === c.id || p.name === c.name);
+                            if (matching) {
+                                const currentStock = next[matching.id] !== undefined ? next[matching.id] : (typeof matching.stock === 'number' ? matching.stock : (parseInt(matching.stock, 10) || 0));
+                                next[matching.id] = Math.max(0, currentStock - (c.quantity || 1));
+                            }
+                        });
+                        return next;
+                    });
+                }
+
                 // If the provider is viewing their own salon in the same browser, immediately update local cache
                 try {
                     const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
                     if (saved) {
                         const parsed = JSON.parse(saved);
                         if (parsed.id === salon.id || parsed.slug === salon.slug) {
+                            if (Array.isArray(data.updatedProducts) && data.updatedProducts.length > 0) {
+                                parsed.products = data.updatedProducts;
+                            } else if (Array.isArray(parsed.products)) {
+                                parsed.products = parsed.products.map((prod: any) => {
+                                    const bought = cart.find((c: any) => c.id === prod.id || c.name === prod.name);
+                                    if (bought) {
+                                        const cur = typeof prod.stock === 'number' ? prod.stock : (parseInt(prod.stock, 10) || 0);
+                                        return { ...prod, stock: Math.max(0, cur - (bought.quantity || 1)) };
+                                    }
+                                    return prod;
+                                });
+                            }
                             const newOrderApt = {
                                 id: data.orderId || `ord-${Date.now()}`,
                                 clientName: `${customerInfo.firstName} ${customerInfo.lastName || ''}`.trim(),
@@ -659,7 +720,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     giftCardDiscount: appliedGiftCardDiscount,
                     status: isStripePayment ? 'pending_payment' : 'confirmed',
                     start_time,
-                    end_time
+                    end_time,
+                    addedProducts: addedProductItems.map((p: any) => ({ id: p.id, name: p.name, quantity: 1 }))
                 }),
             });
 
@@ -667,6 +729,21 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             if (!bookingData.success) {
                 alert('Bokningen misslyckades: ' + bookingData.error);
                 return;
+            }
+
+            // Decrement stock locally for added products
+            if (addedProductItems.length > 0) {
+                setProductStockOverrides(prev => {
+                    const next = { ...prev };
+                    addedProductItems.forEach((p: any) => {
+                        const matching = products.find((prod: any) => prod.id === p.id);
+                        if (matching) {
+                            const currentStock = next[matching.id] !== undefined ? next[matching.id] : (typeof matching.stock === 'number' ? matching.stock : (parseInt(matching.stock, 10) || 0));
+                            next[matching.id] = Math.max(0, currentStock - 1);
+                        }
+                    });
+                    return next;
+                });
             }
 
             // 2. Handle Payment Redirect if needed (gift card & Glowpoints are deducted in Stripe webhook on payment completion)
@@ -1342,6 +1419,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {products.map((prod: any) => {
                                         const isSelected = selectedAddons.includes(prod.id);
+                                        const stock = typeof prod.stock === 'number' ? prod.stock : (parseInt(prod.stock, 10) ?? 999);
+                                        const isOutOfStock = prod.stock !== undefined && prod.stock !== null && stock <= 0;
+
                                         return (
                                             <div
                                                 key={prod.id}
@@ -1361,6 +1441,11 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             {prod.brand && (
                                                                 <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#C2A26A]/10 text-[#C2A26A] border border-[#C2A26A]/30">
                                                                     {prod.brand}
+                                                                </span>
+                                                            )}
+                                                            {isOutOfStock && (
+                                                                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20">
+                                                                    Slut i lager
                                                                 </span>
                                                             )}
                                                         </div>
@@ -1386,16 +1471,24 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                 <div className="pt-4 mt-3 border-t border-border/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                                                     <button
                                                         type="button"
-                                                        onClick={() => addToCart(prod)}
-                                                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
+                                                        disabled={isOutOfStock}
+                                                        onClick={() => !isOutOfStock && addToCart(prod)}
+                                                        className={clsx(
+                                                            "px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm",
+                                                            isOutOfStock
+                                                                ? "bg-foreground/5 text-foreground/40 cursor-not-allowed border border-border/50"
+                                                                : "bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] active:scale-95"
+                                                        )}
                                                     >
                                                         <ShoppingBag size={14} />
-                                                        <span>Köp & hämta i salong</span>
+                                                        <span>{isOutOfStock ? 'Slut i lager' : 'Köp & hämta i salong'}</span>
                                                     </button>
 
                                                     <button
                                                         type="button"
+                                                        disabled={isOutOfStock && !isSelected}
                                                         onClick={() => {
+                                                            if (isOutOfStock && !isSelected) return;
                                                             if (selectedAddons.includes(prod.id)) {
                                                                 setSelectedAddons(prev => prev.filter(id => id !== prod.id));
                                                             } else {
@@ -1406,16 +1499,20 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             }
                                                         }}
                                                         className={clsx(
-                                                            "px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95",
-                                                            isSelected
-                                                                ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                                                                : "bg-foreground/5 hover:bg-foreground/10 text-foreground/80 border border-border/60"
+                                                            "px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5",
+                                                            isOutOfStock && !isSelected
+                                                                ? "bg-foreground/5 text-foreground/30 border border-border/40 cursor-not-allowed"
+                                                                : isSelected
+                                                                    ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20 active:scale-95"
+                                                                    : "bg-foreground/5 hover:bg-foreground/10 text-foreground/80 border border-border/60 active:scale-95"
                                                         )}
                                                     >
                                                         {isSelected ? (
                                                             <>
                                                                 <Check size={14} /> Vald med bokning
                                                             </>
+                                                        ) : isOutOfStock ? (
+                                                            <span>Slut i lager</span>
                                                         ) : (
                                                             <>
                                                                 <Plus size={14} /> Välj med bokning
@@ -1928,6 +2025,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             <div className="grid grid-cols-1 gap-2.5">
                                                                 {products.map((prod: any) => {
                                                                     const isSelected = selectedAddons.includes(prod.id);
+                                                                    const stock = typeof prod.stock === 'number' ? prod.stock : (parseInt(prod.stock, 10) ?? 999);
+                                                                    const isOutOfStock = prod.stock !== undefined && prod.stock !== null && stock <= 0;
+
                                                                     return (
                                                                         <div
                                                                             key={prod.id}
@@ -1953,6 +2053,11 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                                                 {prod.brand}
                                                                                             </span>
                                                                                         )}
+                                                                                        {isOutOfStock && (
+                                                                                            <span className="text-[9px] uppercase font-bold tracking-wider text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
+                                                                                                Slut i lager
+                                                                                            </span>
+                                                                                        )}
                                                                                         <p className="text-xs font-bold text-foreground truncate">{prod.name}</p>
                                                                                     </div>
                                                                                     <p className="text-[11px] text-[#C2A26A] line-clamp-1 italic font-medium">
@@ -1975,7 +2080,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
                                                                             <button
                                                                                 type="button"
+                                                                                disabled={isOutOfStock && !isSelected}
                                                                                 onClick={() => {
+                                                                                    if (isOutOfStock && !isSelected) return;
                                                                                     if (isSelected) {
                                                                                         setSelectedAddons(prev => prev.filter(id => id !== prod.id));
                                                                                     } else {
@@ -1983,14 +2090,16 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                                     }
                                                                                 }}
                                                                                 className={clsx(
-                                                                                    "px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1 active:scale-95",
-                                                                                    isSelected
-                                                                                        ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                                                                                        : "bg-foreground/5 hover:bg-[#C2A26A] hover:text-[#0B0B0C] text-foreground border border-border/50"
+                                                                                    "px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1",
+                                                                                    isOutOfStock && !isSelected
+                                                                                        ? "bg-foreground/5 text-foreground/30 border border-border/40 cursor-not-allowed"
+                                                                                        : isSelected
+                                                                                            ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20 active:scale-95"
+                                                                                            : "bg-foreground/5 hover:bg-[#C2A26A] hover:text-[#0B0B0C] text-foreground border border-border/50 active:scale-95"
                                                                                 )}
                                                                             >
-                                                                                {isSelected ? <Check size={14} /> : <Plus size={14} />}
-                                                                                <span>{isSelected ? 'Tillagd' : 'Köp till'}</span>
+                                                                                {isSelected ? <Check size={14} /> : isOutOfStock ? null : <Plus size={14} />}
+                                                                                <span>{isSelected ? 'Tillagd' : isOutOfStock ? 'Slut i lager' : 'Köp till'}</span>
                                                                             </button>
                                                                         </div>
                                                                     );
@@ -2682,50 +2791,69 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
                             {/* Modal Footer */}
                             <div className="p-5 border-t border-border bg-foreground/[0.02] shrink-0 flex flex-col sm:flex-row gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        addToCart(viewingProduct);
-                                        setViewingProduct(null);
-                                    }}
-                                    className="flex-1 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-[#C2A26A] text-[#0B0B0C] hover:bg-[#DFCA9B] transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg"
-                                >
-                                    <ShoppingBag size={16} /> Köp & hämta på salong ({viewingProduct.price} {salon.currency || 'kr'})
-                                </button>
-
                                 {(() => {
+                                    const vpStock = typeof viewingProduct.stock === 'number' ? viewingProduct.stock : (parseInt(viewingProduct.stock, 10) ?? 999);
+                                    const isVpOutOfStock = viewingProduct.stock !== undefined && viewingProduct.stock !== null && vpStock <= 0;
                                     const isSelected = selectedAddons.includes(viewingProduct.id);
+
                                     return (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (isSelected) {
-                                                    setSelectedAddons(prev => prev.filter(id => id !== viewingProduct.id));
-                                                } else {
-                                                    setSelectedAddons(prev => [...prev, viewingProduct.id]);
-                                                    if (!selectedService && salon?.services && salon.services.length > 0) {
-                                                        handleServiceSelect(salon.services[0]);
+                                        <>
+                                            <button
+                                                type="button"
+                                                disabled={isVpOutOfStock}
+                                                onClick={() => {
+                                                    if (isVpOutOfStock) return;
+                                                    addToCart(viewingProduct);
+                                                    setViewingProduct(null);
+                                                }}
+                                                className={clsx(
+                                                    "flex-1 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg",
+                                                    isVpOutOfStock
+                                                        ? "bg-foreground/5 text-foreground/30 cursor-not-allowed border border-border/50"
+                                                        : "bg-[#C2A26A] text-[#0B0B0C] hover:bg-[#DFCA9B] active:scale-95"
+                                                )}
+                                            >
+                                                <ShoppingBag size={16} />
+                                                {isVpOutOfStock ? 'Slut i lager' : `Köp & hämta på salong (${viewingProduct.price} ${salon.currency || 'kr'})`}
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                disabled={isVpOutOfStock && !isSelected}
+                                                onClick={() => {
+                                                    if (isVpOutOfStock && !isSelected) return;
+                                                    if (isSelected) {
+                                                        setSelectedAddons(prev => prev.filter(id => id !== viewingProduct.id));
+                                                    } else {
+                                                        setSelectedAddons(prev => [...prev, viewingProduct.id]);
+                                                        if (!selectedService && salon?.services && salon.services.length > 0) {
+                                                            handleServiceSelect(salon.services[0]);
+                                                        }
                                                     }
-                                                }
-                                                setViewingProduct(null);
-                                            }}
-                                            className={clsx(
-                                                "py-3.5 px-5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-95",
-                                                isSelected
-                                                    ? "bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20"
-                                                    : "bg-foreground/5 hover:bg-foreground/10 text-foreground/80 border border-border"
-                                            )}
-                                        >
-                                            {isSelected ? (
-                                                <>
-                                                    <X size={15} /> Ta bort från bokning
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Plus size={15} /> Välj med bokning
-                                                </>
-                                            )}
-                                        </button>
+                                                    setViewingProduct(null);
+                                                }}
+                                                className={clsx(
+                                                    "py-3.5 px-5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2",
+                                                    isVpOutOfStock && !isSelected
+                                                        ? "bg-foreground/5 text-foreground/30 border border-border/40 cursor-not-allowed"
+                                                        : isSelected
+                                                            ? "bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20 active:scale-95"
+                                                            : "bg-foreground/5 hover:bg-foreground/10 text-foreground/80 border border-border active:scale-95"
+                                                )}
+                                            >
+                                                {isSelected ? (
+                                                    <>
+                                                        <X size={15} /> Ta bort från bokning
+                                                    </>
+                                                ) : isVpOutOfStock ? (
+                                                    <span>Slut i lager</span>
+                                                ) : (
+                                                    <>
+                                                        <Plus size={15} /> Välj med bokning
+                                                    </>
+                                                )}
+                                            </button>
+                                        </>
                                     );
                                 })()}
                             </div>

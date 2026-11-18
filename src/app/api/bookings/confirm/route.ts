@@ -23,7 +23,8 @@ export async function POST(req: Request) {
             end_time,   // Exact UTC string from frontend
             rewardInfo,
             giftCardCode,
-            giftCardDiscount
+            giftCardDiscount,
+            addedProducts
         } = await req.json();
 
         if (!salonId || !serviceName || !customerInfo?.email || !date || !startTime) {
@@ -359,6 +360,46 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: 'Inte tillräckligt med poäng.' }, { status: 400 });
             }
             return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
+        }
+
+        // Decrement product inventory stock if products were added to this booking
+        if (Array.isArray(addedProducts) && addedProducts.length > 0 && sid) {
+            try {
+                const s = await prisma.salon.findUnique({
+                    where: { id: sid },
+                    select: { availability: true }
+                });
+                const availabilityArr = Array.isArray(s?.availability) ? (s.availability as any[]) : [];
+                const prodBlock = availabilityArr.find((a: any) => a && (a.type === 'products' || a.type === 'addons'));
+                if (prodBlock && Array.isArray(prodBlock.list)) {
+                    let stockUpdated = false;
+                    const updatedProducts = prodBlock.list.map((prod: any) => {
+                        const bought = addedProducts.find((it: any) => 
+                            (it.id && String(it.id) === String(prod.id)) ||
+                            (it.name && it.name.trim().toLowerCase() === (prod.name || '').trim().toLowerCase())
+                        );
+                        if (bought) {
+                            const qty = Math.max(1, Number(bought.quantity) || 1);
+                            const currentStock = typeof prod.stock === 'number' ? prod.stock : (parseInt(prod.stock, 10) || 0);
+                            const newStock = Math.max(0, currentStock - qty);
+                            stockUpdated = true;
+                            return { ...prod, stock: newStock };
+                        }
+                        return prod;
+                    });
+                    if (stockUpdated) {
+                        const filteredAvail = availabilityArr.filter((a: any) => a && a.type !== 'products' && a.type !== 'addons');
+                        await prisma.salon.update({
+                            where: { id: sid },
+                            data: {
+                                availability: [...filteredAvail, { type: 'products', list: updatedProducts }]
+                            }
+                        });
+                    }
+                }
+            } catch (pErr) {
+                console.error('[Confirm] Error updating product stock:', pErr);
+            }
         }
 
         // 4. Send Email Notifications (Only for non-Stripe direct payments like onsite/giftcard)

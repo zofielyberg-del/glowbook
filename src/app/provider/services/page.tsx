@@ -222,6 +222,7 @@ export default function ServicesPage() {
         return [];
     });
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+    const [editingProductId, setEditingProductId] = useState<string | null>(null);
     const [productForm, setProductForm] = useState({
         name: '',
         brand: '',
@@ -271,23 +272,97 @@ export default function ServicesPage() {
         reader.readAsDataURL(file);
     };
 
+    const handleEditProduct = (prod: any) => {
+        setEditingProductId(prod.id);
+        setProductForm({
+            name: prod.name || '',
+            brand: prod.brand || '',
+            price: (prod.price ?? '').toString(),
+            stock: (prod.stock ?? 10).toString(),
+            category: prod.category || 'Eftervård',
+            description: prod.description || '',
+            image: prod.image || '',
+            recommendation: (prod.recommendation || '').replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim(),
+            ingredients: prod.ingredients || '',
+            productUrl: prod.productUrl || ''
+        });
+        setIsProductModalOpen(true);
+    };
+
+    const handleUpdateStock = async (prodId: string, delta: number) => {
+        const updated = products.map(p => {
+            if (p.id === prodId) {
+                const cur = typeof p.stock === 'number' ? p.stock : (parseInt(p.stock, 10) || 0);
+                return { ...p, stock: Math.max(0, cur + delta) };
+            }
+            return p;
+        });
+        setProducts(updated);
+
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            const next = { ...parsed, products: updated };
+            localStorage.setItem('glowbook_salon', JSON.stringify(next));
+            sessionStorage.setItem('glowbook_salon', JSON.stringify(next));
+            window.dispatchEvent(new Event('glowbook_update'));
+
+            const salonId = parsed.id || parsed.salonId;
+            if (salonId) {
+                try {
+                    await fetch('/api/salons/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: salonId, products: updated })
+                    });
+                } catch (err) {
+                    console.error('Failed to sync stock to DB:', err);
+                }
+            }
+        }
+    };
+
     const handleSaveProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!productForm.name || !productForm.price) return;
-        const newProd = {
-            id: Date.now().toString(),
-            name: productForm.name,
-            brand: productForm.brand?.trim() || '',
-            price: Number(productForm.price),
-            stock: Number(productForm.stock || 1),
-            category: productForm.category || 'Eftervård',
-            description: productForm.description || '',
-            image: productForm.image || '',
-            recommendation: (productForm.recommendation || `Köp till ${productForm.name} för bästa resultat och hållbarhet!`).replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim(),
-            ingredients: productForm.ingredients?.trim() || '',
-            productUrl: productForm.productUrl?.trim() || ''
-        };
-        const updated = [...products, newProd];
+
+        let updated: any[];
+        if (editingProductId) {
+            updated = products.map(p => {
+                if (p.id === editingProductId) {
+                    return {
+                        ...p,
+                        name: productForm.name,
+                        brand: productForm.brand?.trim() || '',
+                        price: Number(productForm.price),
+                        stock: Math.max(0, Number(productForm.stock || 0)),
+                        category: productForm.category || 'Eftervård',
+                        description: productForm.description || '',
+                        image: productForm.image || p.image || '',
+                        recommendation: (productForm.recommendation || `Köp till ${productForm.name} för bästa resultat och hållbarhet!`).replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim(),
+                        ingredients: productForm.ingredients?.trim() || '',
+                        productUrl: productForm.productUrl?.trim() || ''
+                    };
+                }
+                return p;
+            });
+        } else {
+            const newProd = {
+                id: Date.now().toString(),
+                name: productForm.name,
+                brand: productForm.brand?.trim() || '',
+                price: Number(productForm.price),
+                stock: Math.max(0, Number(productForm.stock || 1)),
+                category: productForm.category || 'Eftervård',
+                description: productForm.description || '',
+                image: productForm.image || '',
+                recommendation: (productForm.recommendation || `Köp till ${productForm.name} för bästa resultat och hållbarhet!`).replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim(),
+                ingredients: productForm.ingredients?.trim() || '',
+                productUrl: productForm.productUrl?.trim() || ''
+            };
+            updated = [...products, newProd];
+        }
+
         setProducts(updated);
 
         const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
@@ -311,6 +386,7 @@ export default function ServicesPage() {
                 }
             }
         }
+        setEditingProductId(null);
         setProductForm({
             name: '',
             brand: '',
@@ -644,7 +720,22 @@ export default function ServicesPage() {
                                 <p className="text-xs text-neutral-400">Lägg till produkter som kunder kan köpa i samband med sitt besök.</p>
                             </div>
                             <button
-                                onClick={() => setIsProductModalOpen(true)}
+                                onClick={() => {
+                                    setEditingProductId(null);
+                                    setProductForm({
+                                        name: '',
+                                        brand: '',
+                                        price: '',
+                                        stock: '10',
+                                        category: category || 'Eftervård',
+                                        description: '',
+                                        image: '',
+                                        recommendation: '',
+                                        ingredients: '',
+                                        productUrl: ''
+                                    });
+                                    setIsProductModalOpen(true);
+                                }}
                                 className="px-5 py-2.5 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-semibold tracking-wide uppercase transition-all shadow-md active:scale-95 flex items-center gap-2"
                             >
                                 <Plus size={16} /> Lägg till produkt
@@ -672,13 +763,22 @@ export default function ServicesPage() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <button
-                                                    onClick={() => handleDeleteProduct(prod.id)}
-                                                    className="p-1.5 text-neutral-500 hover:text-red-400 transition-colors"
-                                                    title="Ta bort produkt"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={() => handleEditProduct(prod)}
+                                                        className="p-1.5 text-neutral-400 hover:text-white transition-colors rounded-lg hover:bg-white/[0.05]"
+                                                        title="Redigera produkt"
+                                                    >
+                                                        <Edit size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteProduct(prod.id)}
+                                                        className="p-1.5 text-neutral-500 hover:text-red-400 transition-colors rounded-lg hover:bg-white/[0.05]"
+                                                        title="Ta bort produkt"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
                                             </div>
                                             <h3 className="text-sm font-medium text-white mt-2">{prod.name}</h3>
                                             {prod.recommendation && (
@@ -707,7 +807,31 @@ export default function ServicesPage() {
                                             )}
                                         </div>
                                         <div className="flex items-center justify-between pt-3 border-t border-white/[0.05] text-xs">
-                                            <span className="text-neutral-400">Lager: {prod.stock || 0} st</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-neutral-400">Lager:</span>
+                                                <div className="inline-flex items-center gap-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleUpdateStock(prod.id, -1)}
+                                                        className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/[0.1] rounded transition-colors text-xs font-bold leading-none"
+                                                        title="Minska lagersaldo med 1"
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <span className="font-semibold text-white min-w-[18px] text-center text-xs">
+                                                        {prod.stock ?? 0}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleUpdateStock(prod.id, 1)}
+                                                        className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/[0.1] rounded transition-colors text-xs font-bold leading-none"
+                                                        title="Öka lagersaldo med 1"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                                <span className="text-neutral-500 text-[11px]">st</span>
+                                            </div>
                                             <span className="font-semibold text-white">{prod.price} {currency}</span>
                                         </div>
                                     </div>
@@ -832,7 +956,10 @@ export default function ServicesPage() {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100]"
-                                onClick={() => setIsProductModalOpen(false)}
+                                onClick={() => {
+                                    setIsProductModalOpen(false);
+                                    setEditingProductId(null);
+                                }}
                             />
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -842,11 +969,18 @@ export default function ServicesPage() {
                             >
                                 <div className="p-6 border-b border-white/[0.08] flex items-center justify-between shrink-0">
                                     <div>
-                                        <h3 className="text-lg font-medium text-white">Lägg till produkt</h3>
-                                        <p className="text-xs text-neutral-400 mt-0.5">Eftervård eller produkt till försäljning i salongen</p>
+                                        <h3 className="text-lg font-medium text-white">
+                                            {editingProductId ? 'Redigera produkt' : 'Lägg till produkt'}
+                                        </h3>
+                                        <p className="text-xs text-neutral-400 mt-0.5">
+                                            {editingProductId ? 'Ändra information eller lagersaldo' : 'Eftervård eller produkt till försäljning i salongen'}
+                                        </p>
                                     </div>
                                     <button 
-                                        onClick={() => setIsProductModalOpen(false)}
+                                        onClick={() => {
+                                            setIsProductModalOpen(false);
+                                            setEditingProductId(null);
+                                        }}
                                         className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.05]"
                                     >
                                         <X size={18} />
@@ -1115,7 +1249,7 @@ export default function ServicesPage() {
                                         type="submit"
                                         className="w-full py-3.5 bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] font-semibold text-xs tracking-wider uppercase rounded-xl transition-all shadow-md active:scale-95"
                                     >
-                                        Spara produkt
+                                        {editingProductId ? 'Spara ändringar' : 'Spara produkt'}
                                     </button>
                                 </form>
                             </motion.div>
