@@ -1189,20 +1189,33 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     <div className="flex-1 space-y-4">
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
                             {(() => {
-                                const ignoredCategories = ['skönhet', 'skönhetssalong'];
+                                const ignoredRoleKeywords = [
+                                    'skönhet', 
+                                    'skönhetssalong', 
+                                    'nagelterapeut', 
+                                    'hudterapeut', 
+                                    'spaterapeut',
+                                    'massör',
+                                    'frisör',
+                                    'barberare',
+                                    'terapeut',
+                                    'behandlare',
+                                    'utförare'
+                                ];
                                 const allBadges = [
                                     ...(salon.category ? [salon.category] : []),
                                     ...(salon.categories || []),
-                                    ...(salon.practitioners?.flatMap((p: any) => p.categories || []) || [])
                                 ]
                                     .map(c => typeof c === 'string' ? c.trim() : '')
-                                    .filter(c => c && !ignoredCategories.includes(c.toLowerCase()));
+                                    .filter(c => c && !ignoredRoleKeywords.some(ign => c.toLowerCase().includes(ign)));
 
                                 const uniqueBadges = allBadges.filter((v, i, a) => 
                                     a.findIndex(x => x.toLowerCase() === v.toLowerCase()) === i
                                 );
 
-                                return uniqueBadges.map(cat => (
+                                const finalBadges = uniqueBadges.length > 0 ? uniqueBadges : [salon.category || 'Naglar'];
+
+                                return finalBadges.map(cat => (
                                     <span key={cat} className="bg-champagne-100 text-champagne-700 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">{cat}</span>
                                 ));
                             })()}
@@ -1231,12 +1244,6 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                 <MapPin size={18} className="text-champagne-500" />
                                 <span>{salon.municipality}, Sverige</span>
                             </div>
-                            {salon.verifiedCategories && salon.verifiedCategories.length > 0 && (
-                                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 rounded-xl text-xs font-bold text-blue-600 border border-blue-500/20">
-                                    <Award size={14} className="text-blue-500 fill-blue-500/20 shrink-0" />
-                                    <span>Diplomerad i: {salon.verifiedCategories.join(', ')}</span>
-                                </div>
-                            )}
                             {(() => {
                                 const availability = Array.isArray(salon.availability) ? salon.availability : [];
                                 const settings = availability.find((a: any) => a && a.type === 'settings');
