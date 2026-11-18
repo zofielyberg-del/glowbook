@@ -110,77 +110,6 @@ const PLACEHOLDERS: Record<string, string> = {
     "Barberare": "T.ex. Trim & Rakning",
 };
 
-const CATEGORY_PRODUCT_PRESETS: Record<string, { brands: string[]; pitches: string[] }> = {
-    "Hudvård": {
-        brands: ['Dermalogica', 'Medik8', 'Exuviance', 'SkinCeuticals', 'Babor', 'Biologique Recherche', 'Nimue', 'Maria Åkerberg', 'Filorga', 'Elemis'],
-        pitches: [
-            'Reparerande serum för maximal fukt och lyster',
-            'Lugnande eftervårdskräm för behandlad och känslig hy',
-            'Förläng effekten av din ansiktsbehandling med aktiv hemvård',
-            'Solskydd SPF 50 som skyddar och bevarar hudbarriären',
-            'Fuktgivande mist för omedelbar lyster under dagen'
-        ]
-    },
-    "Naglar": {
-        brands: ['Lilly Nails', 'ProNails', 'OPI', 'CND', 'Gelish', 'Light Elegance', 'Indigo Nails', 'Semilac'],
-        pitches: [
-            'Köp till en nagelolja för bästa hållbarhet!',
-            'Stärkande nagelbandsolja för långvarigt och glansigt resultat',
-            'Vårdande handkräm för silkeslena händer och nagelband',
-            'Keratinbehandling för att stärka naturliga naglar mellan besök'
-        ]
-    },
-    "Hårvård": {
-        brands: ['Olaplex', 'K18', 'Kérastase', 'Kevin Murphy', 'Davines', 'Redken', 'Maria Nila', 'Moroccanoil', 'Wella'],
-        pitches: [
-            'Färgbevarande schampo och balsam för salongsfräscht hår',
-            'Molekylär hårmask som bygger upp skadat hår hemma',
-            'Värmeskyddande olja för silkeslen glans och frisskontroll',
-            'Djupverkande fuktinpackning för torra toppar'
-        ]
-    },
-    "Barberare": {
-        brands: ['Reuzel', 'Uppercut Deluxe', 'Proraso', 'Captain Fawcett', 'American Crew', 'Mr Bear Family'],
-        pitches: [
-            'Vårdande skäggolja med maskulin doft och mjukgörande effekt',
-            'Skäggbalsam som formar och tämjer grovt skägg',
-            'After shave balm för att motverka irritation och röda prickar'
-        ]
-    },
-    "Fransar & Bryn": {
-        brands: ['Lilly Nails', 'RefectoCil', 'InLei', 'London Lash', 'Elleebana', 'Lash FX', 'BrowXenna'],
-        pitches: [
-            'Oljefritt rengöringsskum för maximal hållbarhet på fransarna',
-            'Näringsrikt fransserum för starkare och fylligare fransar',
-            'Vårdande brynolja och stylinggel för fixerade strån'
-        ]
-    },
-    "Fotvård": {
-        brands: ['Gehwol', 'Camillen 60', 'Allpresan', 'Scholl', 'CCS'],
-        pitches: [
-            'Intensivt mjukgörande fotkräm med karbamid mot förhårdnader',
-            'Vårdande nagelbandsolja för tånaglar och hälar',
-            'Svalkande fotgel för trötta och svullna fötter'
-        ]
-    },
-    "Massage": {
-        brands: ['Maria Åkerberg', 'c/o Gerd', 'Kerstin Florian', 'Weleda'],
-        pitches: [
-            'Värmande arnikaolja för stela muskler och leder',
-            'Lugnande lavendelolja för avslappning och bättre sömn',
-            'Magnesiumspray för snabb återhämtning efter massage'
-        ]
-    },
-    "Spa": {
-        brands: ['Kerstin Florian', 'c/o Gerd', 'Maria Åkerberg', 'Meraki'],
-        pitches: [
-            'Exklusiv bodyscrub med havssalt och eteriska oljor',
-            'Närande kroppsolja för silkeslen och återfuktad hud',
-            'Lugnande badsalt med mineraler för hemmaspa'
-        ]
-    }
-};
-
 export default function ServicesPage() {
     const { t, currency } = useLanguage();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -332,14 +261,14 @@ export default function ServicesPage() {
                 if (p.id === editingProductId) {
                     return {
                         ...p,
-                        name: productForm.name,
+                        name: productForm.name.trim(),
                         brand: productForm.brand?.trim() || '',
                         price: Number(productForm.price),
                         stock: Math.max(0, Number(productForm.stock || 0)),
-                        category: productForm.category || 'Eftervård',
-                        description: productForm.description || '',
+                        category: productForm.category?.trim() || 'Eftervård',
+                        description: productForm.description?.trim() || '',
                         image: productForm.image || p.image || '',
-                        recommendation: (productForm.recommendation || `Köp till ${productForm.name} för bästa resultat och hållbarhet!`).replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim(),
+                        recommendation: (productForm.recommendation || '').replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim(),
                         ingredients: productForm.ingredients?.trim() || '',
                         productUrl: productForm.productUrl?.trim() || ''
                     };
@@ -349,14 +278,14 @@ export default function ServicesPage() {
         } else {
             const newProd = {
                 id: Date.now().toString(),
-                name: productForm.name,
+                name: productForm.name.trim(),
                 brand: productForm.brand?.trim() || '',
                 price: Number(productForm.price),
                 stock: Math.max(0, Number(productForm.stock || 1)),
-                category: productForm.category || 'Eftervård',
-                description: productForm.description || '',
+                category: productForm.category?.trim() || 'Eftervård',
+                description: productForm.description?.trim() || '',
                 image: productForm.image || '',
-                recommendation: (productForm.recommendation || `Köp till ${productForm.name} för bästa resultat och hållbarhet!`).replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim(),
+                recommendation: (productForm.recommendation || '').replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim(),
                 ingredients: productForm.ingredients?.trim() || '',
                 productUrl: productForm.productUrl?.trim() || ''
             };
@@ -988,211 +917,129 @@ export default function ServicesPage() {
                                 </div>
 
                                 <form onSubmit={handleSaveProduct} className="p-6 space-y-4 overflow-y-auto max-h-[calc(92vh-90px)]">
-                                    {(() => {
-                                        const activeProductCat = productForm.category || category || 'Hudvård';
-                                        const matchingPreset = Object.entries(CATEGORY_PRODUCT_PRESETS).find(([k]) => 
-                                            activeProductCat.toLowerCase().includes(k.toLowerCase()) || 
-                                            k.toLowerCase().includes(activeProductCat.toLowerCase())
-                                        )?.[1] || (category?.toLowerCase().includes('hud') ? CATEGORY_PRODUCT_PRESETS['Hudvård'] : CATEGORY_PRODUCT_PRESETS['Naglar']);
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                                Produktnamn *
+                                            </label>
+                                            <input
+                                                required
+                                                type="text"
+                                                value={productForm.name}
+                                                onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                                                placeholder="T.ex. Skäggolja, Fuktserum, Schampo..."
+                                                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                                Varumärke / Märke (valfritt)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={productForm.brand}
+                                                onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })}
+                                                placeholder="Fyll i märke själv, t.ex. Proraso, Olaplex..."
+                                                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
+                                            />
+                                        </div>
+                                    </div>
 
-                                        return (
-                                            <>
-                                                <div>
-                                                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-                                                        Kategori för smarta förslag
-                                                    </label>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {['Hudvård', 'Naglar', 'Fransar & Bryn', 'Hårvård', 'Barberare', 'Massage', 'Spa', 'Fotvård'].map(catOption => {
-                                                            const isMatch = activeProductCat.toLowerCase().includes(catOption.toLowerCase());
-                                                            return (
-                                                                <button
-                                                                    key={catOption}
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const newPreset = CATEGORY_PRODUCT_PRESETS[catOption];
-                                                                        setProductForm(prev => ({
-                                                                            ...prev,
-                                                                            category: catOption,
-                                                                            recommendation: prev.recommendation || (newPreset?.pitches?.[0] || '')
-                                                                        }));
-                                                                    }}
-                                                                    className={clsx(
-                                                                        "px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all",
-                                                                        isMatch
-                                                                            ? "bg-[#C2A26A] text-[#0B0B0C] shadow-sm font-bold"
-                                                                            : "bg-white/[0.04] text-neutral-400 hover:text-white hover:bg-white/[0.08] border border-white/[0.06]"
-                                                                    )}
-                                                                >
-                                                                    {catOption}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-                                                            Produktnamn *
-                                                        </label>
-                                                        <input
-                                                            required
-                                                            type="text"
-                                                            value={productForm.name}
-                                                            onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                                                            placeholder="T.ex. Fuktserum 30ml eller Nagelolja"
-                                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-                                                            Varumärke / Märke (valfritt)
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            value={productForm.brand}
-                                                            onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })}
-                                                            placeholder="T.ex. Dermalogica, Medik8, ProNails..."
-                                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                {matchingPreset?.brands && (
-                                                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-1.5">
-                                                        <span className="text-[9px] uppercase font-bold tracking-wider text-neutral-400 block">
-                                                            Klicka för att välja populärt märke inom {activeProductCat}:
-                                                        </span>
-                                                        <div className="flex flex-wrap gap-1.5">
-                                                            {matchingPreset.brands.map(b => (
-                                                                <button
-                                                                    key={b}
-                                                                    type="button"
-                                                                    onClick={() => setProductForm(prev => ({ ...prev, brand: b }))}
-                                                                    className={clsx(
-                                                                        "px-2.5 py-1 rounded-lg text-[10px] transition-all",
-                                                                        productForm.brand === b
-                                                                            ? "bg-[#C2A26A] text-[#0B0B0C] font-bold shadow-sm"
-                                                                            : "bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 border border-white/[0.06]"
-                                                                    )}
-                                                                >
-                                                                    {b}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-                                                            Pris ({currency}) *
-                                                        </label>
-                                                        <input
-                                                            required
-                                                            type="number"
-                                                            value={productForm.price}
-                                                            onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                                                            placeholder="299"
-                                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white focus:border-[#C2A26A] outline-none"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-                                                            Lagersaldo (st)
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            value={productForm.stock}
-                                                            onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
-                                                            placeholder="10"
-                                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white focus:border-[#C2A26A] outline-none"
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-                                                        Produktbild (valfritt)
-                                                    </label>
-                                                    <div className="flex items-center gap-3">
-                                                        {productForm.image ? (
-                                                            <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-white/[0.1] shrink-0">
-                                                                <img src={productForm.image} alt="Preview" className="w-full h-full object-cover" />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setProductForm(prev => ({ ...prev, image: '' }))}
-                                                                    className="absolute top-1 right-1 p-0.5 bg-black/80 rounded-full text-white hover:text-red-400"
-                                                                >
-                                                                    <X size={10} />
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <label className="w-14 h-14 rounded-xl border border-dashed border-white/[0.15] hover:border-[#C2A26A] flex flex-col items-center justify-center cursor-pointer text-neutral-400 hover:text-white transition-colors shrink-0">
-                                                                <Camera size={16} />
-                                                                <span className="text-[8px] mt-1 font-medium">Ladda upp</span>
-                                                                <input
-                                                                    type="file"
-                                                                    accept="image/*"
-                                                                    onChange={handleProductImageUpload}
-                                                                    className="hidden"
-                                                                />
-                                                            </label>
-                                                        )}
-                                                        <input
-                                                            type="text"
-                                                            value={productForm.image || ''}
-                                                            onChange={(e) => setProductForm(prev => ({ ...prev, image: e.target.value }))}
-                                                            placeholder="eller klistra in bild-URL..."
-                                                            className="flex-1 px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-                                                        Säljpitch vid checkout (rekommendation till kund)
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={productForm.recommendation || ''}
-                                                        onChange={(e) => setProductForm(prev => ({ ...prev, recommendation: e.target.value }))}
-                                                        placeholder="T.ex. Köp till ett serum för maximal fukt och lyster!"
-                                                        className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
-                                                    />
-
-                                                    {matchingPreset?.pitches && (
-                                                        <div className="mt-2 space-y-1">
-                                                            <span className="text-[9px] uppercase font-bold tracking-wider text-neutral-400 block">
-                                                                Klicka för att välja rekommendation:
-                                                            </span>
-                                                            <div className="flex flex-col gap-1.5">
-                                                                {matchingPreset.pitches.map(p => (
-                                                                    <button
-                                                                        key={p}
-                                                                        type="button"
-                                                                        onClick={() => setProductForm(prev => ({ ...prev, recommendation: p }))}
-                                                                        className={clsx(
-                                                                            "px-3 py-1.5 rounded-lg text-[10px] text-left transition-all leading-tight",
-                                                                            productForm.recommendation === p
-                                                                                ? "bg-[#C2A26A]/20 text-[#DFCA9B] border border-[#C2A26A]/40 font-semibold"
-                                                                                : "bg-white/[0.03] hover:bg-white/[0.06] text-neutral-300 border border-white/[0.05]"
-                                                                        )}
-                                                                    >
-                                                                        + &quot;{p}&quot;
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </>
-                                        );
-                                    })()}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                                Pris ({currency}) *
+                                            </label>
+                                            <input
+                                                required
+                                                type="number"
+                                                value={productForm.price}
+                                                onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                                                placeholder="299"
+                                                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white focus:border-[#C2A26A] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                                Lagersaldo (st)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={productForm.stock}
+                                                onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                                                placeholder="10"
+                                                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white focus:border-[#C2A26A] outline-none"
+                                            />
+                                        </div>
+                                    </div>
 
                                     <div>
                                         <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-                                            Kategori / Passar till
+                                            Kategori / Typ (valfritt)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={productForm.category}
+                                            onChange={(e) => setProductForm(prev => ({ ...prev, category: e.target.value }))}
+                                            placeholder="T.ex. Eftervård, Skäggvård, Hårvård, Styling..."
+                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                            Produktbild (valfritt)
+                                        </label>
+                                        <div className="flex items-center gap-3">
+                                            {productForm.image ? (
+                                                <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-white/[0.1] shrink-0">
+                                                    <img src={productForm.image} alt="Preview" className="w-full h-full object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setProductForm(prev => ({ ...prev, image: '' }))}
+                                                        className="absolute top-1 right-1 p-0.5 bg-black/80 rounded-full text-white hover:text-red-400"
+                                                    >
+                                                        <X size={10} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <label className="w-14 h-14 rounded-xl border border-dashed border-white/[0.15] hover:border-[#C2A26A] flex flex-col items-center justify-center cursor-pointer text-neutral-400 hover:text-white transition-colors shrink-0">
+                                                    <Camera size={16} />
+                                                    <span className="text-[8px] mt-1 font-medium">Ladda upp</span>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={handleProductImageUpload}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            )}
+                                            <input
+                                                type="text"
+                                                value={productForm.image || ''}
+                                                onChange={(e) => setProductForm(prev => ({ ...prev, image: e.target.value }))}
+                                                placeholder="eller klistra in bild-URL..."
+                                                className="flex-1 px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                            Säljpitch vid checkout (rekommendation till kund)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={productForm.recommendation || ''}
+                                            onChange={(e) => setProductForm(prev => ({ ...prev, recommendation: e.target.value }))}
+                                            placeholder="T.ex. Köp till för bästa vårdande och hållbara resultat!"
+                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                            Kategori / Passar till (valfritt)
                                         </label>
                                         <input
                                             type="text"
