@@ -27,7 +27,7 @@ const securityHeaders = [
   },
   {
     key: 'Content-Security-Policy',
-    value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'self'; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com; frame-ancestors 'self';",
+    value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'self'; frame-src 'self' data: blob: https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://maps.google.com https://www.google.com https://*.google.com https://*.openstreetmap.org; frame-ancestors 'self';",
   },
 ];
 

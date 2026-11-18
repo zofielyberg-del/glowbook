@@ -1755,13 +1755,16 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 <div className="bg-card rounded-3xl p-1.5 border border-border overflow-hidden group">
                     <div className="relative h-[320px] rounded-[20px] overflow-hidden bg-foreground/[0.03] shadow-inner">
                         <iframe
+                            title={`Karta - ${salon.name || 'Salong'}`}
                             width="100%"
                             height="100%"
                             frameBorder="0"
                             style={{ border: 0 }}
-                            src={`https://maps.google.com/maps?q=${encodeURIComponent(`${salon.address}, ${salon.municipality}`)}&output=embed`}
+                            src={`https://maps.google.com/maps?q=${encodeURIComponent(`${salon.address || ''}, ${salon.municipality || ''}`)}&output=embed`}
                             allowFullScreen
-                            className="saturate-[1.1] contrast-110 opacity-90 group-hover:opacity-100 transition-all duration-700"
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            className="w-full h-full border-0 saturate-[1.1] contrast-110 opacity-90 group-hover:opacity-100 transition-all duration-700"
                         ></iframe>
 
                         {/* Compact Overlay */}
