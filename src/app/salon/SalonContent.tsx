@@ -1462,22 +1462,29 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
 
 
                         {/* Reviews Preview */}
-                        <div className="bg-card rounded-[40px] p-10 space-y-6 border border-border">
-                            <div className="flex justify-between items-center">
-                                <h2 className="text-2xl font-heading font-bold text-foreground">{t('salon_reviews')}</h2>
+                        <div className="bg-card rounded-[32px] p-6 sm:p-8 space-y-6 border border-border">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/40">
+                                <div>
+                                    <h2 className="text-xl sm:text-2xl font-serif font-normal text-foreground">{t('salon_reviews')}</h2>
+                                    {reviews.length > 0 && (
+                                        <p className="text-[11px] text-foreground/45 mt-0.5">
+                                            Baserat på {reviews.length} {reviews.length === 1 ? 'kundrecension' : 'kundrecensioner'}
+                                        </p>
+                                    )}
+                                </div>
                                 {reviews.length > 0 && (
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex text-champagne-500">
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-foreground/[0.03] border border-border/40 w-fit">
+                                        <div className="flex text-[#C2A26A] gap-0.5">
                                             {Array.from({ length: 5 }).map((_, i) => (
                                                 <Star
                                                     key={i}
-                                                    size={16}
+                                                    size={14}
                                                     fill={i < Math.round(salon.rating || 0) ? "currentColor" : "none"}
-                                                    className={i < Math.round(salon.rating || 0) ? "text-champagne-500" : "text-foreground/25"}
+                                                    className={i < Math.round(salon.rating || 0) ? "text-[#C2A26A]" : "text-foreground/20"}
                                                 />
                                             ))}
                                         </div>
-                                        <span className="text-sm font-bold text-foreground">{salon.rating} / 5</span>
+                                        <span className="text-xs font-bold text-foreground">{salon.rating} / 5</span>
                                     </div>
                                 )}
                             </div>
@@ -1491,39 +1498,51 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 gap-6 divide-y divide-border/30">
-                                        {reviews.map((rev: any, index: number) => (
-                                            <div key={rev.id || index} className={clsx("space-y-3", index > 0 && "pt-6 border-t border-border/30")}>
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <span className="font-bold text-foreground flex items-center gap-2 text-sm md:text-base">
-                                                            {rev.customerName}
-                                                            <span className="text-[9px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded-full font-bold border border-green-500/20 inline-flex items-center gap-1">
-                                                                ✓ Verifierad kund
+                                        {reviews.map((rev: any, index: number) => {
+                                            const sName = (rev.serviceName || '').trim();
+                                            const isProd = sName.toLowerCase().startsWith('produktorder') || sName.toLowerCase().includes('produktorder');
+                                            let displayService = sName;
+                                            if (isProd) {
+                                                const match = sName.match(/produktorder\s*\(([^)]+)\)/i);
+                                                displayService = match ? match[1] : sName.replace(/produktorder\s*:?/i, '').trim();
+                                            }
+
+                                            return (
+                                                <div key={rev.id || index} className={clsx("space-y-3", index > 0 && "pt-6 border-t border-border/30")}>
+                                                    <div className="flex justify-between items-start gap-3">
+                                                        <div>
+                                                            <span className="font-bold text-foreground flex items-center gap-2 text-sm md:text-base">
+                                                                {rev.customerName}
+                                                                <span className="text-[9px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded-full font-bold border border-green-500/20 inline-flex items-center gap-1">
+                                                                    ✓ Verifierad kund
+                                                                </span>
                                                             </span>
+                                                            <span className="text-[11px] text-foreground/40 block mt-0.5">
+                                                                {isProd ? `Köpte ${displayService}` : `Bokade ${displayService}`}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-[10px] text-foreground/35 shrink-0">
+                                                            {new Date(rev.date).toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' })}
                                                         </span>
-                                                        <span className="text-[10px] text-foreground/30 block">Bokade {rev.serviceName}</span>
                                                     </div>
-                                                    <span className="text-[10px] text-foreground/30">
-                                                        {new Date(rev.date).toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                                    </span>
+                                                    <div className="flex text-[#C2A26A] gap-0.5">
+                                                        {Array.from({ length: 5 }).map((_, i) => (
+                                                            <Star
+                                                                key={i}
+                                                                size={13}
+                                                                fill={i < rev.rating ? "currentColor" : "none"}
+                                                                className={i < rev.rating ? "text-[#C2A26A]" : "text-foreground/20"}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    {rev.text && (
+                                                        <p className="text-xs md:text-sm text-foreground/70 leading-relaxed bg-foreground/[0.01] p-4 rounded-2xl border border-border/20 italic">
+                                                            &quot;{rev.text}&quot;
+                                                        </p>
+                                                    )}
                                                 </div>
-                                                <div className="flex text-champagne-500">
-                                                    {Array.from({ length: 5 }).map((_, i) => (
-                                                        <Star
-                                                            key={i}
-                                                            size={14}
-                                                            fill={i < rev.rating ? "currentColor" : "none"}
-                                                            className={i < rev.rating ? "text-champagne-500" : "text-foreground/25"}
-                                                        />
-                                                    ))}
-                                                </div>
-                                                {rev.text && (
-                                                    <p className="text-xs md:text-sm text-foreground/70 leading-relaxed bg-foreground/[0.01] p-4 rounded-2xl border border-border/20 italic">
-                                                        "{rev.text}"
-                                                    </p>
-                                                )}
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
