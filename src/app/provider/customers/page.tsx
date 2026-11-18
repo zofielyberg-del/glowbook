@@ -36,18 +36,39 @@ export default function CustomersPage() {
         let localSalonId = '';
         const customerMap: Record<string, Customer> = {};
 
+        // Track hidden customers to prevent resurrecting deleted customers
+        const hiddenEmails = new Set<string>();
+        const hiddenIds = new Set<string>();
+        const hiddenPhones = new Set<string>();
+
         if (saved) {
             try {
                 const data = JSON.parse(saved);
-                localSalonId = data.id || '';
+                localSalonId = data.id || data.salonId || '';
+
+                if (Array.isArray(data.availability)) {
+                    const hiddenBlock = data.availability.find((a: any) => a && a.type === 'hidden_customers');
+                    if (hiddenBlock) {
+                        (hiddenBlock.emails || []).forEach((e: string) => hiddenEmails.add((e || '').toLowerCase().trim()));
+                        (hiddenBlock.ids || []).forEach((id: any) => hiddenIds.add(String(id)));
+                        (hiddenBlock.phones || []).forEach((p: string) => hiddenPhones.add((p || '').replace(/[^0-9]/g, '')));
+                    }
+                }
+
                 const appts = data.appointments || [];
                 const localCusts = data.customers || [];
 
                 // 1. Map invited/saved customers
                 localCusts.forEach((c: any) => {
                     const emailKey = (c.email || '').toLowerCase().trim();
-                    if (!emailKey) return;
-                    customerMap[emailKey] = {
+                    const phoneKey = (c.phone || '').replace(/[^0-9]/g, '');
+                    if (hiddenEmails.has(emailKey) || (c.id && hiddenIds.has(String(c.id))) || (phoneKey && hiddenPhones.has(phoneKey))) {
+                        return;
+                    }
+                    const key = emailKey || phoneKey || c.id;
+                    if (!key) return;
+
+                    customerMap[key] = {
                         id: c.id || Math.random().toString(),
                         firstName: c.firstName || '',
                         lastName: c.lastName || '',
@@ -56,22 +77,27 @@ export default function CustomersPage() {
                         lastVisit: c.lastVisit || '-',
                         totalBookings: c.totalBookings || 0,
                         totalCancellations: c.totalCancellations || 0,
-                        status: c.status || 'Active'
+                        status: c.status || 'Aktiv'
                     };
                 });
 
-                // 2. Extract and map from local appointments
+                // 2. Extract and map from local appointments (ONLY if not hidden)
                 appts.forEach((apt: any) => {
                     const rawEmail = apt.customer_email || apt.clientEmail || '';
                     const emailKey = rawEmail.toLowerCase().trim();
-                    if (!emailKey) return;
+                    const rawPhone = apt.customer_phone || apt.clientPhone || '-';
+                    const phoneKey = rawPhone.replace(/[^0-9]/g, '');
+                    const aptId = apt.id ? String(apt.id) : '';
+
+                    if (hiddenEmails.has(emailKey) || (aptId && hiddenIds.has(aptId)) || (phoneKey && hiddenPhones.has(phoneKey))) {
+                        return;
+                    }
 
                     const isCancelled = apt.status === 'cancelled';
                     const rawName = apt.customer_name || apt.clientName || '';
                     const nameParts = rawName.split(' ');
                     const firstName = nameParts[0] || 'Gäst';
                     const lastName = nameParts.slice(1).join(' ') || '';
-                    const rawPhone = apt.customer_phone || apt.clientPhone || '-';
 
                     let rawDate = '-';
                     if (apt.date) {
@@ -80,20 +106,23 @@ export default function CustomersPage() {
                         rawDate = new Date(apt.start_time).toISOString().split('T')[0];
                     }
 
-                    if (customerMap[emailKey]) {
+                    const key = emailKey || (phoneKey !== '' ? phoneKey : aptId);
+                    if (!key) return;
+
+                    if (customerMap[key]) {
                         if (isCancelled) {
-                            customerMap[emailKey].totalCancellations += 1;
+                            customerMap[key].totalCancellations += 1;
                         } else {
-                            customerMap[emailKey].totalBookings += 1;
-                            if (rawDate !== '-' && (!customerMap[emailKey].lastVisit || rawDate > customerMap[emailKey].lastVisit)) {
-                                customerMap[emailKey].lastVisit = rawDate;
+                            customerMap[key].totalBookings += 1;
+                            if (rawDate !== '-' && (!customerMap[key].lastVisit || rawDate > customerMap[key].lastVisit)) {
+                                customerMap[key].lastVisit = rawDate;
                             }
                         }
                         if (rawPhone && rawPhone !== '-') {
-                            customerMap[emailKey].phone = rawPhone;
+                            customerMap[key].phone = rawPhone;
                         }
                     } else {
-                        customerMap[emailKey] = {
+                        customerMap[key] = {
                             id: apt.id || Math.random().toString(),
                             firstName,
                             lastName,
@@ -102,7 +131,7 @@ export default function CustomersPage() {
                             lastVisit: isCancelled ? '-' : rawDate,
                             totalBookings: isCancelled ? 0 : 1,
                             totalCancellations: isCancelled ? 1 : 0,
-                            status: 'Active'
+                            status: 'Aktiv'
                         };
                     }
                 });
@@ -113,19 +142,18 @@ export default function CustomersPage() {
             }
         }
 
-        // 3. Fetch full customer directory from database
+        // 3. Fetch full customer directory from database (authoritative source)
         if (localSalonId) {
             try {
                 const res = await fetch(`/api/salons/customers?salonId=${localSalonId}&_t=${Date.now()}`);
                 const result = await res.json();
                 if (result.success && Array.isArray(result.customers)) {
-                    result.customers.forEach((c: Customer) => {
+                    const cleanList = result.customers.filter((c: Customer) => {
                         const emailKey = (c.email || '').toLowerCase().trim();
-                        if (emailKey) {
-                            customerMap[emailKey] = c;
-                        }
+                        const phoneKey = (c.phone || '').replace(/[^0-9]/g, '');
+                        return !hiddenEmails.has(emailKey) && !hiddenIds.has(String(c.id)) && (!phoneKey || !hiddenPhones.has(phoneKey));
                     });
-                    setCustomers(Object.values(customerMap));
+                    setCustomers(cleanList);
                 }
             } catch (err) {
                 console.error('Failed to fetch customers from database:', err);
@@ -206,52 +234,108 @@ export default function CustomersPage() {
         }, 2000);
     };
 
+    const getDisplayCustomerId = (c: Customer) => {
+        if (!c.id) return '#1001';
+        if (c.id.includes('-')) {
+            const lastPart = c.id.split('-').pop() || '';
+            return '#' + lastPart.slice(-5).toUpperCase();
+        }
+        const clean = c.id.replace(/[^a-zA-Z0-9]/g, '');
+        if (clean.length >= 5 && !c.id.includes('@')) {
+            return '#' + clean.slice(-5).toUpperCase();
+        }
+        let hash = 0;
+        const str = (c.email || c.phone || c.id).toLowerCase();
+        for (let i = 0; i < str.length; i++) {
+            hash = (hash << 5) - hash + str.charCodeAt(i);
+            hash |= 0;
+        }
+        return '#' + Math.abs(hash).toString(16).slice(-5).toUpperCase();
+    };
+
     const handleDeleteCustomer = async () => {
         if (!customerToDelete) return;
         setIsDeletingCustomer(true);
+
+        const targetEmail = (customerToDelete.email || '').toLowerCase().trim();
+        const targetId = String(customerToDelete.id || '');
+        const targetPhone = (customerToDelete.phone || '').replace(/[^0-9]/g, '');
+
+        // 1. Optimistically update local state immediately
+        setCustomers(prev => prev.filter(c => {
+            const cEmail = (c.email || '').toLowerCase().trim();
+            const cPhone = (c.phone || '').replace(/[^0-9]/g, '');
+            if (targetEmail && cEmail === targetEmail) return false;
+            if (targetId && String(c.id) === targetId) return false;
+            if (targetPhone && cPhone && cPhone === targetPhone) return false;
+            return true;
+        }));
 
         try {
             const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
             let localSalonId = '';
             if (saved) {
                 const data = JSON.parse(saved);
-                localSalonId = data.id || '';
+                localSalonId = data.id || data.salonId || '';
 
                 if (Array.isArray(data.customers)) {
-                    data.customers = data.customers.filter((c: any) => 
-                        c.id !== customerToDelete.id && 
-                        (!customerToDelete.email || (c.email || '').toLowerCase().trim() !== customerToDelete.email.toLowerCase().trim())
-                    );
+                    data.customers = data.customers.filter((c: any) => {
+                        const cEmail = (c.email || '').toLowerCase().trim();
+                        const cPhone = (c.phone || '').replace(/[^0-9]/g, '');
+                        return String(c.id) !== targetId &&
+                            (!targetEmail || cEmail !== targetEmail) &&
+                            (!targetPhone || !cPhone || cPhone !== targetPhone);
+                    });
                 }
                 if (Array.isArray(data.appointments)) {
                     data.appointments = data.appointments.filter((apt: any) => {
                         const aptEmail = (apt.customer_email || apt.clientEmail || '').toLowerCase().trim();
-                        return !customerToDelete.email || aptEmail !== customerToDelete.email.toLowerCase().trim();
+                        const aptPhone = (apt.customer_phone || apt.clientPhone || '').replace(/[^0-9]/g, '');
+                        return (!targetEmail || aptEmail !== targetEmail) &&
+                            (!targetPhone || !aptPhone || aptPhone !== targetPhone) &&
+                            String(apt.id) !== targetId;
                     });
                 }
+
+                if (!Array.isArray(data.availability)) data.availability = [];
+                const hiddenBlock = data.availability.find((a: any) => a && a.type === 'hidden_customers') || {
+                    type: 'hidden_customers',
+                    emails: [],
+                    ids: [],
+                    phones: []
+                };
+                if (targetEmail) {
+                    hiddenBlock.emails = Array.from(new Set([...(hiddenBlock.emails || []), targetEmail])).filter(Boolean);
+                }
+                if (targetId) {
+                    hiddenBlock.ids = Array.from(new Set([...(hiddenBlock.ids || []), targetId])).filter(Boolean);
+                }
+                if (targetPhone) {
+                    hiddenBlock.phones = Array.from(new Set([...(hiddenBlock.phones || []), targetPhone])).filter(Boolean);
+                }
+                data.availability = [
+                    ...data.availability.filter((a: any) => a && a.type !== 'hidden_customers'),
+                    hiddenBlock
+                ];
 
                 localStorage.setItem('glowbook_salon', JSON.stringify(data));
                 sessionStorage.setItem('glowbook_salon', JSON.stringify(data));
             }
 
+            // 2. Persist deletion in database
             if (localSalonId) {
                 await fetch('/api/salons/customers', {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         salonId: localSalonId,
-                        email: customerToDelete.email,
-                        customerId: customerToDelete.id
+                        email: targetEmail,
+                        customerId: targetId,
+                        phone: targetPhone
                     })
                 });
             }
 
-            setCustomers(prev => prev.filter(c => 
-                c.id !== customerToDelete.id && 
-                (!customerToDelete.email || c.email.toLowerCase().trim() !== customerToDelete.email.toLowerCase().trim())
-            ));
-
-            window.dispatchEvent(new Event('glowbook_update'));
             setCustomerToDelete(null);
         } catch (error) {
             console.error('Kunde inte ta bort kunden:', error);
@@ -268,60 +352,63 @@ export default function CustomersPage() {
 
     return (
         <PermissionGate allowedRoles={['salon_owner', 'practitioner', 'admin']}>
-            <div className="p-5 sm:p-8 lg:p-10 max-w-7xl mx-auto space-y-8">
-                <div className="space-y-1.5 pb-2 border-b border-white/[0.06]">
+            <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+                <div className="space-y-1.5 pb-3 border-b border-white/[0.08]">
                     <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#C2A26A]">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#C2A26A]">
                             Kundregister & Journal
                         </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/[0.05] text-neutral-400 border border-white/[0.06]">
+                            {customers.length} {customers.length === 1 ? 'kund' : 'kunder'}
+                        </span>
                     </div>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <h1 
-                                className="text-3xl sm:text-4xl font-normal text-white tracking-tight"
+                                className="text-2xl sm:text-3xl font-normal text-white tracking-tight"
                                 style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", Georgia, serif' }}
                             >
                                 Kunder & Journal
                             </h1>
-                            <p className="text-xs text-neutral-400 mt-1">
+                            <p className="text-xs text-neutral-400 mt-0.5">
                                 Dina kunder sparas automatiskt vid bokning. Lägg till eller sök efter kunder i ditt register.
                             </p>
                         </div>
                         <button
                             onClick={() => setIsInviteModalOpen(true)}
-                            className="px-5 py-2.5 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-semibold tracking-wide uppercase transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+                            className="px-4 py-2.5 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-semibold tracking-wide uppercase transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 shrink-0"
                         >
-                            <UserPlus size={16} /> Lägg till ny kund
+                            <UserPlus size={15} /> Lägg till ny kund
                         </button>
                     </div>
                 </div>
 
                 {/* Filters and Search */}
-                <div className="bg-card p-4 rounded-3xl shadow-sm border border-border flex flex-col md:flex-row gap-4 mb-8">
+                <div className="bg-[#111114] p-3 rounded-2xl shadow-sm border border-white/[0.08] flex flex-col sm:flex-row gap-3">
                     <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={18} />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500" size={16} />
                         <input
                             type="text"
                             placeholder="Sök på namn, e-post eller telefonnummer..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-foreground/[0.02] pl-12 pr-4 py-3 rounded-2xl border border-border focus:border-champagne-500 focus:ring-1 focus:ring-champagne-500 outline-none transition-all text-sm font-medium"
+                            className="w-full bg-white/[0.03] pl-10 pr-4 py-2.5 rounded-xl border border-white/[0.06] focus:border-[#C2A26A] outline-none transition-all text-xs text-white placeholder:text-neutral-500 font-normal"
                         />
                     </div>
-                    <button className="flex items-center justify-center gap-2 px-5 py-3 text-foreground/60 hover:bg-foreground/5 rounded-2xl transition-all border border-border text-sm font-bold">
-                        <Filter size={18} /> Filter
+                    <button className="flex items-center justify-center gap-2 px-4 py-2.5 text-neutral-400 hover:text-white hover:bg-white/[0.04] rounded-xl transition-all border border-white/[0.06] text-xs font-medium">
+                        <Filter size={15} /> Filter
                     </button>
                 </div>
 
                 {/* Customer Content */}
                 {filteredCustomers.length === 0 ? (
-                    <div className="bg-card rounded-[40px] border border-dashed border-border p-16 md:p-24 text-center flex flex-col items-center justify-center space-y-6">
-                        <div className="w-20 h-20 bg-champagne-500/10 text-champagne-500 rounded-full flex items-center justify-center">
-                            <Users size={36} />
+                    <div className="bg-[#111114] rounded-2xl sm:rounded-3xl border border-dashed border-white/[0.1] p-12 sm:p-16 text-center flex flex-col items-center justify-center space-y-4">
+                        <div className="w-14 h-14 bg-[#C2A26A]/10 text-[#C2A26A] rounded-full flex items-center justify-center">
+                            <Users size={26} />
                         </div>
-                        <div className="space-y-2 max-w-sm">
-                            <h2 className="text-xl font-bold text-foreground">Inga kunder hittades</h2>
-                            <p className="text-foreground/40 text-sm font-medium">
+                        <div className="space-y-1.5 max-w-sm">
+                            <h2 className="text-base font-semibold text-white">Inga kunder hittades</h2>
+                            <p className="text-neutral-400 text-xs">
                                 {searchTerm 
                                     ? "Din sökning matchade inte någon kund i registret. Försök med en annan sökning." 
                                     : "Registret är tomt just nu. Kunder läggs automatiskt till här så fort de genomför sin första bokning!"}
@@ -330,74 +417,90 @@ export default function CustomersPage() {
                         {!searchTerm && (
                             <button
                                 onClick={() => setIsInviteModalOpen(true)}
-                                className="bg-foreground text-background px-8 py-4 rounded-2xl font-bold hover:bg-champagne-600 hover:text-white transition-all shadow-lg active:scale-95"
+                                className="bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] px-5 py-2.5 rounded-xl font-semibold text-xs tracking-wide uppercase transition-all shadow-md active:scale-95"
                             >
                                 Lägg till första kunden
                             </button>
                         )}
                     </div>
                 ) : (
-                    <div className="bg-card rounded-[32px] shadow-sm border border-border overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-foreground/[0.01] border-b border-border">
+                    <div className="bg-[#111114] rounded-2xl sm:rounded-3xl border border-white/[0.08] overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                            <table className="w-full text-left border-collapse min-w-[700px] lg:min-w-[760px]">
+                                <thead className="bg-white/[0.02] border-b border-white/[0.06]">
                                     <tr>
-                                        <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest">Namn</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest">E-post</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest">Telefon</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest">Senaste besök</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-center">Bokningar</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-center">Avbokningar</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-right">Status</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-foreground/30 uppercase tracking-widest text-right">Åtgärd</th>
+                                        <th className="px-4 sm:px-5 py-3 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">Namn</th>
+                                        <th className="px-3 sm:px-4 py-3 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">E-post</th>
+                                        <th className="px-3 sm:px-4 py-3 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">Telefon</th>
+                                        <th className="px-3 sm:px-4 py-3 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider whitespace-nowrap">Senaste besök</th>
+                                        <th className="px-2 sm:px-3 py-3 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider text-center whitespace-nowrap">Bokningar</th>
+                                        <th className="px-2 sm:px-3 py-3 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider text-center whitespace-nowrap">Avbokningar</th>
+                                        <th className="px-3 sm:px-4 py-3 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider text-center">Status</th>
+                                        <th className="px-3 sm:px-4 py-3 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider text-center w-14">Åtgärd</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-border/60">
+                                <tbody className="divide-y divide-white/[0.05]">
                                     {filteredCustomers.map(c => (
-                                        <tr key={c.id} className="hover:bg-foreground/[0.01] transition-colors">
-                                            <td className="px-6 py-5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-champagne-500/10 text-champagne-600 font-bold flex items-center justify-center text-sm uppercase">
-                                                        {c.firstName[0]}{c.lastName[0] || ''}
+                                        <tr key={c.id || c.email} className="hover:bg-white/[0.02] transition-colors">
+                                            <td className="px-4 sm:px-5 py-3 sm:py-3.5">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="w-8 h-8 rounded-full bg-[#C2A26A]/15 text-[#DFCA9B] font-bold flex items-center justify-center text-xs shrink-0 border border-[#C2A26A]/30">
+                                                        {(c.firstName[0] || '').toUpperCase()}{(c.lastName[0] || '').toUpperCase()}
                                                     </div>
-                                                    <div>
-                                                        <span className="font-bold text-foreground block text-sm">{c.firstName} {c.lastName}</span>
-                                                        <span className="text-[10px] text-foreground/30 font-medium">KundID: #{c.id.slice(-6)}</span>
+                                                    <div className="min-w-0">
+                                                        <span className="font-medium text-white block text-xs sm:text-sm truncate">
+                                                            {c.firstName} {c.lastName}
+                                                        </span>
+                                                        <span className="text-[10px] text-neutral-400 font-medium">
+                                                            KundID: {getDisplayCustomerId(c)}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-5 text-sm font-medium text-foreground/60">{c.email}</td>
-                                            <td className="px-6 py-5 text-sm font-medium text-foreground/60">{c.phone}</td>
-                                            <td className="px-6 py-5 text-sm font-medium text-foreground/60">
+                                            <td className="px-3 sm:px-4 py-3 sm:py-3.5 text-xs text-neutral-300 font-normal">
+                                                <span className="truncate block max-w-[150px] sm:max-w-[200px]" title={c.email}>
+                                                    {c.email || '-'}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 sm:px-4 py-3 sm:py-3.5 text-xs text-neutral-300 font-normal whitespace-nowrap">
+                                                {c.phone || '-'}
+                                            </td>
+                                            <td className="px-3 sm:px-4 py-3 sm:py-3.5 text-xs text-neutral-300 font-normal whitespace-nowrap">
                                                 {c.lastVisit !== '-' ? (
                                                     <span className="flex items-center gap-1.5">
-                                                        <Calendar size={12} className="text-foreground/30" />
+                                                        <Calendar size={12} className="text-[#C2A26A]" />
                                                         {c.lastVisit}
                                                     </span>
                                                 ) : '-'}
                                             </td>
-                                            <td className="px-6 py-5 text-sm font-black text-foreground text-center">
-                                                <span className="px-2.5 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg border border-green-500/20">
+                                            <td className="px-2 sm:px-3 py-3 sm:py-3.5 text-xs font-semibold text-center whitespace-nowrap">
+                                                <span className="inline-block px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20 text-xs">
                                                     {c.totalBookings}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-5 text-sm font-black text-foreground text-center">
-                                                <span className={`px-2.5 py-1 ${c.totalCancellations > 0 ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20' : 'bg-foreground/[0.04] text-foreground/40 border border-border/40'} rounded-lg`}>
+                                            <td className="px-2 sm:px-3 py-3 sm:py-3.5 text-xs font-semibold text-center whitespace-nowrap">
+                                                <span className={clsx(
+                                                    "inline-block px-2 py-0.5 rounded-md text-xs",
+                                                    c.totalCancellations > 0 
+                                                        ? "bg-red-500/10 text-red-400 border border-red-500/20" 
+                                                        : "bg-white/[0.04] text-neutral-400 border border-white/[0.06]"
+                                                )}>
                                                     {c.totalCancellations}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-5 text-right">
-                                                <span className="px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                            <td className="px-3 sm:px-4 py-3 sm:py-3.5 text-center">
+                                                <span className="inline-block px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase tracking-wider">
                                                     Aktiv
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-5 text-right">
+                                            <td className="px-3 sm:px-4 py-3 sm:py-3.5 text-center w-14">
                                                 <button
+                                                    type="button"
                                                     onClick={() => setCustomerToDelete(c)}
                                                     title="Ta bort från kundöversikt"
-                                                    className="p-2 text-foreground/30 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all inline-flex items-center justify-center cursor-pointer"
+                                                    className="w-8 h-8 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-white/[0.05] transition-colors inline-flex items-center justify-center cursor-pointer"
                                                 >
-                                                    <Trash2 size={16} />
+                                                    <Trash2 size={15} />
                                                 </button>
                                             </td>
                                         </tr>
@@ -509,23 +612,23 @@ export default function CustomersPage() {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 onClick={() => !isDeletingCustomer && setCustomerToDelete(null)}
-                                className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100]"
+                                className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100]"
                             />
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-[440px] bg-card border border-border shadow-2xl rounded-3xl z-[101] overflow-hidden flex flex-col p-6"
+                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-[440px] bg-[#141417] border border-white/[0.1] shadow-2xl rounded-3xl z-[101] overflow-hidden flex flex-col p-6"
                             >
-                                <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mb-4">
-                                    <Trash2 size={24} />
+                                <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-400 flex items-center justify-center mb-4 border border-red-500/20">
+                                    <Trash2 size={22} />
                                 </div>
-                                <h3 className="text-lg font-bold text-foreground">Ta bort kund från listan?</h3>
-                                <p className="text-foreground/60 text-sm mt-2 leading-relaxed">
-                                    Vill du ta bort <strong className="text-foreground">{customerToDelete.firstName} {customerToDelete.lastName}</strong> ({customerToDelete.email || customerToDelete.phone}) från din salongs kundöversikt?
+                                <h3 className="text-base font-semibold text-white">Ta bort kund från listan?</h3>
+                                <p className="text-neutral-400 text-xs mt-2 leading-relaxed">
+                                    Vill du ta bort <strong className="text-white font-medium">{customerToDelete.firstName} {customerToDelete.lastName}</strong> ({customerToDelete.email || customerToDelete.phone}) från din salongs kundöversikt?
                                 </p>
-                                <div className="mt-4 p-3 bg-foreground/[0.03] border border-border/60 rounded-xl text-xs text-foreground/50 leading-relaxed">
-                                    💡 Detta rensar kunden från din salong (perfekt för att ta bort spam och testkonton). Kundens eventuella personliga Glowbook-profil och samlade lojalitetspoäng påverkas inte.
+                                <div className="mt-4 p-3 bg-white/[0.03] border border-white/[0.06] rounded-xl text-[11px] text-neutral-400 leading-relaxed">
+                                    Detta rensar kunden från din salongs kundregister (lämpligt för att rensa bort spam och testkonton). Kundens eventuella personliga profil och lojalitetspoäng påverkas inte.
                                 </div>
 
                                 <div className="flex items-center gap-3 mt-6">
@@ -533,7 +636,7 @@ export default function CustomersPage() {
                                         type="button"
                                         disabled={isDeletingCustomer}
                                         onClick={() => setCustomerToDelete(null)}
-                                        className="flex-1 py-3 px-4 rounded-xl border border-border font-bold text-xs uppercase tracking-wider text-foreground/70 hover:bg-foreground/5 transition-all disabled:opacity-50 cursor-pointer"
+                                        className="flex-1 py-3 px-4 rounded-xl border border-white/[0.08] font-semibold text-xs uppercase tracking-wider text-neutral-300 hover:text-white hover:bg-white/[0.04] transition-all disabled:opacity-50 cursor-pointer"
                                     >
                                         Avbryt
                                     </button>
@@ -541,7 +644,7 @@ export default function CustomersPage() {
                                         type="button"
                                         disabled={isDeletingCustomer}
                                         onClick={handleDeleteCustomer}
-                                        className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                                        className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                                     >
                                         {isDeletingCustomer ? 'Tar bort...' : 'Ja, ta bort'}
                                     </button>

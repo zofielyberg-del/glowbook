@@ -23,6 +23,7 @@ export async function GET(req: Request) {
         const hiddenBlock: any = currentAvail.find((a: any) => a && a.type === 'hidden_customers');
         const hiddenEmails = new Set(((hiddenBlock?.emails || []) as string[]).map((e: string) => (e || '').toLowerCase().trim()));
         const hiddenIds = new Set(((hiddenBlock?.ids || []) as (string | number)[]).map((id: any) => String(id)));
+        const hiddenPhones = new Set(((hiddenBlock?.phones || []) as string[]).map((p: string) => (p || '').replace(/[^0-9]/g, '')));
 
         // Fetch all appointments for this salon to build the customer directory
         const appointments = await prisma.appointment.findMany({
@@ -46,9 +47,10 @@ export async function GET(req: Request) {
             const rawEmail = apt.customer_email || '';
             const emailKey = rawEmail.toLowerCase().trim();
             const customerIdStr = apt.customer_id ? String(apt.customer_id) : '';
+            const aptPhone = (apt.customer_phone || '').replace(/[^0-9]/g, '');
 
             // Skip customer if salon provider has removed them from this salon's directory
-            if (hiddenEmails.has(emailKey) || (customerIdStr && hiddenIds.has(customerIdStr))) {
+            if (hiddenEmails.has(emailKey) || (customerIdStr && hiddenIds.has(customerIdStr)) || (aptPhone && hiddenPhones.has(aptPhone))) {
                 continue;
             }
 
@@ -118,10 +120,10 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
     try {
-        const { salonId, email, customerId } = await req.json();
+        const { salonId, email, customerId, phone } = await req.json();
 
-        if (!salonId || (!email && !customerId)) {
-            return NextResponse.json({ error: 'salonId och email eller customerId krävs' }, { status: 400 });
+        if (!salonId || (!email && !customerId && !phone)) {
+            return NextResponse.json({ error: 'salonId samt email, customerId eller phone krävs' }, { status: 400 });
         }
 
         const salon = await prisma.salon.findUnique({
@@ -137,17 +139,22 @@ export async function DELETE(req: Request) {
         const existingBlock: any = currentAvail.find((a: any) => a && a.type === 'hidden_customers');
         const existingEmails: string[] = Array.isArray(existingBlock?.emails) ? existingBlock.emails : [];
         const existingIds: string[] = Array.isArray(existingBlock?.ids) ? existingBlock.ids : [];
+        const existingPhones: string[] = Array.isArray(existingBlock?.phones) ? existingBlock.phones : [];
 
         const normalizedEmail = (email || '').toLowerCase().trim();
-        const updatedEmails = Array.from(new Set([...existingEmails, normalizedEmail])).filter(Boolean);
-        const updatedIds = customerId ? Array.from(new Set([...existingIds, String(customerId)])) : existingIds;
+        const normalizedPhone = (phone || '').replace(/[^0-9]/g, '');
+        const updatedEmails = normalizedEmail ? Array.from(new Set([...existingEmails, normalizedEmail])).filter(Boolean) : existingEmails;
+        const updatedIds = customerId ? Array.from(new Set([...existingIds, String(customerId)])).filter(Boolean) : existingIds;
+        const updatedPhones = normalizedPhone ? Array.from(new Set([...existingPhones, normalizedPhone])).filter(Boolean) : existingPhones;
 
         const existingManualBlock: any = currentAvail.find((a: any) => a && a.type === 'manual_customers');
         const existingManual: any[] = Array.isArray(existingManualBlock?.customers) ? existingManualBlock.customers : [];
         const filteredManual = existingManual.filter((mc: any) => {
             const mcEmail = (mc.email || '').toLowerCase().trim();
+            const mcPhone = (mc.phone || '').replace(/[^0-9]/g, '');
             if (normalizedEmail && mcEmail === normalizedEmail) return false;
             if (customerId && String(mc.id) === String(customerId)) return false;
+            if (normalizedPhone && mcPhone && mcPhone === normalizedPhone) return false;
             return true;
         });
 
@@ -159,6 +166,7 @@ export async function DELETE(req: Request) {
                 type: 'hidden_customers',
                 emails: updatedEmails,
                 ids: updatedIds,
+                phones: updatedPhones,
                 updated_at: new Date().toISOString()
             }
         ];
