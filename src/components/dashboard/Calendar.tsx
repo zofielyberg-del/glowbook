@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight, Plus, X, Trash2, Clock, Edit3, ShieldAlert, CalendarCheck, Coffee, AlertTriangle } from "lucide-react";
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
@@ -45,6 +45,7 @@ type CalendarProps = {
     availability?: TimeFrame[];
     appointments?: Appointment[];
     hideAppointments?: boolean;
+    initialScrollHour?: number;
 };
 
 function timeToMins(t: string): number {
@@ -71,8 +72,16 @@ type FrameSegment = {
     appointment?: Appointment;
 };
 
-export default function Calendar({ onSelectSlot, onCancelAppointment, availability: propAvailability, appointments: propAppointments, hideAppointments = false }: CalendarProps) {
+export default function Calendar({ 
+    onSelectSlot, 
+    onCancelAppointment, 
+    availability: propAvailability, 
+    appointments: propAppointments, 
+    hideAppointments = false,
+    initialScrollHour = 10
+}: CalendarProps) {
     const { language, t } = useLanguage();
+    const gridContainerRef = useRef<HTMLDivElement>(null);
     const [currentDate, setCurrentDate] = useState(() => toStockholmDate());
     const [selectedMobileDayIndex, setSelectedMobileDayIndex] = useState(() => {
         const d = toStockholmDate().getDay();
@@ -331,6 +340,27 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
 
     const hours = Array.from({ length: 18 }, (_, i) => i + 6); // 06:00 - 23:00
     const PX_PER_HOUR = 64;
+
+    // Auto-scroll calendar grid to target hour (default ~10:00) so user starts on primary business hours instead of 06:00
+    useEffect(() => {
+        const scrollToDefaultHour = () => {
+            if (gridContainerRef.current) {
+                const targetHour = initialScrollHour !== undefined ? initialScrollHour : 10;
+                // Hour 6 is top 0px. Hour 10 is (10 - 6) * PX_PER_HOUR = 4 * 64 = 256px.
+                // Subtract 20px so 10:00 is prominently in view with a slight peek above
+                const targetScroll = Math.max(0, (targetHour - 6) * PX_PER_HOUR - 20);
+                gridContainerRef.current.scrollTop = targetScroll;
+            }
+        };
+
+        scrollToDefaultHour();
+        const t1 = setTimeout(scrollToDefaultHour, 60);
+        const t2 = setTimeout(scrollToDefaultHour, 250);
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+        };
+    }, [initialScrollHour]);
 
     const getItemStyle = (item: { startTime: string; duration: number }) => {
         const [hour, minute] = item.startTime.split(':').map(Number);
@@ -930,7 +960,7 @@ export default function Calendar({ onSelectSlot, onCancelAppointment, availabili
             )}
 
             {/* Calendar Grid */}
-            <div className="flex-1 overflow-auto no-scrollbar scroll-smooth">
+            <div ref={gridContainerRef} className="flex-1 overflow-auto no-scrollbar scroll-smooth">
                 <div className="flex flex-col w-full md:min-w-[800px] relative">
                     {/* Sticky Header Row (Desktop 7-day header) */}
                     <div className="hidden md:flex sticky top-0 z-[40] bg-background border-b border-border">

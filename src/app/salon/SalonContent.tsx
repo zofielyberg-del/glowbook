@@ -1919,6 +1919,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                             appointments={salon?.appointments}
                                             onSelectSlot={onSelectSlot}
                                             hideAppointments={true}
+                                            initialScrollHour={10}
                                         />
                                     </div>
                                 ) : (
