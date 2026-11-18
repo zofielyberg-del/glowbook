@@ -1321,11 +1321,6 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                         </span>
                                                     </div>
                                                     <h4 className="text-base font-bold text-foreground mt-2">{prod.name}</h4>
-                                                    {prod.recommendation && (
-                                                        <p className="text-xs text-[#C2A26A] mt-1 italic leading-snug">
-                                                            &quot;{prod.recommendation}&quot;
-                                                        </p>
-                                                    )}
                                                     {prod.description && (
                                                         <p className="text-xs text-foreground/50 mt-1 line-clamp-2">{prod.description}</p>
                                                     )}
@@ -1893,8 +1888,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                                         )}
                                                                                         <p className="text-xs font-bold text-foreground truncate">{prod.name}</p>
                                                                                     </div>
-                                                                                    <p className="text-[11px] text-[#C2A26A] line-clamp-1 italic">
-                                                                                        {prod.recommendation || `Bästa hållbarhet för din behandling`}
+                                                                                    <p className="text-[11px] text-[#C2A26A] line-clamp-1 italic font-medium">
+                                                                                        {(prod.recommendation || `Bästa hållbarhet för din behandling`).replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim()}
                                                                                     </p>
                                                                                     <div className="flex items-center gap-2.5 mt-0.5">
                                                                                         <p className="text-xs font-semibold text-foreground/70">

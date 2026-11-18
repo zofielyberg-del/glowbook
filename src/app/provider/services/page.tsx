@@ -283,7 +283,7 @@ export default function ServicesPage() {
             category: productForm.category || 'Eftervård',
             description: productForm.description || '',
             image: productForm.image || '',
-            recommendation: productForm.recommendation || `Köp till ${productForm.name} för bästa resultat och hållbarhet!`,
+            recommendation: (productForm.recommendation || `Köp till ${productForm.name} för bästa resultat och hållbarhet!`).replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim(),
             ingredients: productForm.ingredients?.trim() || '',
             productUrl: productForm.productUrl?.trim() || ''
         };
@@ -683,7 +683,7 @@ export default function ServicesPage() {
                                             <h3 className="text-sm font-medium text-white mt-2">{prod.name}</h3>
                                             {prod.recommendation && (
                                                 <p className="text-[11px] text-[#C2A26A] mt-1 italic">
-                                                    &quot;{prod.recommendation}&quot;
+                                                    {prod.recommendation.replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim()}
                                                 </p>
                                             )}
                                             {prod.description && (
