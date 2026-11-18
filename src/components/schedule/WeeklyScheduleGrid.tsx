@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Clock, Minus, Coffee, ChevronDown, AlertTriangle, ShieldAlert, CalendarCheck } from 'lucide-react';
+import { X, Plus, Clock, Minus, Coffee, ChevronDown, AlertTriangle, ShieldAlert, CalendarCheck, Lock } from 'lucide-react';
 import clsx from 'clsx';
 
 interface TimeSlot {
@@ -494,8 +494,9 @@ export default function WeeklyScheduleGrid({ practitioner, appointments = [], on
 
                                                         {/* Booking indicator on slot */}
                                                         {slotBookings.length > 0 && (
-                                                            <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-rose-500 rounded text-[7px] font-black text-white leading-none">
-                                                                {slotBookings.length} 🔒
+                                                            <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-rose-500 rounded text-[7px] font-black text-white leading-none flex items-center gap-0.5">
+                                                                <span>{slotBookings.length}</span>
+                                                                <Lock size={7} />
                                                             </div>
                                                         )}
                                                     </div>

@@ -1100,7 +1100,7 @@ export default function AdminDashboard() {
                                                                         const notification = {
                                                                             id: Date.now().toString(),
                                                                             type: 'verification_approved',
-                                                                            title: 'Verifiering godkänd! 🎉',
+                                                                            title: 'Verifiering godkänd',
                                                                             message: `Ditt diplom för "${req.category || 'yrkeskategori'}" har blivit godkänt. Du har nu fått en verifierings-badge på din profil.`,
                                                                             timestamp: new Date().toISOString(),
                                                                             read: false
@@ -1360,14 +1360,16 @@ export default function AdminDashboard() {
                                     )}
 
                                     {recipientType === 'all_providers' && (
-                                        <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl text-xs leading-relaxed font-medium">
-                                            ⚠️ Detta kommer att skicka ett separat, individuellt meddelande till alla salonger och utförare i databasen.
+                                        <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl text-xs leading-relaxed font-medium flex items-center gap-2">
+                                            <AlertCircle size={15} className="shrink-0" />
+                                            <span>Detta kommer att skicka ett separat, individuellt meddelande till alla salonger och utförare i databasen.</span>
                                         </div>
                                     )}
 
                                     {recipientType === 'all_customers' && (
-                                        <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl text-xs leading-relaxed font-medium">
-                                            ⚠️ Detta kommer att skicka ett separat, individuellt meddelande till alla registrerade kunder i databasen.
+                                        <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl text-xs leading-relaxed font-medium flex items-center gap-2">
+                                            <AlertCircle size={15} className="shrink-0" />
+                                            <span>Detta kommer att skicka ett separat, individuellt meddelande till alla registrerade kunder i databasen.</span>
                                         </div>
                                     )}
 

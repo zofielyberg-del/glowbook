@@ -787,7 +787,7 @@ export const sendCancellationEmail = async (
         </p>
 
         <p style="font-size:15px;color:#2D2B2A;font-family:Arial,Helvetica,sans-serif;line-height:1.7;margin:0 0 32px;">
-            Vi är ledsna att se dig gå och hoppas att vi ses igen. 💛
+            Vi är ledsna att se dig gå och hoppas att vi ses igen.
         </p>
 
         <div style="background:#F3F1ED;border:1px solid #E5E4DE;border-radius:16px;padding:28px;margin:0 0 32px;">
@@ -814,7 +814,7 @@ export const sendCancellationEmail = async (
         fromName: 'Glowbook',
         to: email,
         replyTo: 'hej@glowbook.se',
-        subject: `Vi ses snart igen, ${firstName} 💛`,
+        subject: `Vi ses snart igen, ${firstName}`,
         html: getHtmlWrapper(htmlContent),
     });
 };
@@ -877,7 +877,7 @@ export const sendProviderReceiptEmail = async (
     return await sendWithFallback({
         fromName: 'Glowbook',
         to: email,
-        subject: `Betalningsbekräftelse: Glowbook ${tierName.toUpperCase()} ✨`,
+        subject: `Betalningsbekräftelse: Glowbook ${tierName.toUpperCase()}`,
         html: getHtmlWrapper(htmlContent),
     });
 };
@@ -892,7 +892,7 @@ export const sendCustomerFeedbackRequestEmail = async (
     reviewUrl: string
 ) => {
     const htmlContent = `
-        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Tack för ditt besök! ✨</h1>
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Tack för ditt besök!</h1>
         <p style="color:#2D2B2A;margin:0 0 16px 0;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hej ${customerFirstName},</p>
         <p style="color:#2D2B2A;margin:0 0 16px 0;font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
             Tack för din bokning hos <strong>${salonName}</strong>. Vi hoppas att du trivdes och älskade resultatet.
@@ -918,7 +918,7 @@ export const sendCustomerFeedbackRequestEmail = async (
     return await sendWithFallback({
         fromName: 'Glowbook Bokning',
         to: email,
-        subject: `Tack för ditt besök hos ${salonName} ✨`,
+        subject: `Tack för ditt besök hos ${salonName}`,
         html: getHtmlWrapper(htmlContent),
     });
 };
@@ -971,7 +971,7 @@ export const sendPunchCardWelcomeEmail = async (
     price: number
 ) => {
     const htmlContent = `
-        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Ditt klippkort är här! 🎟️</h1>
+        <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Ditt klippkort är här!</h1>
         <p style="color:#2D2B2A;margin:0 0 16px 0;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hej ${customerName},</p>
         <p style="color:#2D2B2A;margin:0 0 32px 0;font-size:15px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
             Tack för ditt köp! Ditt klippkort för <strong>${packageName}</strong> hos <strong>${salonName}</strong> är nu laddat och redo att användas.
@@ -995,7 +995,7 @@ export const sendPunchCardWelcomeEmail = async (
     return await sendWithFallback({
         fromName: 'Glowbook',
         to: email,
-        subject: `Ditt klippkort hos ${salonName} ✨`,
+        subject: `Ditt klippkort hos ${salonName}`,
         html: getHtmlWrapper(htmlContent),
     });
 };

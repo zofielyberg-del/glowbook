@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import clsx from "clsx";
-import { ChevronLeft, ChevronRight, Plus, X, Trash2, Clock, Edit3, ShieldAlert, CalendarCheck, Coffee, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, Trash2, Clock, Edit3, ShieldAlert, CalendarCheck, Coffee, AlertTriangle, Mail, Phone } from "lucide-react";
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import { sv, nb, da, fi, is } from "date-fns/locale";
 import { useLanguage } from "@/context/LanguageContext";
@@ -1586,12 +1586,14 @@ export default function Calendar({
                                         <span className="text-[9px] font-black uppercase tracking-widest text-foreground/30 block">Kontaktuppgifter</span>
                                         {viewingAppointment.clientEmail && (
                                             <div className="text-xs text-foreground/70 flex items-center gap-2 truncate">
-                                                <span className="text-blue-500 font-bold">✉</span> {viewingAppointment.clientEmail}
+                                                <Mail size={13} className="text-neutral-400 shrink-0" />
+                                                <span>{viewingAppointment.clientEmail}</span>
                                             </div>
                                         )}
                                         {viewingAppointment.clientPhone && (
                                             <div className="text-xs text-foreground/70 flex items-center gap-2">
-                                                <span className="text-emerald-500 font-bold">📞</span> {viewingAppointment.clientPhone}
+                                                <Phone size={13} className="text-neutral-400 shrink-0" />
+                                                <span>{viewingAppointment.clientPhone}</span>
                                             </div>
                                         )}
                                     </div>

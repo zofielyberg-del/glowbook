@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar as CalendarIcon, Clock, Plus, ChevronLeft, Save, Trash2, CalendarDays } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Plus, ChevronLeft, Save, Trash2, CalendarDays, Sparkles, Info } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import Calendar from "@/components/dashboard/Calendar";
 import Link from "next/link";
@@ -315,7 +315,10 @@ export default function CalendarPage() {
                                         slotType === 'single' ? "border-champagne-500 bg-champagne-500/5 shadow-md" : "border-border hover:border-foreground/20"
                                     )}
                                 >
-                                    <div className="font-bold text-foreground mb-1 flex items-center gap-2">Enstaka Tid <span className="text-champagne-500">✨</span></div>
+                                    <div className="font-bold text-foreground mb-1 flex items-center gap-1.5">
+                                        <span>Enstaka Tid</span>
+                                        <Sparkles size={14} className="text-[#C2A26A]" />
+                                    </div>
                                     <div className="text-xs text-foreground/50">Lås tiden efter 1 bokning, oavsett behandlingens längd.</div>
                                 </button>
                             </div>
@@ -329,7 +332,7 @@ export default function CalendarPage() {
                                         className="overflow-hidden"
                                     >
                                         <div className="mb-8 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-start gap-3">
-                                            <span className="text-blue-400 mt-0.5">💡</span>
+                                            <Info size={16} className="text-blue-400 mt-0.5 shrink-0" />
                                             <p className="text-sm text-blue-400 font-medium">
                                                 <strong>Exakt Biljett:</strong> Om du anger "11:00" skapas bara en tid. Så fort någon bokar 11:00 stängs tiden direkt, oavsett hur lång behandlingen är.
                                             </p>

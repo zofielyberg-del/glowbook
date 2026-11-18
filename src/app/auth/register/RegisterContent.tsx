@@ -3,7 +3,7 @@
 import Header from "@/components/layout/Header";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, ShieldCheck, Briefcase, AlertCircle, MapPin, Globe, Phone, ChevronDown, Eye, EyeOff } from "lucide-react";
+import { User, ShieldCheck, Briefcase, AlertCircle, MapPin, Globe, Phone, ChevronDown, Eye, EyeOff, Sparkles } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -171,7 +171,7 @@ export default function RegisterContent() {
 
                         {queryEmail && (
                             <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-foreground text-xs leading-relaxed flex items-start gap-3">
-                                <span className="text-lg">✨</span>
+                                <Sparkles size={18} className="text-[#C2A26A] mt-0.5 shrink-0" />
                                 <div>
                                     <h4 className="font-bold text-amber-700 dark:text-amber-400 mb-0.5">Aktivera ditt konto</h4>
                                     <p className="text-foreground/70">Välj ett lösenord nedan för att slutföra ditt konto och låsa upp dina intjänade Glowpoints!</p>

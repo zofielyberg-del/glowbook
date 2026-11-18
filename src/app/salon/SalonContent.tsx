@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Header from "@/components/layout/Header";
-import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, Lock, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award, Package, Info, ShoppingBag, Store, Minus, Trash2 } from "lucide-react";
+import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, Lock, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award, Package, Info, ShoppingBag, Store, Minus, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Calendar from "@/components/dashboard/Calendar";
 import clsx from "clsx";
@@ -800,11 +800,12 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                 clientName: `${customerInfo.firstName} ${customerInfo.lastName}`,
                 clientEmail: customerInfo.email,
                 clientPhone: customerInfo.phone,
-                service: selectedService.name,
+                service: finalServiceName,
                 startTime: selectedTime.time,
                 duration: selectedService.duration || 30,
                 dayIndex: selectedTime.dayIndex,
                 price: finalTotal,
+                payment_method: actualPaymentMethod === 'stripe' ? 'Kort/Klarna (Stripe Online)' : actualPaymentMethod === 'giftcard' ? 'Presentkort' : 'Betalas på plats i salong',
                 status: 'confirmed',
                 practitionerId: selectedPractitioner?.id || 'owner',
                 start_time,
@@ -831,11 +832,12 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             clientName: `${customerInfo.firstName} ${customerInfo.lastName}`,
                             clientEmail: customerInfo.email,
                             clientPhone: customerInfo.phone,
-                            service: selectedService.name,
+                            service: finalServiceName,
                             startTime: selectedTime.time,
                             duration: selectedService.duration || 30,
                             dayIndex: selectedTime.dayIndex,
                             price: finalTotal,
+                            payment_method: actualPaymentMethod === 'stripe' ? 'Kort/Klarna (Stripe Online)' : actualPaymentMethod === 'giftcard' ? 'Presentkort' : 'Betalas på plats i salong',
                             status: 'confirmed',
                             practitionerId: selectedPractitioner?.id || 'owner',
                             start_time,
@@ -857,11 +859,12 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                             clientName: `${customerInfo.firstName} ${customerInfo.lastName}`,
                             clientEmail: customerInfo.email,
                             clientPhone: customerInfo.phone,
-                            service: selectedService.name,
+                            service: finalServiceName,
                             startTime: selectedTime.time,
                             duration: selectedService.duration || 30,
                             dayIndex: selectedTime.dayIndex,
                             price: finalTotal,
+                            payment_method: actualPaymentMethod === 'stripe' ? 'Kort/Klarna (Stripe Online)' : actualPaymentMethod === 'giftcard' ? 'Presentkort' : 'Betalas på plats i salong',
                             status: 'confirmed',
                             practitionerId: selectedPractitioner?.id || 'owner',
                             start_time,
@@ -1618,7 +1621,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                             <span className="font-bold text-foreground flex items-center gap-2 text-sm md:text-base">
                                                                 {rev.customerName}
                                                                 <span className="text-[9px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded-full font-bold border border-green-500/20 inline-flex items-center gap-1">
-                                                                    ✓ Verifierad kund
+                                                                    <CheckCircle2 size={10} className="text-emerald-500" />
+                                                                    <span>Verifierad kund</span>
                                                                 </span>
                                                             </span>
                                                             <span className="text-[11px] text-foreground/40 block mt-0.5">
@@ -1842,7 +1846,9 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                 {bookingStep === 2 ? (
                                     <div className="space-y-8">
                                         <div className="bg-champagne-50/70 dark:bg-champagne-950/30 p-5 rounded-3xl border border-champagne-200 dark:border-champagne-900/40 flex items-center gap-3.5 text-neutral-950 dark:text-neutral-50 shadow-sm">
-                                             <span className="w-8 h-8 rounded-full bg-champagne-500/10 text-champagne-600 dark:text-champagne-400 flex items-center justify-center text-base shrink-0 font-bold">📅</span>
+                                             <span className="w-8 h-8 rounded-full bg-champagne-500/10 text-champagne-600 dark:text-champagne-400 flex items-center justify-center shrink-0">
+                                                 <CalendarIcon size={16} />
+                                             </span>
                                              <p className="text-xs sm:text-sm font-semibold tracking-wide leading-relaxed">Bokningsbar tid visas i kalendern nedan. Klicka på en ledig tid för att välja.</p>
                                          </div>
 
@@ -1932,7 +1938,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                         {/* Elegant Provider Warning Banner */}
                                         {isProviderLoggedIn && (
                                             <div className="max-w-2xl mx-auto bg-amber-500/5 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-3xl p-5 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <span className="text-xl">⚠️</span>
+                                                <AlertTriangle size={18} className="shrink-0 text-amber-500 mt-0.5" />
                                                 <div className="space-y-1 text-left">
                                                     <h4 className="text-sm font-bold">{t('booking_provider_warning_title')}</h4>
                                                     <p className="text-xs opacity-90 leading-relaxed">
@@ -2443,7 +2449,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                         ? 'Godkänn villkoren för att boka'
                                                                         : selectedPaymentMethod === 'giftcard' && !giftCardStatus?.valid
                                                                             ? t('booking_btn_validate_gc')
-                                                                            : `✓ ${t('salon_book_now')}`}
+                                                                            : t('salon_book_now')}
                                                         </button>
                                                         {!isFormValid && (
                                                             <p className="text-[10px] text-center font-medium">
@@ -3226,6 +3232,12 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                     <div className="pt-2 border-t border-border flex justify-between items-center font-bold text-sm text-foreground">
                                         <span>Totalt</span>
                                         <span className="text-[#C2A26A]">{orderConfirmation.totalPrice} kr</span>
+                                    </div>
+                                    <div className="pt-1.5 flex justify-between items-center text-[11px] text-foreground/60">
+                                        <span>Betalsätt:</span>
+                                        <span className="font-semibold text-foreground">
+                                            {orderConfirmation.paymentMethod === 'stripe' ? 'Kort/Klarna (Betald online)' : 'Betalas på plats vid upphämtning'}
+                                        </span>
                                     </div>
                                 </div>
                             </div>

@@ -87,7 +87,7 @@ export async function POST(req: Request) {
             try {
                 const emailPayload = {
                     to: recipientEmail,
-                    subject: `Ett presentkort från ${senderName}! ✨`,
+                    subject: `Ett presentkort från ${senderName}!`,
                     html: `
                         <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 20px;">
                             <h2 style="color: #c5a059;">Glowbook</h2>

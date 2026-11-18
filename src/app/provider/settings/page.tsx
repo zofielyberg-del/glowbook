@@ -2587,8 +2587,9 @@ function SettingsContent() {
                                                                     <p className="text-xs text-foreground/80 leading-relaxed">
                                                                         Följ stegen på skärmen hos Stripe för att ange ditt person-/organisationsnummer och det bankkonto du vill få dina utbetalningar till.
                                                                     </p>
-                                                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold leading-relaxed">
-                                                                        ⚠️ Det är viktigt att du slutför alla steg så att betalningarna kan godkännas och betalas ut till ditt konto enligt lag.
+                                                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold leading-relaxed flex items-center gap-1.5">
+                                                                        <AlertTriangle size={13} className="shrink-0 text-amber-500" />
+                                                                        <span>Det är viktigt att du slutför alla steg så att betalningarna kan godkännas och betalas ut till ditt konto enligt lag.</span>
                                                                     </p>
                                                                 </div>
                                                             </div>
