@@ -39,7 +39,7 @@ export async function GET(req: Request) {
             appointments: {
                 where: {
                     status: { not: 'cancelled' },
-                    start_time: { gte: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000) } // Last 35 days + future (covers full 30-day revenue dashboard)
+                    start_time: { gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) } // Last 180 days + future (covers full financial history)
                 }
             }
         };
