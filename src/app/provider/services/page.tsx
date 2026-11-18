@@ -151,7 +151,18 @@ export default function ServicesPage() {
         return [];
     });
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-    const [productForm, setProductForm] = useState({ name: '', price: '', stock: '10', category: 'Eftervård', description: '', image: '', recommendation: '' });
+    const [productForm, setProductForm] = useState({
+        name: '',
+        brand: '',
+        price: '',
+        stock: '10',
+        category: 'Eftervård',
+        description: '',
+        image: '',
+        recommendation: '',
+        ingredients: '',
+        productUrl: ''
+    });
 
     // Sync products from server on mount
     useEffect(() => {
@@ -195,12 +206,15 @@ export default function ServicesPage() {
         const newProd = {
             id: Date.now().toString(),
             name: productForm.name,
+            brand: productForm.brand?.trim() || '',
             price: Number(productForm.price),
             stock: Number(productForm.stock || 1),
             category: productForm.category || 'Eftervård',
             description: productForm.description || '',
             image: productForm.image || '',
-            recommendation: productForm.recommendation || `Köp till ${productForm.name} för bästa resultat och hållbarhet!`
+            recommendation: productForm.recommendation || `Köp till ${productForm.name} för bästa resultat och hållbarhet!`,
+            ingredients: productForm.ingredients?.trim() || '',
+            productUrl: productForm.productUrl?.trim() || ''
         };
         const updated = [...products, newProd];
         setProducts(updated);
@@ -226,7 +240,18 @@ export default function ServicesPage() {
                 }
             }
         }
-        setProductForm({ name: '', price: '', stock: '10', category: 'Eftervård', description: '', image: '', recommendation: '' });
+        setProductForm({
+            name: '',
+            brand: '',
+            price: '',
+            stock: '10',
+            category: 'Eftervård',
+            description: '',
+            image: '',
+            recommendation: '',
+            ingredients: '',
+            productUrl: ''
+        });
         setIsProductModalOpen(false);
     };
 
@@ -566,9 +591,16 @@ export default function ServicesPage() {
                                                 </div>
                                             )}
                                             <div className="flex items-center justify-between gap-2">
-                                                <span className="px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider bg-white/[0.05] text-[#DFCA9B] border border-white/[0.08]">
-                                                    {prod.category || 'Eftervård'}
-                                                </span>
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider bg-white/[0.05] text-[#DFCA9B] border border-white/[0.08]">
+                                                        {prod.category || 'Eftervård'}
+                                                    </span>
+                                                    {prod.brand && (
+                                                        <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-[#C2A26A]/15 text-[#DFCA9B] border border-[#C2A26A]/30">
+                                                            {prod.brand}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <button
                                                     onClick={() => handleDeleteProduct(prod.id)}
                                                     className="p-1.5 text-neutral-500 hover:text-red-400 transition-colors"
@@ -585,6 +617,22 @@ export default function ServicesPage() {
                                             )}
                                             {prod.description && (
                                                 <p className="text-xs text-neutral-400 mt-1 line-clamp-2">{prod.description}</p>
+                                            )}
+                                            {prod.ingredients && (
+                                                <div className="mt-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-[10px] text-neutral-400">
+                                                    <span className="text-[#DFCA9B] font-semibold uppercase tracking-wider text-[9px] block mb-0.5">Innehåll & INCI</span>
+                                                    <p className="line-clamp-2">{prod.ingredients}</p>
+                                                </div>
+                                            )}
+                                            {prod.productUrl && (
+                                                <a
+                                                    href={prod.productUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 text-[10px] text-[#C2A26A] hover:underline mt-2 font-medium"
+                                                >
+                                                    <span>Officiell produktinformation ↗</span>
+                                                </a>
                                             )}
                                         </div>
                                         <div className="flex items-center justify-between pt-3 border-t border-white/[0.05] text-xs">
@@ -719,9 +767,9 @@ export default function ServicesPage() {
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:w-full max-w-lg bg-[#141417] rounded-3xl shadow-2xl z-[101] border border-white/[0.1] overflow-hidden"
+                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:w-full max-w-lg max-h-[92vh] bg-[#141417] rounded-3xl shadow-2xl z-[101] border border-white/[0.1] flex flex-col overflow-hidden"
                             >
-                                <div className="p-6 border-b border-white/[0.08] flex items-center justify-between">
+                                <div className="p-6 border-b border-white/[0.08] flex items-center justify-between shrink-0">
                                     <div>
                                         <h3 className="text-lg font-medium text-white">Lägg till produkt</h3>
                                         <p className="text-xs text-neutral-400 mt-0.5">Eftervård eller produkt till försäljning i salongen</p>
@@ -734,19 +782,33 @@ export default function ServicesPage() {
                                     </button>
                                 </div>
 
-                                <form onSubmit={handleSaveProduct} className="p-6 space-y-4">
-                                    <div>
-                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-                                            Produktnamn *
-                                        </label>
-                                        <input
-                                            required
-                                            type="text"
-                                            value={productForm.name}
-                                            onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                                            placeholder="T.ex. Nagelolja 15ml eller Fransserum"
-                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
-                                        />
+                                <form onSubmit={handleSaveProduct} className="p-6 space-y-4 overflow-y-auto max-h-[calc(92vh-90px)]">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                                Produktnamn *
+                                            </label>
+                                            <input
+                                                required
+                                                type="text"
+                                                value={productForm.name}
+                                                onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                                                placeholder="T.ex. Vitamina Nagelolja 15ml"
+                                                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                                Varumärke / Märke (valfritt)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={productForm.brand}
+                                                onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })}
+                                                placeholder="T.ex. ProNails, OPI, K18..."
+                                                className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
@@ -849,8 +911,37 @@ export default function ServicesPage() {
                                             rows={2}
                                             value={productForm.description}
                                             onChange={(e) => setProductForm(prev => ({ ...productForm, description: e.target.value }))}
-                                            placeholder="Kort beskrivning av produktens fördelar..."
+                                            placeholder="Kort beskrivning av produktens egenskaper..."
                                             className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none resize-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+                                                Innehåll & Ingredienser (INCI / Allergiinformation)
+                                            </label>
+                                            <span className="text-[9px] text-[#DFCA9B]">Viktigt för kunder</span>
+                                        </div>
+                                        <textarea
+                                            rows={3}
+                                            value={productForm.ingredients}
+                                            onChange={(e) => setProductForm(prev => ({ ...prev, ingredients: e.target.value }))}
+                                            placeholder="T.ex. Prunus Amygdalus Dulcis (Almond) Oil, Simmondsia Chinensis Seed Oil, Tocopherol (Vitamin E)..."
+                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none resize-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                                            Länk till produktinformation / tillverkarens sida (valfritt)
+                                        </label>
+                                        <input
+                                            type="url"
+                                            value={productForm.productUrl}
+                                            onChange={(e) => setProductForm(prev => ({ ...prev, productUrl: e.target.value }))}
+                                            placeholder="https://pronails.com/... eller länk till produktsida"
+                                            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none"
                                         />
                                     </div>
 

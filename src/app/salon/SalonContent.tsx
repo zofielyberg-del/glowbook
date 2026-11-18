@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/layout/Header";
-import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, Lock, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award, Package } from "lucide-react";
+import { Clock, MapPin, Star, ChevronRight, CheckCircle2, X, Plus, Users, User, CreditCard, Wallet, AlertTriangle, Lock, ExternalLink, Coins, Check, ChevronLeft, ImageIcon, MessageSquare, Shield, Award, Package, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Calendar from "@/components/dashboard/Calendar";
 import clsx from "clsx";
@@ -237,6 +237,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [successAppointment, setSuccessAppointment] = useState<any>(null);
     const [isBooking, setIsBooking] = useState(false);
     const [galleryLightbox, setGalleryLightbox] = useState<number | null>(null);
+    const [viewingProduct, setViewingProduct] = useState<any | null>(null);
     const [giftCardCode, setGiftCardCode] = useState('');
     const [giftCardStatus, setGiftCardStatus] = useState<{ valid: boolean; balance: number; message: string } | null>(null);
     const [isCustomerLoggedIn, setIsCustomerLoggedIn] = useState(false);
@@ -1210,9 +1211,16 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                         </div>
                                                     )}
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-foreground/5 text-foreground/60 border border-border/50">
-                                                            {prod.category || 'Eftervård'}
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className="px-2.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-foreground/5 text-foreground/60 border border-border/50">
+                                                                {prod.category || 'Eftervård'}
+                                                            </span>
+                                                            {prod.brand && (
+                                                                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#C2A26A]/10 text-[#C2A26A] border border-[#C2A26A]/30">
+                                                                    {prod.brand}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <span className="text-sm font-bold text-foreground">
                                                             {prod.price} {salon.currency || 'kr'}
                                                         </span>
@@ -1226,6 +1234,15 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                     {prod.description && (
                                                         <p className="text-xs text-foreground/50 mt-1 line-clamp-2">{prod.description}</p>
                                                     )}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setViewingProduct(prod)}
+                                                        className="mt-3 text-[11px] font-semibold text-[#C2A26A] hover:text-[#DFCA9B] flex items-center gap-1.5 transition-colors group/btn w-fit"
+                                                    >
+                                                        <Info size={13} className="shrink-0" />
+                                                        <span className="underline-offset-4 group-hover/btn:underline">Produktinformation & innehåll</span>
+                                                    </button>
                                                 </div>
 
                                                 <div className="pt-4 mt-3 border-t border-border/40 flex items-center justify-between">
@@ -1767,13 +1784,29 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                                     </div>
                                                                                 )}
                                                                                 <div className="min-w-0">
-                                                                                    <p className="text-xs font-bold text-foreground truncate">{prod.name}</p>
+                                                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                                                        {prod.brand && (
+                                                                                            <span className="text-[9px] uppercase font-bold tracking-wider text-[#C2A26A] bg-[#C2A26A]/10 px-1.5 py-0.5 rounded border border-[#C2A26A]/20">
+                                                                                                {prod.brand}
+                                                                                            </span>
+                                                                                        )}
+                                                                                        <p className="text-xs font-bold text-foreground truncate">{prod.name}</p>
+                                                                                    </div>
                                                                                     <p className="text-[11px] text-[#C2A26A] line-clamp-1 italic">
                                                                                         {prod.recommendation || `Bästa hållbarhet för din behandling`}
                                                                                     </p>
-                                                                                    <p className="text-xs font-semibold text-foreground/70 mt-0.5">
-                                                                                        +{prod.price} {salon.currency || 'kr'}
-                                                                                    </p>
+                                                                                    <div className="flex items-center gap-2.5 mt-0.5">
+                                                                                        <p className="text-xs font-semibold text-foreground/70">
+                                                                                            +{prod.price} {salon.currency || 'kr'}
+                                                                                        </p>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => setViewingProduct(prod)}
+                                                                                            className="text-[10px] text-foreground/50 hover:text-[#C2A26A] underline flex items-center gap-1 transition-colors"
+                                                                                        >
+                                                                                            <Info size={11} /> Se innehåll & info
+                                                                                        </button>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
 
@@ -2369,6 +2402,170 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                     </button>
                                 </form>
                             )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Product Details & Ingredients Modal */}
+            <AnimatePresence>
+                {viewingProduct && (
+                    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setViewingProduct(null)}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-lg max-h-[90vh] bg-card rounded-[32px] border border-border shadow-2xl flex flex-col overflow-hidden z-10"
+                        >
+                            {/* Modal Header */}
+                            <div className="p-6 border-b border-border flex items-center justify-between shrink-0 bg-foreground/[0.02]">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#C2A26A]">
+                                            PRODUKTINFORMATION
+                                        </span>
+                                        {viewingProduct.brand && (
+                                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#C2A26A]/10 text-[#C2A26A] border border-[#C2A26A]/30">
+                                                {viewingProduct.brand}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <h3 className="text-lg font-bold text-foreground">
+                                        {viewingProduct.name}
+                                    </h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setViewingProduct(null)}
+                                    className="w-9 h-9 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/60 transition-colors"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-160px)]">
+                                {viewingProduct.image && (
+                                    <div className="w-full h-56 rounded-2xl overflow-hidden bg-black/30 border border-border/50">
+                                        <img src={viewingProduct.image} alt={viewingProduct.name} className="w-full h-full object-cover" />
+                                    </div>
+                                )}
+
+                                <div className="flex items-center justify-between p-4 rounded-2xl bg-foreground/[0.03] border border-border/60">
+                                    <div>
+                                        <span className="text-[10px] uppercase font-bold text-foreground/40 block">Pris i salongen</span>
+                                        <span className="text-xl font-bold text-foreground">{viewingProduct.price} {salon.currency || 'kr'}</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-[10px] uppercase font-bold text-foreground/40 block">Kategori</span>
+                                        <span className="text-xs font-semibold text-foreground/80">{viewingProduct.category || 'Eftervård'}</span>
+                                    </div>
+                                </div>
+
+                                {viewingProduct.recommendation && (
+                                    <div className="p-4 rounded-2xl bg-[#C2A26A]/5 border border-[#C2A26A]/20">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#C2A26A] block mb-1">
+                                            Rekommenderas för dig
+                                        </span>
+                                        <p className="text-xs text-foreground/80 italic leading-relaxed">
+                                            &quot;{viewingProduct.recommendation}&quot;
+                                        </p>
+                                    </div>
+                                )}
+
+                                {viewingProduct.description && (
+                                    <div className="space-y-1.5">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-foreground/40">Beskrivning</h4>
+                                        <p className="text-xs text-foreground/70 leading-relaxed whitespace-pre-wrap">{viewingProduct.description}</p>
+                                    </div>
+                                )}
+
+                                {/* Ingredients & Product information section */}
+                                <div className="space-y-2 pt-2 border-t border-border">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-foreground/40 flex items-center gap-1.5">
+                                            <Shield size={12} className="text-[#C2A26A]" /> Innehåll & Ingredienser (INCI)
+                                        </h4>
+                                        {viewingProduct.brand && (
+                                            <span className="text-[10px] text-[#C2A26A] font-semibold">{viewingProduct.brand}</span>
+                                        )}
+                                    </div>
+                                    <div className="p-4 rounded-2xl bg-foreground/[0.02] border border-border/80">
+                                        {viewingProduct.ingredients ? (
+                                            <p className="text-xs text-foreground/80 font-mono leading-relaxed break-words whitespace-pre-wrap">
+                                                {viewingProduct.ingredients}
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs text-foreground/50 italic leading-relaxed">
+                                                Kontakta salongen för fullständig ingrediensförteckning eller vid frågor om allergier.
+                                            </p>
+                                        )}
+                                    </div>
+                                    <p className="text-[10px] text-foreground/40 leading-normal pl-1">
+                                        Viktigt för dig med allergier eller särskilda ingredienspreferenser.
+                                    </p>
+                                </div>
+
+                                {viewingProduct.productUrl && (
+                                    <div className="pt-2">
+                                        <a
+                                            href={viewingProduct.productUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 text-xs font-bold text-[#C2A26A] hover:text-[#DFCA9B] transition-colors p-3 rounded-xl bg-foreground/[0.03] border border-border w-full justify-center"
+                                        >
+                                            <span>Officiellt produktdatablad & information</span>
+                                            <ExternalLink size={14} />
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="p-5 border-t border-border bg-foreground/[0.02] shrink-0">
+                                {(() => {
+                                    const isSelected = selectedAddons.includes(viewingProduct.id);
+                                    return (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (isSelected) {
+                                                    setSelectedAddons(prev => prev.filter(id => id !== viewingProduct.id));
+                                                } else {
+                                                    setSelectedAddons(prev => [...prev, viewingProduct.id]);
+                                                    if (!selectedService && salon?.services && salon.services.length > 0) {
+                                                        handleServiceSelect(salon.services[0]);
+                                                    }
+                                                }
+                                                setViewingProduct(null);
+                                            }}
+                                            className={clsx(
+                                                "w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg",
+                                                isSelected
+                                                    ? "bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20"
+                                                    : "bg-[#C2A26A] text-[#0B0B0C] hover:bg-[#DFCA9B]"
+                                            )}
+                                        >
+                                            {isSelected ? (
+                                                <>
+                                                    <X size={16} /> Ta bort från bokning
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Plus size={16} /> Köp med bokning (+{viewingProduct.price} {salon.currency || 'kr'})
+                                                </>
+                                            )}
+                                        </button>
+                                    );
+                                })()}
+                            </div>
                         </motion.div>
                     </div>
                 )}
