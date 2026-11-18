@@ -16,9 +16,11 @@ export default function ProviderLayout({
                     <div className="w-8 h-8 rounded-full border-2 border-[#C2A26A] border-t-transparent animate-spin" />
                 </div>
             }>
-                <ProviderShell>
-                    {children}
-                </ProviderShell>
+                <div className="dark min-h-screen bg-[#0B0B0C] text-white">
+                    <ProviderShell>
+                        {children}
+                    </ProviderShell>
+                </div>
             </Suspense>
         </DashboardGuard>
     );

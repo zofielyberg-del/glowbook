@@ -816,57 +816,65 @@ export default function ServicesPage() {
                                     )}
                                 </AnimatePresence>
                             </div>
-                            <p className="text-foreground/50 text-sm">{t('dash_nav_services_desc') || 'Skapa och hantera de tjänster du erbjuder.'}</p>
+                            <p className="text-xs text-neutral-400">{t('dash_nav_services_desc') || 'Skapa och hantera de tjänster du erbjuder.'}</p>
                         </div>
                         <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="bg-black dark:bg-white text-white dark:text-black px-8 py-4 rounded-full font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3 hover:bg-champagne-600 dark:hover:bg-champagne-600 hover:text-white transition-all w-fit shadow-2xl active:scale-95"
+                            onClick={() => {
+                                setEditingService(null);
+                                setNewService({ name: '', price: '', salePrice: '', saleEndsAt: '', duration: '', description: '', category: category || availableCategories[0] || '', practitionerIds: [] });
+                                setIsModalOpen(true);
+                            }}
+                            className="px-5 py-2.5 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-semibold tracking-wide uppercase transition-all shadow-md active:scale-95 flex items-center gap-2"
                         >
-                            <Plus size={18} strokeWidth={3} /> {t('action_create_service') || 'Skapa ny tjänst'}
+                            <Plus size={16} /> {t('action_create_service') || 'Skapa ny tjänst'}
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {services.map(service => (
-                            <div key={service.id} className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow group flex flex-col">
-                                <div className="flex justify-between items-start mb-4">
-                                    <h3 className="font-bold text-foreground text-lg">{service.name}</h3>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => handleEditClick(service)}
-                                            className="p-1.5 text-foreground/50 hover:text-blue-500 transition-colors"
-                                        >
-                                            <Edit size={16} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteService(service.id)}
-                                            className="p-1.5 text-foreground/50 hover:text-red-500 transition-colors"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                            <div key={service.id} className="p-5 rounded-2xl bg-[#111114] border border-white/[0.08] hover:border-white/[0.15] transition-all flex flex-col justify-between">
+                                <div>
+                                    <div className="flex justify-between items-start mb-2.5">
+                                        <h3 className="font-semibold text-white text-base tracking-tight">{service.name}</h3>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => handleEditClick(service)}
+                                                className="p-1.5 text-neutral-400 hover:text-white transition-colors rounded-lg hover:bg-white/[0.05]"
+                                                title="Redigera"
+                                            >
+                                                <Edit size={15} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteService(service.id)}
+                                                className="p-1.5 text-neutral-500 hover:text-red-400 transition-colors rounded-lg hover:bg-white/[0.05]"
+                                                title="Ta bort"
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
+                                        </div>
                                     </div>
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                        <span className="px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider bg-white/[0.05] text-[#DFCA9B] border border-white/[0.08]">
+                                            {(service as any).category || category || 'Tjänst'}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed mb-4">
+                                        {service.description || "Ingen beskrivning angiven."}
+                                    </p>
                                 </div>
-                                <div className="flex flex-wrap gap-2 mb-4">
-                                    <span className="px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-[9px] font-bold rounded-md uppercase tracking-wider">
-                                        {(service as any).category || category}
-                                    </span>
-                                </div>
-                                <p className="text-sm text-foreground/50 flex-1 mb-6 leading-relaxed">
-                                    {service.description || "Ingen beskrivning angiven."}
-                                </p>
-                                <div className="flex items-center justify-between pt-4 border-t border-border text-sm font-medium">
-                                    <div className="flex items-center gap-1.5 text-foreground/50">
-                                        <Clock size={16} className="text-champagne-500" />
+                                <div className="flex items-center justify-between pt-3 border-t border-white/[0.06] text-xs font-medium">
+                                    <div className="flex items-center gap-1.5 text-neutral-400">
+                                        <Clock size={14} className="text-[#C2A26A]" />
                                         {service.duration} min
                                     </div>
-                                    <div className="text-foreground font-bold flex flex-col items-end">
+                                    <div className="font-bold flex flex-col items-end">
                                         {service.sale_price && (!service.sale_ends_at || new Date(service.sale_ends_at) > new Date()) ? (
                                             <>
-                                                <span className="text-[10px] text-red-500 line-through opacity-50">{service.price} {currency}</span>
-                                                <span className="text-red-500">{service.sale_price} {currency}</span>
+                                                <span className="text-[10px] text-red-400 line-through opacity-60">{service.price} {currency}</span>
+                                                <span className="text-red-400 font-bold">{service.sale_price} {currency}</span>
                                             </>
                                         ) : (
-                                            <span>{service.price} {currency}</span>
+                                            <span className="text-white font-bold">{service.price} {currency}</span>
                                         )}
                                     </div>
                                 </div>
@@ -1128,19 +1136,19 @@ export default function ServicesPage() {
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-1.5rem)] sm:w-full max-w-lg bg-card rounded-3xl shadow-2xl z-[101] overflow-hidden flex flex-col max-h-[90dvh]"
+                                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-1.5rem)] sm:w-full max-w-lg bg-[#111114] border border-white/[0.1] rounded-3xl shadow-2xl z-[101] overflow-hidden flex flex-col max-h-[90dvh]"
                             >
                                 {/* Modal Header */}
-                                <div className="p-5 sm:p-8 border-b border-border flex items-center justify-between bg-card shrink-0">
+                                <div className="p-5 sm:p-6 border-b border-white/[0.08] flex items-center justify-between bg-[#111114] shrink-0">
                                     <div>
-                                        <h3 className="text-xl font-bold text-foreground">
+                                        <h3 className="text-lg font-semibold text-white">
                                             {editingService ? 'Redigera tjänst' : 'Lägg till tjänst'}
                                         </h3>
-                                        <p className="text-xs text-foreground/40 mt-1 uppercase font-bold tracking-widest">
-                                            {editingService ? 'Uppdatera befintlig tjänst' : 'Skapa en ny tjänst för din salong'}
+                                        <p className="text-xs text-neutral-400 mt-0.5">
+                                            {editingService ? 'Uppdatera befintlig behandling' : 'Skapa en ny behandling för din salong'}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-2">
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -1152,21 +1160,21 @@ export default function ServicesPage() {
                                                 setShowCustomCategoryInput(false);
                                                 setCustomCategoryName('');
                                             }}
-                                            className="p-2 text-foreground/20 hover:text-foreground transition-colors"
+                                            className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-white/[0.05] transition-colors"
                                         >
-                                            <X size={24} />
+                                            <X size={20} />
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* Modal Body */}
                                 <form id="service-form" onSubmit={handleAddService} className="contents">
-                                    <div className="p-8 space-y-8 overflow-y-auto max-h-[calc(100vh-320px)] custom-scrollbar">
+                                    <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-320px)] custom-scrollbar">
                                         {/* Suggestions for new services */}
                                         {!editingService && (
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <label className="text-xs font-black uppercase tracking-widest text-foreground/40">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
                                                         {t('label_niche_suggestions')} ({category})
                                                     </label>
                                                 </div>
@@ -1185,41 +1193,40 @@ export default function ServicesPage() {
                                                                 saleEndsAt: '',
                                                                 practitionerIds: []
                                                             })}
-                                                            className="flex items-center justify-between p-4 bg-background hover:bg-champagne-50/30 text-left rounded-2xl transition-all border border-border hover:border-champagne-200 group relative overflow-hidden"
+                                                            className="flex items-center justify-between p-3.5 bg-white/[0.02] hover:bg-white/[0.06] text-left rounded-xl transition-all border border-white/[0.06] hover:border-[#C2A26A]/40 group"
                                                         >
-                                                            <div className="absolute inset-0 bg-gradient-to-r from-champagne-100/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                            <div className="relative z-10 flex items-center gap-4">
-                                                                <div className="w-10 h-10 rounded-xl bg-foreground/5 flex items-center justify-center text-foreground/40 font-bold text-lg group-hover:scale-110 transition-transform">
-                                                                    <DollarSign size={18} />
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center text-neutral-400 group-hover:text-[#DFCA9B] transition-colors">
+                                                                    <DollarSign size={15} />
                                                                 </div>
                                                                 <div>
-                                                                    <p className="text-xs font-bold text-foreground">{s.name}</p>
-                                                                    <p className="text-[10px] text-foreground/40">{s.duration} min • {s.price} {currency}</p>
+                                                                    <p className="text-xs font-semibold text-white">{s.name}</p>
+                                                                    <p className="text-[10px] text-neutral-400">{s.duration} min • {s.price} {currency}</p>
                                                                 </div>
                                                             </div>
-                                                            <Plus size={14} className="text-foreground/20 group-hover:text-champagne-500 group-hover:rotate-90 transition-all" />
+                                                            <Plus size={14} className="text-neutral-500 group-hover:text-[#DFCA9B] transition-all" />
                                                         </button>
                                                     ))}
                                                 </div>
-                                                <div className="h-px bg-border/50 my-2" />
+                                                <div className="h-px bg-white/[0.06] my-2" />
                                             </div>
                                         )}
 
-                                        <div className="space-y-6">
+                                        <div className="space-y-5">
                                             <div>
-                                                <label className="block text-sm font-bold text-foreground mb-2">{t('label_service_name')} *</label>
+                                                <label className="block text-xs font-medium text-neutral-300 mb-1.5">{t('label_service_name')} *</label>
                                                 <input
                                                     required
                                                     type="text"
                                                     placeholder={currentPlaceholder}
                                                     value={newService.name}
                                                     onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                                                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:border-champagne-500 outline-none transition-all placeholder:text-foreground/20"
+                                                    className="w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.04] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none transition-all"
                                                 />
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-bold text-foreground mb-2">Kategori *</label>
+                                                <label className="block text-xs font-medium text-neutral-300 mb-1.5">Kategori *</label>
                                                 <select
                                                     required
                                                     value={showCustomCategoryInput ? 'NEW_CUSTOM_CATEGORY' : (newService.category || category)}
@@ -1233,12 +1240,12 @@ export default function ServicesPage() {
                                                             setNewService({ ...newService, category: val });
                                                         }
                                                     }}
-                                                    className="w-full px-4 py-3 rounded-xl border border-border focus:border-champagne-500 outline-none transition-all text-foreground appearance-none cursor-pointer bg-background"
+                                                    className="w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-[#111114] text-xs text-white focus:border-[#C2A26A] outline-none transition-all cursor-pointer"
                                                 >
                                                     {getAvailableCategories().map(cat => (
-                                                        <option key={cat} value={cat}>{cat}</option>
+                                                        <option key={cat} value={cat} className="bg-[#111114] text-white">{cat}</option>
                                                     ))}
-                                                    <option value="NEW_CUSTOM_CATEGORY">+ Skapa egen kategori...</option>
+                                                    <option value="NEW_CUSTOM_CATEGORY" className="bg-[#111114] text-[#DFCA9B]">+ Skapa egen kategori...</option>
                                                 </select>
                                                 
                                                 {showCustomCategoryInput && (
@@ -1249,7 +1256,7 @@ export default function ServicesPage() {
                                                             placeholder="Skriv din egna kategori (t.ex. Damklippning)"
                                                             value={customCategoryName}
                                                             onChange={(e) => setCustomCategoryName(e.target.value)}
-                                                            className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:border-champagne-500 outline-none transition-all placeholder:text-foreground/20"
+                                                            className="w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.04] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none transition-all"
                                                         />
                                                     </div>
                                                 )}
@@ -1257,40 +1264,40 @@ export default function ServicesPage() {
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-bold text-foreground mb-2">{t('label_price')} ({currency}) *</label>
+                                                    <label className="block text-xs font-medium text-neutral-300 mb-1.5">{t('label_price')} ({currency}) *</label>
                                                     <div className="relative">
-                                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/50 font-bold text-xs">{currency}</div>
+                                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 font-medium text-xs">{currency}</div>
                                                         <input
                                                             required
                                                             type="number"
                                                             placeholder="Pris"
                                                             value={newService.price}
                                                             onChange={(e) => setNewService({ ...newService, price: e.target.value })}
-                                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-background text-foreground focus:border-champagne-500 outline-none transition-all placeholder:text-foreground/10"
+                                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.04] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none transition-all"
                                                         />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-bold text-foreground mb-2">{t('label_time')} (minuter) *</label>
+                                                    <label className="block text-xs font-medium text-neutral-300 mb-1.5">{t('label_time')} (minuter) *</label>
                                                     <div className="relative">
-                                                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/50" size={16} />
+                                                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={15} />
                                                         <input
                                                             required
                                                             type="number"
                                                             placeholder="Tid"
                                                             value={newService.duration}
                                                             onChange={(e) => setNewService({ ...newService, duration: e.target.value })}
-                                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-background text-foreground focus:border-champagne-500 outline-none transition-all"
+                                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.04] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none transition-all"
                                                         />
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className="border-t border-border pt-6 space-y-6">
+                                            <div className="border-t border-white/[0.08] pt-5 space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-8 h-8 bg-foreground/5 rounded-lg flex items-center justify-center text-foreground/40"><DollarSign size={16} /></div>
-                                                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/40">Rabatt & Kampanj</h4>
+                                                        <div className="w-7 h-7 bg-white/[0.05] rounded-lg flex items-center justify-center text-neutral-400"><DollarSign size={14} /></div>
+                                                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Rabatt & Kampanj</h4>
                                                     </div>
                                                     {(discountValue || newService.saleEndsAt) && (
                                                         <button
@@ -1299,14 +1306,14 @@ export default function ServicesPage() {
                                                                 setDiscountValue('');
                                                                 setNewService(prev => ({ ...prev, salePrice: '', saleEndsAt: '' }));
                                                             }}
-                                                            className="text-[10px] font-bold text-red-500 hover:text-red-400 transition-colors uppercase tracking-wider"
+                                                            className="text-[10px] font-bold text-red-400 hover:text-red-300 transition-colors uppercase tracking-wider"
                                                         >
                                                             Ta bort
                                                         </button>
                                                     )}
                                                 </div>
 
-                                                <div className="flex bg-foreground/5 p-1 rounded-xl border border-border/50">
+                                                <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
                                                     {(['amount', 'percent'] as const).map((t) => (
                                                         <button
                                                             key={t}
@@ -1317,8 +1324,8 @@ export default function ServicesPage() {
                                                                 setNewService(prev => ({ ...prev, salePrice: '' }));
                                                             }}
                                                             className={clsx(
-                                                                "flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all",
-                                                                discountType === t ? "bg-white dark:bg-[#222] text-foreground shadow-sm ring-1 ring-black/5 dark:ring-white/5" : "text-foreground/30 hover:text-foreground/50"
+                                                                "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all",
+                                                                discountType === t ? "bg-white/[0.1] text-[#DFCA9B] shadow-sm" : "text-neutral-400 hover:text-white"
                                                             )}
                                                         >
                                                             {t === 'amount' ? `SEK` : '% Rabatt'}
@@ -1326,31 +1333,31 @@ export default function ServicesPage() {
                                                     ))}
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-6">
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.1em]">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">
                                                             {discountType === 'amount' ? 'Kr Av' : 'Procent (%)'}
                                                         </label>
-                                                        <div className="relative group">
+                                                        <div className="relative">
                                                             <input
                                                                 type="number"
                                                                 placeholder="0"
                                                                 value={discountValue}
                                                                 onChange={(e) => setDiscountValue(e.target.value)}
-                                                                className="w-full px-5 py-4 rounded-2xl border border-border bg-foreground/[0.02] text-foreground focus:border-blue-500 outline-none transition-all font-bold"
+                                                                className="w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.04] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none transition-all font-semibold"
                                                             />
-                                                            <div className="absolute right-5 top-1/2 -translate-y-1/2 text-foreground/20 font-black text-xs uppercase pointer-events-none">
+                                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 font-bold text-xs uppercase pointer-events-none">
                                                                 {discountType === 'percent' ? '%' : currency}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.1em]">Gäller t.o.m</label>
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">Gäller t.o.m</label>
                                                         <input
                                                             type="date"
                                                             value={newService.saleEndsAt}
                                                             onChange={(e) => setNewService({ ...newService, saleEndsAt: e.target.value })}
-                                                            className="w-full px-5 py-4 rounded-2xl border border-border bg-foreground/[0.02] text-foreground focus:border-blue-500 outline-none transition-all font-bold"
+                                                            className="w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.04] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none transition-all"
                                                         />
                                                     </div>
                                                 </div>
@@ -1359,20 +1366,20 @@ export default function ServicesPage() {
                                                     <motion.div
                                                         initial={{ opacity: 0, y: 10 }}
                                                         animate={{ opacity: 1, y: 0 }}
-                                                        className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 p-5 rounded-[24px] flex items-center justify-between"
+                                                        className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl flex items-center justify-between"
                                                     >
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500">
-                                                                <Check size={20} strokeWidth={3} />
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-9 h-9 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400">
+                                                                <Check size={18} strokeWidth={3} />
                                                             </div>
                                                             <div>
-                                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest">Kundens pris</p>
-                                                                <p className="text-xl font-black text-foreground">{Math.round(Number(newService.salePrice))} {currency}</p>
+                                                                <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Kundens pris</p>
+                                                                <p className="text-base font-bold text-white">{Math.round(Number(newService.salePrice))} {currency}</p>
                                                             </div>
                                                         </div>
                                                         <div className="text-right">
-                                                            <p className="text-[10px] text-foreground/40 font-bold uppercase mb-1">Total Rabatt</p>
-                                                            <div className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black rounded-full shadow-lg shadow-emerald-500/20">
+                                                            <p className="text-[10px] text-neutral-400 font-medium uppercase mb-0.5">Total Rabatt</p>
+                                                            <div className="px-2.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold rounded-full">
                                                                 -{Math.round((1 - Number(newService.salePrice) / Number(newService.price)) * 100)}%
                                                             </div>
                                                         </div>
@@ -1381,10 +1388,10 @@ export default function ServicesPage() {
                                             </div>
 
                                             {salonTier === 'luxe' && (
-                                                <div>
-                                                    <label className="block text-sm font-bold text-foreground mb-4">Vilka utför tjänsten? *</label>
+                                                <div className="border-t border-white/[0.08] pt-5">
+                                                    <label className="block text-xs font-medium text-neutral-300 mb-3">Vilka utför tjänsten? *</label>
                                                     {practitioners.length > 0 ? (
-                                                        <div className="grid grid-cols-2 gap-3">
+                                                        <div className="grid grid-cols-2 gap-2.5">
                                                             {practitioners.map(p => (
                                                                 <button
                                                                     key={p.id}
@@ -1399,25 +1406,25 @@ export default function ServicesPage() {
                                                                         });
                                                                     }}
                                                                     className={clsx(
-                                                                        "px-4 py-4 rounded-2xl text-xs font-bold transition-all border flex items-center gap-3",
+                                                                        "px-3 py-2.5 rounded-xl text-xs font-medium transition-all border flex items-center gap-2.5 text-left",
                                                                         newService.practitionerIds.includes(p.id)
-                                                                            ? "bg-[#111] dark:bg-white text-white dark:text-[#111] border-transparent shadow-xl ring-4 ring-black/5 dark:ring-white/10"
-                                                                            : "bg-foreground/5 text-foreground/40 border-border hover:border-foreground/20"
+                                                                            ? "bg-[#C2A26A] text-[#0B0B0C] border-[#C2A26A] shadow-md font-semibold"
+                                                                            : "bg-white/[0.03] text-neutral-400 border-white/[0.08] hover:border-white/[0.15] hover:text-white"
                                                                     )}
                                                                 >
                                                                     <div className={clsx(
-                                                                        "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black",
-                                                                        newService.practitionerIds.includes(p.id) ? "bg-emerald-500 text-white" : "bg-foreground/10 text-foreground/40"
+                                                                        "w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0",
+                                                                        newService.practitionerIds.includes(p.id) ? "bg-[#0B0B0C] text-[#C2A26A]" : "bg-white/[0.1] text-neutral-400"
                                                                     )}>
                                                                         {newService.practitionerIds.includes(p.id) ? "✓" : p.name.charAt(0)}
                                                                     </div>
-                                                                    {p.name}
+                                                                    <span className="truncate">{p.name}</span>
                                                                 </button>
                                                             ))}
                                                         </div>
                                                     ) : (
-                                                        <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-100 dark:border-amber-900/10">
-                                                            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">
+                                                        <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.08]">
+                                                            <p className="text-[10px] text-neutral-400">
                                                                 Inga medarbetare tillagda än. Gå till Inställningar → Utförare.
                                                             </p>
                                                         </div>
@@ -1426,23 +1433,23 @@ export default function ServicesPage() {
                                             )}
 
                                             <div>
-                                                <label className="block text-sm font-bold text-foreground mb-2">{t('label_description')} <span className="text-foreground/50 font-normal">{t('label_optional')}</span></label>
+                                                <label className="block text-xs font-medium text-neutral-300 mb-1.5">{t('label_description')} <span className="text-neutral-500 font-normal">({t('label_optional')})</span></label>
                                                 <textarea
                                                     rows={3}
                                                     placeholder={t('placeholder_description')}
                                                     value={newService.description}
                                                     onChange={(e) => setNewService({ ...newService, description: e.target.value })}
-                                                    className="w-full px-5 py-4 rounded-2xl border border-border bg-foreground/[0.02] text-foreground focus:border-champagne-500 outline-none transition-all resize-none font-medium"
+                                                    className="w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.04] text-xs text-white placeholder:text-neutral-600 focus:border-[#C2A26A] outline-none transition-all resize-none"
                                                 />
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Modal Footer - Sticky */}
-                                    <div className="p-8 border-t border-border bg-[#FBFBFA] dark:bg-[#0A0A0A] shrink-0">
+                                    <div className="p-5 sm:p-6 border-t border-white/[0.08] bg-[#0B0B0C] shrink-0">
                                         <button
                                             type="submit"
-                                            className="w-full bg-[#111] dark:bg-white text-white dark:text-[#111] py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em] hover:bg-champagne-600 hover:text-white transition-all shadow-2xl active:scale-95"
+                                            className="w-full bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] py-3.5 rounded-xl font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg active:scale-95"
                                         >
                                             {t('btn_save_service') || 'Spara tjänst'}
                                         </button>
