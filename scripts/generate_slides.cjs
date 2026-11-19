@@ -2,16 +2,20 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const outDir = path.join(__dirname, 'public', 'presentations', 'linnea');
+const outDir = path.join(__dirname, '..', 'public', 'presentations', 'linnea');
+const partnerDir = path.join(__dirname, '..', 'public', 'presentations', 'partner');
 if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
+}
+if (!fs.existsSync(partnerDir)) {
+    fs.mkdirSync(partnerDir, { recursive: true });
 }
 
 const slides = [
     {
         num: '01',
         tag: 'PARTNERSKAPSFÖRSLAG',
-        title: 'Glowbook x Linnéa',
+        title: 'Glowbook x Partner',
         subtitle: 'Hur vi kopplar ihop professionell eftervård med framtidens skönhetssalonger och slutkunder',
         type: 'cover'
     },
@@ -33,9 +37,9 @@ const slides = [
                 desc: 'Produkten rekommenderas naturligt vid tidsbokningen och i salongens egna digitala Click & Collect-butik.'
             },
             {
-                badge: 'VINSTEN FÖR LINNÉA',
+                badge: 'VINSTEN FÖR VARUMÄRKET',
                 heading: 'Självklart förstahandsval',
-                desc: 'Dina produkter etableras som standarden för professionell eftervård hos både salonger och slutkonsumenter.'
+                desc: 'Era produkter etableras som standarden för professionell eftervård hos både salonger och slutkonsumenter.'
             }
         ]
     },
@@ -511,6 +515,9 @@ slides.forEach(slide => {
     try {
         execSync(cmd, { stdio: 'inherit' });
         console.log(`Successfully rendered PNG: ${pngPath}`);
+        // Also copy to partner directory
+        const partnerPngPath = path.join(partnerDir, `slide_${slide.num}.png`);
+        fs.copyFileSync(pngPath, partnerPngPath);
     } catch (err) {
         console.error(`Error rendering ${slide.num}:`, err.message);
     }
