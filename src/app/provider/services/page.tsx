@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Plus, Search, Clock, DollarSign, Edit, Trash2, Camera, Image as ImageIcon, X, Check, Save, RefreshCw, CheckCircle2, XCircle, Package, Sparkles } from "lucide-react";
+import { Plus, Search, Clock, DollarSign, Edit, Trash2, Camera, Image as ImageIcon, X, Check, Save, RefreshCw, CheckCircle2, XCircle, Package } from "lucide-react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
@@ -762,9 +762,9 @@ export default function ServicesPage() {
                                         <button
                                             type="button"
                                             onClick={handleImportProNailsKit}
-                                            className="px-4 py-2 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-bold tracking-wide uppercase transition-all shadow-md active:scale-95 flex items-center gap-2"
+                                            className="px-4 py-2 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-bold tracking-wide uppercase transition-all shadow-md active:scale-95"
                                         >
-                                            <Sparkles size={14} /> Importera ProNails-kit
+                                            Importera ProNails-kit
                                         </button>
                                         <a
                                             href="https://pronails.se"
