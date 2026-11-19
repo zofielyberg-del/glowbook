@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Plus, Search, Clock, DollarSign, Edit, Trash2, Camera, Image as ImageIcon, X, Check, Save, RefreshCw, CheckCircle2, XCircle, Package } from "lucide-react";
+import { Plus, Search, Clock, DollarSign, Edit, Trash2, Camera, Image as ImageIcon, X, Check, Save, RefreshCw, CheckCircle2, XCircle, Package, Sparkles } from "lucide-react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
@@ -251,6 +251,69 @@ export default function ServicesPage() {
         }
     };
 
+    const handleImportProNailsKit = async () => {
+        const proNailsItems = [
+            {
+                id: 'pronails-vitamina-' + Date.now(),
+                name: 'ProNails Vitamina Cuticle Oil',
+                brand: 'ProNails',
+                price: 195,
+                stock: 10,
+                category: 'Nagelvård & Eftervård',
+                description: 'Närande nagelbandsolja berikad med mandelolja och vitamin A, C och E för friska nagelband och maximal hållbarhet.',
+                image: 'https://images.unsplash.com/photo-1608248597359-041498263152?auto=format&fit=crop&q=80&w=600',
+                recommendation: 'Köp till ProNails Vitamina för att hålla dina nagelband återfuktade och förlänga resultatet.',
+                ingredients: 'Prunus Amygdalus Dulcis Oil, Triticum Vulgare Germ Oil, Macadamia Integrifolia Seed Oil, Retinyl Palmitate, Tocopherol, Ascorbyl Palmitate.',
+                productUrl: 'https://pronails.se'
+            },
+            {
+                id: 'pronails-anti-age-' + (Date.now() + 1),
+                name: 'ProNails Anti-Age Rich Hand Cream',
+                brand: 'ProNails',
+                price: 249,
+                stock: 8,
+                category: 'Handvård & Eftervård',
+                description: 'Djupt återfuktande handkräm med UV-filter och antioxidanter som skyddar händerna mot förtida åldrande och torrhet.',
+                image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=600',
+                recommendation: 'Perfekt eftervård för silkeslena händer efter din nagelbehandling.',
+                ingredients: 'Aqua, Glycerin, Butyrospermum Parkii Butter, Cetearyl Alcohol, Dimethicone, Ethylhexyl Methoxycinnamate, Tocopheryl Acetate.',
+                productUrl: 'https://pronails.se'
+            }
+        ];
+
+        const existingNames = new Set(products.map(p => (p.name || '').toLowerCase()));
+        const toAdd = proNailsItems.filter(item => !existingNames.has(item.name.toLowerCase()));
+
+        if (toAdd.length === 0) {
+            return;
+        }
+
+        const updated = [...products, ...toAdd];
+        setProducts(updated);
+
+        const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            const next = { ...parsed, products: updated };
+            localStorage.setItem('glowbook_salon', JSON.stringify(next));
+            sessionStorage.setItem('glowbook_salon', JSON.stringify(next));
+            window.dispatchEvent(new Event('glowbook_update'));
+
+            const salonId = parsed.id || parsed.salonId;
+            if (salonId) {
+                try {
+                    await fetch('/api/salons/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: salonId, products: updated })
+                    });
+                } catch (err) {
+                    console.error('Failed to sync ProNails kit to DB:', err);
+                }
+            }
+        }
+    };
+
     const handleSaveProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!productForm.name || !productForm.price) return;
@@ -473,6 +536,12 @@ export default function ServicesPage() {
     const [availableCategories, setAvailableCategories] = useState<string[]>([]);
     const [practitioners, setPractitioners] = useState<any[]>([]);
 
+    const isNailSalon = Boolean(
+        (typeof category === 'string' && /naglar|nagel|nails/i.test(category)) ||
+        (Array.isArray(availableCategories) && availableCategories.some(c => /naglar|nagel|nails/i.test(c))) ||
+        (Array.isArray(services) && services.some(s => /naglar|nagel|gellack|akryl|manikyr/i.test(s.name) || (s.category && /naglar|nagel|nails/i.test(s.category))))
+    );
+
     const [discountType, setDiscountType] = useState<'price' | 'amount' | 'percent'>('amount');
     const [discountValue, setDiscountValue] = useState('');
 
@@ -670,6 +739,45 @@ export default function ServicesPage() {
                                 <Plus size={16} /> Lägg till produkt
                             </button>
                         </div>
+
+                        {/* Exclusive ProNails Section - ONLY visible for Nail Salons */}
+                        {isNailSalon && (
+                            <div className="p-5 sm:p-6 rounded-2xl bg-[#141417] border border-[#C2A26A]/30 space-y-4 shadow-xl relative overflow-hidden">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-[#C2A26A]/15 text-[#DFCA9B] border border-[#C2A26A]/30">
+                                                OFFICIELL PARTNER
+                                            </span>
+                                            <span className="text-[10px] text-neutral-400 font-medium">Endast för nagelsalonger</span>
+                                        </div>
+                                        <h3 className="text-sm sm:text-base font-semibold text-white">
+                                            Erbjud professionell eftervård från ProNails
+                                        </h3>
+                                        <p className="text-xs text-neutral-400 max-w-2xl leading-relaxed">
+                                            Som ansluten nagelsalong på Glowbook kan du sälja rekommenderad eftervård vid tidsbokning. Importera ProNails officiella eftervårdskit direkt eller verifiera ditt B2B-konto för grossistpriser.
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={handleImportProNailsKit}
+                                            className="px-4 py-2 rounded-xl bg-[#C2A26A] hover:bg-[#DFCA9B] text-[#0B0B0C] text-xs font-bold tracking-wide uppercase transition-all shadow-md active:scale-95 flex items-center gap-2"
+                                        >
+                                            <Sparkles size={14} /> Importera ProNails-kit
+                                        </button>
+                                        <a
+                                            href="https://pronails.se"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] text-xs font-semibold tracking-wide uppercase transition-all flex items-center gap-1.5"
+                                        >
+                                            <span>Verifiera B2B-konto ↗</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {products.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
