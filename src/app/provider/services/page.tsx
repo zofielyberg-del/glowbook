@@ -258,7 +258,7 @@ export default function ServicesPage() {
                 name: 'ProNails Vitamina Cuticle Oil',
                 brand: 'ProNails',
                 price: 195,
-                stock: 10,
+                stock: 0,
                 category: 'Nagelvård & Eftervård',
                 description: 'Närande nagelbandsolja berikad med mandelolja och vitamin A, C och E för friska nagelband och maximal hållbarhet.',
                 image: 'https://images.unsplash.com/photo-1608248597359-041498263152?auto=format&fit=crop&q=80&w=600',
@@ -271,7 +271,7 @@ export default function ServicesPage() {
                 name: 'ProNails Anti-Age Rich Hand Cream',
                 brand: 'ProNails',
                 price: 249,
-                stock: 8,
+                stock: 0,
                 category: 'Handvård & Eftervård',
                 description: 'Djupt återfuktande handkräm med UV-filter och antioxidanter som skyddar händerna mot förtida åldrande och torrhet.',
                 image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=600',
@@ -755,7 +755,7 @@ export default function ServicesPage() {
                                             Erbjud professionell eftervård från ProNails
                                         </h3>
                                         <p className="text-xs text-neutral-400 max-w-2xl leading-relaxed">
-                                            Som ansluten nagelsalong på Glowbook kan du sälja rekommenderad eftervård vid tidsbokning. Importera ProNails officiella eftervårdskit direkt eller verifiera ditt B2B-konto för grossistpriser.
+                                            Som ansluten nagelsalong på Glowbook kan du erbjuda professionell eftervård vid tidsbokning. Skapa eller logga in på ProNails för att beställa hem produkter till grossistpris, och importera produktmallarna till salongen med ett klick.
                                         </p>
                                     </div>
                                     <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
@@ -772,7 +772,7 @@ export default function ServicesPage() {
                                             rel="noopener noreferrer"
                                             className="px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white border border-white/[0.08] text-xs font-semibold tracking-wide uppercase transition-all flex items-center gap-1.5"
                                         >
-                                            <span>Verifiera B2B-konto ↗</span>
+                                            <span>Skapa/logga in på ProNails ↗</span>
                                         </a>
                                     </div>
                                 </div>
