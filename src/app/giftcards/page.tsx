@@ -105,8 +105,8 @@ export default function GiftCardsPage() {
     // Gift Card Purchase Processor
     const handlePurchase = async () => {
         const finalAmount = Number(selectedValue);
-        if (!finalAmount || isNaN(finalAmount) || finalAmount < 50) {
-            alert('Vänligen ange ett giltigt belopp på minst 50 ' + currency + '.');
+        if (!finalAmount || isNaN(finalAmount) || finalAmount <= 0) {
+            alert('Vänligen ange ett giltigt belopp.');
             return;
         }
 
@@ -398,10 +398,10 @@ export default function GiftCardsPage() {
                                                 <div className="relative">
                                                     <input
                                                         type="number"
-                                                        min="50"
+                                                        min="1"
                                                         max="50000"
-                                                        step="10"
-                                                        placeholder="T.ex. 750, 1500 eller 2500..."
+                                                        step="1"
+                                                        placeholder="T.ex. 10, 500, 1500..."
                                                         value={customValueInput}
                                                         onChange={(e) => {
                                                             const raw = e.target.value;
@@ -418,7 +418,6 @@ export default function GiftCardsPage() {
                                                         {currency}
                                                     </span>
                                                 </div>
-                                                <p className="text-[10px] text-foreground/40 ml-1">Minsta belopp är 50 {currency}.</p>
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
