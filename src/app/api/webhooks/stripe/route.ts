@@ -184,6 +184,7 @@ export async function POST(req: Request) {
                             is_rewards_enabled: true,
                             message_templates: true,
                             cancellation_window_hours: true,
+                            stripe_account_id: true,
                             owner: {
                                 select: { email: true }
                             }
@@ -312,6 +313,29 @@ export async function POST(req: Request) {
                             gcRes.updated.code,
                             gcRes.next
                         );
+                    }
+
+                    // Transfer the gift card redeemed portion to the salon's connected Stripe account
+                    if (gcRes && gcRes.deduct > 0 && appointment.salon?.stripe_account_id) {
+                        try {
+                            const transferAmountOre = Math.round(Number(gcRes.deduct) * 100);
+                            const isoCurrency = (session.currency || 'sek').toLowerCase();
+                            const transfer = await stripe.transfers.create({
+                                amount: transferAmountOre,
+                                currency: isoCurrency,
+                                destination: appointment.salon.stripe_account_id,
+                                description: `Glowbook Presentkort (delbetalning): ${appointment.service_name || 'Bokning'} (${appointment.id})`,
+                                metadata: {
+                                    appointmentId: appointment.id,
+                                    giftCardCode: gcRes.updated.code,
+                                    salonId: appointment.salon?.id || '',
+                                    customerEmail: appointment.customer_email || ''
+                                }
+                            });
+                            console.log(`[Webhook Stripe Transfer] Transferred gift card portion ${gcRes.deduct} ${isoCurrency.toUpperCase()} to salon ${appointment.salon.stripe_account_id}. Transfer ID: ${transfer.id}`);
+                        } catch (transferErr: any) {
+                            console.error('[Webhook Stripe Transfer] Failed to transfer gift card portion to salon:', transferErr?.message || transferErr);
+                        }
                     }
                 } catch (gcErr) {
                     console.error('[Webhook] Failed deducting giftcard balance:', gcErr);

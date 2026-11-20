@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { sendCustomerBookingConfirmation, sendProviderBookingNotification, sendGiftCardUsageEmail } from '@/lib/email';
 import { emitAvailabilityUpdate } from '@/lib/realtime';
 import { getStockholmDate } from '@/lib/date';
+import { stripe } from '@/lib/stripe';
 
 
 export async function POST(req: Request) {
@@ -162,6 +163,7 @@ export async function POST(req: Request) {
         let messageTemplates: any = null;
         let isRewardsEnabled = false;
         let cancellationWindowHours = 24;
+        let stripeAccountId: string | null = null;
         if (sid) {
             try {
                 const salonDetails = await prisma.salon.findUnique({
@@ -171,6 +173,7 @@ export async function POST(req: Request) {
                         is_rewards_enabled: true,
                         message_templates: true,
                         cancellation_window_hours: true,
+                        stripe_account_id: true,
                         owner: {
                             select: { email: true }
                         }
@@ -181,6 +184,7 @@ export async function POST(req: Request) {
                     providerEmail = salonDetails.owner?.email || '';
                     isRewardsEnabled = !!salonDetails.is_rewards_enabled;
                     cancellationWindowHours = salonDetails.cancellation_window_hours ?? 24;
+                    stripeAccountId = salonDetails.stripe_account_id || null;
                     if (salonDetails.message_templates) {
                         messageTemplates = typeof salonDetails.message_templates === 'string'
                             ? JSON.parse(salonDetails.message_templates)
@@ -439,6 +443,29 @@ export async function POST(req: Request) {
                     );
                 } catch (gcMailErr) {
                     console.error('[Confirm] Failed sending gift card usage email:', gcMailErr);
+                }
+            }
+
+            // Transfer redeemed gift card funds directly from Glowbook platform balance to salon connected Stripe account
+            if (redeemedGiftCard && redeemedGiftCard.amount > 0 && stripeAccountId) {
+                try {
+                    const transferAmountOre = Math.round(Number(redeemedGiftCard.amount) * 100);
+                    const transfer = await stripe.transfers.create({
+                        amount: transferAmountOre,
+                        currency: 'sek',
+                        destination: stripeAccountId,
+                        description: `Glowbook Presentkort: ${serviceName} (${appointment.id})`,
+                        metadata: {
+                            appointmentId: appointment.id,
+                            giftCardCode: redeemedGiftCard.code,
+                            serviceName: serviceName,
+                            salonId: sid || '',
+                            customerEmail: customerInfo.email || ''
+                        }
+                    });
+                    console.log(`[Stripe Transfer] Successfully transferred ${redeemedGiftCard.amount} SEK to salon account ${stripeAccountId}. Transfer ID: ${transfer.id}`);
+                } catch (transferErr: any) {
+                    console.error('[Stripe Transfer] Failed to transfer gift card funds to salon account:', transferErr?.message || transferErr);
                 }
             }
 

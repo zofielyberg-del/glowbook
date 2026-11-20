@@ -2,10 +2,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendGiftCardUsageEmail } from '@/lib/email';
+import { stripe } from '@/lib/stripe';
 
 export async function POST(req: Request) {
     try {
-        const { code, amount, salonName } = await req.json();
+        const { code, amount, salonName, salonId } = await req.json();
 
         const numericAmount = Number(amount);
         if (!code || isNaN(numericAmount) || numericAmount <= 0) {
@@ -65,6 +66,32 @@ export async function POST(req: Request) {
                 );
             } catch (mailError) {
                 console.error('Mail Error sending presentkort usage notice:', mailError);
+            }
+        }
+
+        // 4. Transfer redeemed funds to salon connected Stripe account if salonId is provided
+        if (salonId) {
+            try {
+                const salon = await prisma.salon.findUnique({
+                    where: { id: salonId },
+                    select: { stripe_account_id: true }
+                });
+                if (salon?.stripe_account_id) {
+                    const transferAmountOre = Math.round(numericAmount * 100);
+                    const transfer = await stripe.transfers.create({
+                        amount: transferAmountOre,
+                        currency: 'sek',
+                        destination: salon.stripe_account_id,
+                        description: `Glowbook Presentkort inlösen (${normalizedCode})`,
+                        metadata: {
+                            giftCardCode: normalizedCode,
+                            salonId: salonId
+                        }
+                    });
+                    console.log(`[GiftCard Direct Redeem Transfer] Transferred ${numericAmount} SEK to salon ${salon.stripe_account_id}. Transfer ID: ${transfer.id}`);
+                }
+            } catch (transferErr: any) {
+                console.error('[GiftCard Direct Redeem Transfer Error]:', transferErr?.message || transferErr);
             }
         }
 
