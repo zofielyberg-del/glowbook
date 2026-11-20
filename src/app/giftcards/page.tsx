@@ -34,13 +34,15 @@ export default function GiftCardsPage() {
     const { t, currency } = useLanguage();
     const values = getValuesForCurrency(currency);
     const [selectedValue, setSelectedValue] = useState<number>(() => getValuesForCurrency(currency)[1]);
+    const [isCustomValue, setIsCustomValue] = useState(false);
+    const [customValueInput, setCustomValueInput] = useState('');
 
     useEffect(() => {
         const currentValues = getValuesForCurrency(currency);
-        if (!currentValues.includes(selectedValue)) {
+        if (!isCustomValue && !currentValues.includes(selectedValue)) {
             setSelectedValue(currentValues[1]);
         }
-    }, [currency]);
+    }, [currency, isCustomValue]);
     const [recipient, setRecipient] = useState({ to: '', from: '', email: '', message: '' });
     const [isPurchased, setIsPurchased] = useState(false);
     const [generatedCode, setGeneratedCode] = useState('');
@@ -102,6 +104,12 @@ export default function GiftCardsPage() {
 
     // Gift Card Purchase Processor
     const handlePurchase = async () => {
+        const finalAmount = Number(selectedValue);
+        if (!finalAmount || isNaN(finalAmount) || finalAmount < 50) {
+            alert('Vänligen ange ett giltigt belopp på minst 50 ' + currency + '.');
+            return;
+        }
+
         if (!recipient.email || !recipient.email.includes('@')) {
             alert(t('giftcard_email_placeholder') || 'Vänligen fyll i en giltig e-postadress.');
             return;
@@ -116,7 +124,7 @@ export default function GiftCardsPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    amount: selectedValue,
+                    amount: finalAmount,
                     recipient,
                     currency
                 }),
@@ -332,15 +340,23 @@ export default function GiftCardsPage() {
 
                                 {/* Value Selection */}
                                 <div className="space-y-4">
-                                    <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">{t('giftcard_select_value')}</h3>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">{t('giftcard_select_value')}</h3>
+                                        <span className="text-[11px] text-foreground/40 font-medium">Fast belopp eller valfritt</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                                         {values.map((val) => (
                                             <button
+                                                type="button"
                                                 key={val}
-                                                onClick={() => setSelectedValue(val)}
+                                                onClick={() => {
+                                                    setIsCustomValue(false);
+                                                    setCustomValueInput('');
+                                                    setSelectedValue(val);
+                                                }}
                                                 className={clsx(
                                                     "h-14 rounded-2xl border-2 transition-all duration-300 font-bold text-sm",
-                                                    selectedValue === val
+                                                    !isCustomValue && selectedValue === val
                                                         ? "border-champagne-600 bg-champagne-600 text-white shadow-lg scale-105"
                                                         : "border-border bg-card text-foreground/40 hover:border-champagne-400 hover:text-foreground"
                                                 )}
@@ -348,7 +364,64 @@ export default function GiftCardsPage() {
                                                 {val} {currency}
                                             </button>
                                         ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsCustomValue(true);
+                                                if (customValueInput) {
+                                                    setSelectedValue(Number(customValueInput) || 100);
+                                                }
+                                            }}
+                                            className={clsx(
+                                                "h-14 rounded-2xl border-2 transition-all duration-300 font-bold text-sm col-span-2 sm:col-span-1",
+                                                isCustomValue
+                                                    ? "border-champagne-600 bg-champagne-600 text-white shadow-lg scale-105"
+                                                    : "border-border bg-card text-foreground/40 hover:border-champagne-400 hover:text-foreground"
+                                            )}
+                                        >
+                                            Valfritt
+                                        </button>
                                     </div>
+
+                                    {/* Custom Amount Input Field */}
+                                    <AnimatePresence>
+                                        {isCustomValue && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, y: -8 }}
+                                                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                                exit={{ opacity: 0, height: 0, y: -8 }}
+                                                className="space-y-1.5 pt-2"
+                                            >
+                                                <label className="text-[11px] font-bold text-foreground/50 uppercase tracking-widest ml-1">
+                                                    Ange valfritt belopp ({currency})
+                                                </label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="number"
+                                                        min="50"
+                                                        max="50000"
+                                                        step="10"
+                                                        placeholder="T.ex. 750, 1500 eller 2500..."
+                                                        value={customValueInput}
+                                                        onChange={(e) => {
+                                                            const raw = e.target.value;
+                                                            setCustomValueInput(raw);
+                                                            const num = parseFloat(raw);
+                                                            if (!isNaN(num) && num > 0) {
+                                                                setSelectedValue(num);
+                                                            }
+                                                        }}
+                                                        className="w-full h-14 px-5 rounded-2xl bg-background border border-champagne-500/50 focus:border-champagne-500 focus:outline-none focus:ring-2 focus:ring-champagne-500/20 text-base font-bold text-foreground placeholder:text-foreground/30 transition-all"
+                                                        autoFocus
+                                                    />
+                                                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-bold text-champagne-600 uppercase">
+                                                        {currency}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] text-foreground/40 ml-1">Minsta belopp är 50 {currency}.</p>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
 
                                 {/* Recipient Info */}
