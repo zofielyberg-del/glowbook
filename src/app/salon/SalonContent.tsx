@@ -709,7 +709,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                     date: selectedTime.fullDate,
                     dayIndex: selectedTime.dayIndex,
                     duration: selectedService.duration || 30,
-                    price: finalTotal,
+                    price: originalTotal,
                     customerInfo: {
                         ...customerInfo,
                         isLoggedIn: isCustomerLoggedIn

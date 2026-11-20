@@ -145,7 +145,7 @@ export default function FinancePage() {
     }, [nonCancelled]);
 
     const onlineRevenue = useMemo(() => {
-        return nonCancelled.filter(tr => tr.category === 'online').reduce((sum, tr) => sum + tr.amount, 0);
+        return nonCancelled.filter(tr => tr.category === 'online' || tr.category === 'giftcard').reduce((sum, tr) => sum + tr.amount, 0);
     }, [nonCancelled]);
 
     const onsiteRevenue = useMemo(() => {
@@ -162,7 +162,7 @@ export default function FinancePage() {
 
     // Filtered transaction list
     const filteredTransactions = useMemo(() => {
-        if (filter === 'online') return transactions.filter(t => t.category === 'online');
+        if (filter === 'online') return transactions.filter(t => t.category === 'online' || t.category === 'giftcard');
         if (filter === 'onsite') return transactions.filter(t => t.category === 'onsite');
         if (filter === 'products') return transactions.filter(t => t.isProduct);
         return transactions;
@@ -344,7 +344,7 @@ export default function FinancePage() {
                                         : "bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 border border-white/[0.06]"
                                 )}
                             >
-                                Stripe & Klarna ({transactions.filter(t => t.category === 'online').length})
+                                Online & Presentkort ({transactions.filter(t => t.category === 'online' || t.category === 'giftcard').length})
                             </button>
                             <button
                                 onClick={() => setFilter('onsite')}
@@ -417,7 +417,9 @@ export default function FinancePage() {
                                                     "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border",
                                                     tr.category === 'online'
                                                         ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                                        : "bg-white/[0.04] text-[#DFCA9B] border-white/[0.08]"
+                                                        : tr.category === 'giftcard'
+                                                            ? "bg-[#C2A26A]/15 text-[#DFCA9B] border-[#C2A26A]/30"
+                                                            : "bg-white/[0.04] text-[#DFCA9B] border-white/[0.08]"
                                                 )}>
                                                     <CreditCard size={11} className="shrink-0" />
                                                     {tr.method}

@@ -464,8 +464,17 @@ export async function POST(req: Request) {
                         }
                     });
                     console.log(`[Stripe Transfer] Successfully transferred ${redeemedGiftCard.amount} SEK to salon account ${stripeAccountId}. Transfer ID: ${transfer.id}`);
+                    await prisma.appointment.update({
+                        where: { id: appointment.id },
+                        data: { payment_id: transfer.id }
+                    });
                 } catch (transferErr: any) {
-                    console.error('[Stripe Transfer] Failed to transfer gift card funds to salon account:', transferErr?.message || transferErr);
+                    const errMsg = transferErr?.message || String(transferErr);
+                    console.error('[Stripe Transfer Failed]:', errMsg);
+                    await prisma.appointment.update({
+                        where: { id: appointment.id },
+                        data: { payment_id: `transfer_error: ${errMsg.slice(0, 150)}` }
+                    });
                 }
             }
 
