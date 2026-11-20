@@ -161,6 +161,7 @@ export async function POST(req: Request) {
         let providerEmail = '';
         let messageTemplates: any = null;
         let isRewardsEnabled = false;
+        let cancellationWindowHours = 24;
         if (sid) {
             try {
                 const salonDetails = await prisma.salon.findUnique({
@@ -169,6 +170,7 @@ export async function POST(req: Request) {
                         name: true,
                         is_rewards_enabled: true,
                         message_templates: true,
+                        cancellation_window_hours: true,
                         owner: {
                             select: { email: true }
                         }
@@ -178,6 +180,7 @@ export async function POST(req: Request) {
                     salonName = salonDetails.name;
                     providerEmail = salonDetails.owner?.email || '';
                     isRewardsEnabled = !!salonDetails.is_rewards_enabled;
+                    cancellationWindowHours = salonDetails.cancellation_window_hours ?? 24;
                     if (salonDetails.message_templates) {
                         messageTemplates = typeof salonDetails.message_templates === 'string'
                             ? JSON.parse(salonDetails.message_templates)
@@ -503,7 +506,8 @@ export async function POST(req: Request) {
                             pointsEarned,
                             isRegistered: isCustomerRegistered,
                             salonHasRewards: isRewardsEnabled
-                        }
+                        },
+                        cancellationWindowHours
                     );
                 }
             } catch (customerEmailErr) {

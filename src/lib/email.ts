@@ -311,7 +311,8 @@ export const sendCustomerBookingConfirmation = async (
     priceStr: string,
     appointmentId?: string,
     messageTemplates?: { directions?: string; policy?: string; preparation?: string },
-    loyaltyInfo?: { pointsEarned: number; isRegistered: boolean; salonHasRewards: boolean }
+    loyaltyInfo?: { pointsEarned: number; isRegistered: boolean; salonHasRewards: boolean },
+    cancellationWindowHours: number = 24
 ) => {
     const htmlContent = `
         <h1 style="font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;color:#1A1918;margin:0 0 24px 0;letter-spacing:-0.5px;">Bokningsbekräftelse</h1>
@@ -321,10 +322,10 @@ export const sendCustomerBookingConfirmation = async (
         <div style="background:#F3F1ED;border:1px solid #E5E4DE;border-radius:16px;padding:28px;margin:0 0 32px;">
             <h3 style="font-size:12px;color:#C2A26A;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px;border-bottom:1px solid #E5E4DE;padding-bottom:12px;">Din bokning</h3>
             
-            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">📅</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Datum:</strong> ${dateStr}</p>
-            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">🕒</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Tid:</strong> ${timeStr}</p>
-            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">📍</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Plats:</strong> ${salonName}</p>
-            <p style="color:#1A1918;font-size:15px;margin:0 0 0 0;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;width:24px;">💅</span> <strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Behandling:</strong> ${serviceName}</p>
+            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Datum:</strong> ${dateStr}</p>
+            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Tid:</strong> ${timeStr}</p>
+            <p style="color:#1A1918;font-size:15px;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;"><strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Plats:</strong> ${salonName}</p>
+            <p style="color:#1A1918;font-size:15px;margin:0 0 0 0;font-family:Arial,Helvetica,sans-serif;"><strong style="color:#6B6965;font-weight:normal;margin-right:8px;">Behandling:</strong> ${serviceName}</p>
         </div>
 
         ${messageTemplates?.directions || messageTemplates?.preparation || messageTemplates?.policy ? `
@@ -357,7 +358,7 @@ export const sendCustomerBookingConfirmation = async (
         ${!loyaltyInfo?.isRegistered ? (
             loyaltyInfo?.pointsEarned && loyaltyInfo.pointsEarned > 0 ? `
             <div style="background-color: #161514 !important; background: #161514 !important; border: 1px solid #C2A26A !important; border-radius: 16px !important; padding: 26px 24px !important; margin: 0 0 32px 0 !important; text-align: center !important;">
-                <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 8px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">🎉 Lojalitetsbelöning</p>
+                <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 8px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Lojalitetsbelöning</p>
                 <h4 style="font-size: 20px !important; font-weight: 700 !important; margin: 0 0 8px 0 !important; color: #FFFFFF !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Du tjänade just ${loyaltyInfo.pointsEarned} Glowpoints!</h4>
                 <p style="font-size: 14px !important; color: #E8E6E1 !important; margin: 0 0 20px 0 !important; line-height: 1.6 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Klicka på knappen nedan för att välja ett lösenord och aktivera ditt konto så att dina poäng låses upp och kan användas som direkt rabatt vid nästa besök hos <strong style="color: #C2A26A !important; font-weight: 700 !important;">${salonName}</strong>.</p>
                 <a href="https://glowbook.se/auth/register?email=${encodeURIComponent(email)}&name=${encodeURIComponent(customerName)}" style="display: inline-block !important; background-color: #C2A26A !important; color: #111112 !important; font-weight: 800 !important; font-size: 13px !important; text-transform: uppercase !important; letter-spacing: 1px !important; padding: 14px 28px !important; border-radius: 9999px !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Välj lösenord & aktivera konto</a>
@@ -365,7 +366,7 @@ export const sendCustomerBookingConfirmation = async (
             </div>
             ` : `
             <div style="background-color: #161514 !important; background: #161514 !important; border: 1px solid #C2A26A !important; border-radius: 16px !important; padding: 26px 24px !important; margin: 0 0 32px 0 !important; text-align: center !important;">
-                <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 8px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">✨ Aktivera ditt konto</p>
+                <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 8px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Aktivera ditt konto</p>
                 <h4 style="font-size: 20px !important; font-weight: 700 !important; margin: 0 0 8px 0 !important; color: #FFFFFF !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Välj ett lösenord för att spara dina bokningar</h4>
                 <p style="font-size: 14px !important; color: #E8E6E1 !important; margin: 0 0 20px 0 !important; line-height: 1.6 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Klicka på knappen nedan för att välja ett lösenord och aktivera ditt medlemskonto. Då kan du hålla koll på dina tider, boka om snabbt och samla lojalitetsförmåner hos <strong style="color: #C2A26A !important; font-weight: 700 !important;">${salonName}</strong>.</p>
                 <a href="https://glowbook.se/auth/register?email=${encodeURIComponent(email)}&name=${encodeURIComponent(customerName)}" style="display: inline-block !important; background-color: #C2A26A !important; color: #111112 !important; font-weight: 800 !important; font-size: 13px !important; text-transform: uppercase !important; letter-spacing: 1px !important; padding: 14px 28px !important; border-radius: 9999px !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Välj lösenord & aktivera konto</a>
@@ -375,7 +376,7 @@ export const sendCustomerBookingConfirmation = async (
         ) : (
             loyaltyInfo?.pointsEarned && loyaltyInfo.pointsEarned > 0 ? `
             <div style="background-color: #161514 !important; background: #161514 !important; border: 1px solid #C2A26A !important; border-radius: 16px !important; padding: 24px 24px !important; margin: 0 0 32px 0 !important; text-align: center !important;">
-                <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 6px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">✨ Glowpoints Intjänade</p>
+                <p style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: #C2A26A !important; margin: 0 0 6px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Glowpoints Intjänade</p>
                 <h4 style="font-size: 20px !important; font-weight: 700 !important; margin: 0 0 8px 0 !important; color: #FFFFFF !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">+${loyaltyInfo.pointsEarned} poäng har registrerats på ditt konto!</h4>
                 <p style="font-size: 14px !important; color: #E8E6E1 !important; margin: 0 0 20px 0 !important; line-height: 1.6 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Poängen har sparats på ditt Glowbook-konto och är giltiga i 24 månader för exklusiva rabatter hos <strong style="color: #C2A26A !important; font-weight: 700 !important;">${salonName}</strong>.</p>
                 <a href="https://glowbook.se/profile" style="display: inline-block !important; background-color: #C2A26A !important; color: #111112 !important; font-weight: 800 !important; font-size: 13px !important; text-transform: uppercase !important; letter-spacing: 1px !important; padding: 14px 28px !important; border-radius: 9999px !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Se dina poäng & belöningar</a>
@@ -384,19 +385,20 @@ export const sendCustomerBookingConfirmation = async (
             ` : ''
         )}
         
-        <p style="color:#2D2B2A;margin:0 0 24px 0;font-size:15px;font-family:Arial,Helvetica,sans-serif;">Vi ser fram emot att välkomna dig ✨</p>
+        <p style="color:#2D2B2A;margin:0 0 24px 0;font-size:15px;font-family:Arial,Helvetica,sans-serif;">Vi ser fram emot att välkomna dig.</p>
         
         <p style="color:#6B6965;margin:0;font-size:15px;font-family:Arial,Helvetica,sans-serif;">Med vänliga hälsningar,<br/><strong style="color:#1A1918;">${salonName}</strong></p>
 
         ${appointmentId ? `
         <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #E5E4DE; text-align: center;">
             <a href="https://glowbook.se/booking/manage/${appointmentId}" style="display:inline-block;background-color:#C2A26A;color:#FFFFFF;padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-family:Arial,Helvetica,sans-serif;">Hantera eller Avboka din tid</a>
+            <p style="font-size: 11px; color: #8A8780; margin: 10px 0 0 0; font-family:Arial,Helvetica,sans-serif;">Avbokningspolicy: Fri avbokning online fram till senast ${cancellationWindowHours || 24} timmar innan besöket.</p>
         </div>
         ` : ''}
     `;
 
     const subject = loyaltyInfo?.salonHasRewards && loyaltyInfo?.pointsEarned > 0
-        ? `Din bokning hos ${salonName} är bekräftad (+${loyaltyInfo.pointsEarned} Glowpoints ✨)`
+        ? `Din bokning hos ${salonName} är bekräftad (+${loyaltyInfo.pointsEarned} Glowpoints)`
         : `Din bokning hos ${salonName} är bekräftad`;
 
     return await sendWithFallback({

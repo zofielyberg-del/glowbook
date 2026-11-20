@@ -183,6 +183,7 @@ export async function POST(req: Request) {
                             name: true,
                             is_rewards_enabled: true,
                             message_templates: true,
+                            cancellation_window_hours: true,
                             owner: {
                                 select: { email: true }
                             }
@@ -254,7 +255,8 @@ export async function POST(req: Request) {
                                 pointsEarned: points,
                                 isRegistered: isCustomerRegistered,
                                 salonHasRewards: !!appointment.salon?.is_rewards_enabled
-                            }
+                            },
+                            appointment.salon?.cancellation_window_hours ?? 24
                         );
                         console.log(`[Webhook] Booking confirmation email sent to customer: ${appointment.customer_email}`);
                     } catch (err) {

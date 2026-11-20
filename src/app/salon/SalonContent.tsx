@@ -2426,8 +2426,8 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                 </span>
                                                             </label>
                                                             <div className="p-3 rounded-2xl bg-foreground/[0.03] border border-border/40 text-[10px] text-foreground/60 leading-relaxed">
-                                                                <strong className="text-foreground/80 font-semibold block mb-0.5">Avbokningspolicy:</strong>
-                                                                Fri avbokning senast 24 timmar innan bokad tid. Vid sen avbokning eller uteblivet besök (no-show) har salongen laglig rätt att debitera behandlingsbeloppet i enlighet med gällande distansavtalslagstiftning.
+                                                                <strong className="text-foreground/80 font-semibold block mb-0.5">Avbokningspolicy (senast {salon?.cancellation_window_hours ?? 24}h innan):</strong>
+                                                                Fri avbokning senast {salon?.cancellation_window_hours ?? 24} timmar innan bokad tid. Vid sen avbokning (mindre än {salon?.cancellation_window_hours ?? 24}h kvar) eller uteblivet besök har salongen rätt att debitera behandlingsbeloppet i enlighet med gällande distansavtalslagstiftning.
                                                             </div>
                                                         </div>
 
@@ -2554,6 +2554,17 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                             </span>
                                         </div>
                                     </div>
+
+                                    <div className="w-full max-w-md p-3.5 rounded-2xl bg-foreground/[0.03] border border-border/40 text-left space-y-1">
+                                        <div className="flex items-center justify-between text-xs font-semibold text-foreground/80">
+                                            <span>Avbokningspolicy</span>
+                                            <span className="text-champagne-600 font-bold">{salon?.cancellation_window_hours ?? 24} timmar</span>
+                                        </div>
+                                        <p className="text-[11px] text-foreground/50 leading-relaxed">
+                                            Fri avbokning senast {salon?.cancellation_window_hours ?? 24}h innan via länken i ditt bekräftelsemejl.
+                                        </p>
+                                    </div>
+
                                     <div className="flex items-center gap-2 text-[10px] text-foreground/30">
                                         <Check size={12} className="text-green-500" />
                                         Bekräftelse skickad via noreply@glowbook.se
