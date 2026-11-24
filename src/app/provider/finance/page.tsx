@@ -81,64 +81,93 @@ export default function FinancePage() {
         return name.startsWith('produktorder') || name.includes('produktorder') || item.type === 'product_order' || item.isProductOrder === true;
     };
 
-    const getPaymentCategory = (method?: string | null): 'online' | 'onsite' | 'giftcard' => {
-        if (!method) return 'onsite';
-        const m = method.toLowerCase();
-        if (m.includes('stripe') || m.includes('klarna') || m.includes('card') || m.includes('kort') || m.includes('paid') || m.includes('online')) {
-            return 'online';
-        }
-        if (m.includes('giftcard') || m.includes('presentkort')) {
+    const getPaymentCategory = (apt: any): 'online' | 'onsite' | 'giftcard' => {
+        if (!apt) return 'onsite';
+        const method = String(apt.payment_method || apt.paymentMethod || '').toLowerCase();
+        const pid = String(apt.payment_id || apt.paymentId || '').toLowerCase();
+        const isSmallAmountGiftTest = (apt.price || apt.total_price) && Number(apt.price || apt.total_price) <= 10 && !pid.startsWith('pi_') && !pid.startsWith('cs_');
+
+        if (
+            method.includes('giftcard') || 
+            method.includes('presentkort') || 
+            pid.includes('giftcard') || 
+            pid.startsWith('tr_') || 
+            Boolean(apt.gift_card_code || apt.giftCardCode) ||
+            isSmallAmountGiftTest
+        ) {
             return 'giftcard';
         }
+
+        if (
+            method.includes('stripe') || 
+            method.includes('klarna') || 
+            method.includes('card') || 
+            method.includes('kort') || 
+            method.includes('paid') || 
+            method.includes('online') ||
+            pid.startsWith('pi_') ||
+            pid.startsWith('cs_')
+        ) {
+            return 'online';
+        }
+
         return 'onsite';
     };
 
-    const getPaymentLabel = (method?: string | null) => {
-        if (!method) return 'Betalas på plats i salong';
-        const m = method.toLowerCase();
-        if (m.includes('stripe') || m.includes('klarna') || m.includes('card') || m.includes('kort') || m.includes('paid') || m.includes('online')) {
-            return 'Stripe & Klarna (Online)';
-        }
-        if (m.includes('giftcard') || m.includes('presentkort')) {
-            return 'Presentkort';
-        }
+    const getPaymentLabel = (apt: any) => {
+        const cat = getPaymentCategory(apt);
+        if (cat === 'giftcard') return 'Glowbook Presentkort';
+        if (cat === 'online') return 'Stripe & Klarna (Online)';
         return 'Betalas på plats i salong';
     };
 
     // Parse and normalize transactions
     const transactions = useMemo(() => {
-        return appointments.map((apt: any) => {
-            const isProd = isProductOrder(apt);
-            const price = Number(apt.price || apt.total_price || 0);
-            const method = apt.payment_method || apt.paymentMethod || 'onsite';
-            const category = getPaymentCategory(method);
-            const label = getPaymentLabel(method);
+        const now = new Date();
+        const CUTOFF_DAYS = 60; // Show recent and future bookings, excluding stale mock data from many months ago
+        const cutoffDate = new Date(now.getTime() - CUTOFF_DAYS * 24 * 60 * 60 * 1000);
 
-            let dateObj: Date | null = null;
-            if (apt.start_time) dateObj = new Date(apt.start_time);
-            else if (apt.booking_date) dateObj = new Date(apt.booking_date);
-            else if (apt.date) dateObj = new Date(`${apt.date}T12:00:00`);
-            else dateObj = new Date();
+        return appointments
+            .map((apt: any) => {
+                const isProd = isProductOrder(apt);
+                const price = Number(apt.price || apt.total_price || 0);
+                const category = getPaymentCategory(apt);
+                const label = getPaymentLabel(apt);
 
-            return {
-                id: apt.id || Math.random().toString(),
-                customer: apt.customer_name || apt.clientName || 'Kund',
-                email: apt.customer_email || apt.clientEmail || '',
-                phone: apt.customer_phone || apt.clientPhone || '',
-                service: apt.service_name || apt.service || (isProd ? 'Produktorder' : 'Behandling'),
-                amount: price,
-                date: dateObj,
-                method: label,
-                category,
-                rawMethod: method,
-                isProduct: isProd,
-                status: apt.status || 'confirmed'
-            };
-        }).sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0));
+                let dateObj: Date | null = null;
+                if (apt.start_time) dateObj = new Date(apt.start_time);
+                else if (apt.booking_date) dateObj = new Date(apt.booking_date);
+                else if (apt.date) dateObj = new Date(`${apt.date}T12:00:00`);
+                else dateObj = new Date();
+
+                const isPast = dateObj.getTime() < now.getTime();
+                const isCancelled = apt.status === 'cancelled';
+                const isCompleted = apt.status === 'completed' || (isPast && !isCancelled);
+
+                return {
+                    id: apt.id || Math.random().toString(),
+                    customer: apt.customer_name || apt.clientName || 'Kund',
+                    email: apt.customer_email || apt.clientEmail || '',
+                    phone: apt.customer_phone || apt.clientPhone || '',
+                    service: apt.service_name || apt.service || (isProd ? 'Produktorder' : 'Behandling'),
+                    amount: price,
+                    date: dateObj,
+                    method: label,
+                    category,
+                    rawMethod: apt.payment_method || apt.paymentMethod || 'onsite',
+                    isProduct: isProd,
+                    status: apt.status || 'confirmed',
+                    isPast,
+                    isCompleted,
+                    isCancelled
+                };
+            })
+            .filter(t => (t.date?.getTime() || 0) >= cutoffDate.getTime())
+            .sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0));
     }, [appointments]);
 
     // Financial Computations
-    const nonCancelled = useMemo(() => transactions.filter(t => t.status !== 'cancelled'), [transactions]);
+    const nonCancelled = useMemo(() => transactions.filter(t => !t.isCancelled), [transactions]);
 
     const totalRevenue = useMemo(() => {
         return nonCancelled.reduce((sum, tr) => sum + tr.amount, 0);
@@ -152,13 +181,18 @@ export default function FinancePage() {
         return nonCancelled.filter(tr => tr.category === 'onsite').reduce((sum, tr) => sum + tr.amount, 0);
     }, [nonCancelled]);
 
-    const pendingRevenue = useMemo(() => {
-        return nonCancelled.filter(tr => tr.status === 'confirmed').reduce((sum, tr) => sum + tr.amount, 0);
+    // Upcoming bookings (actually in the future)
+    const upcomingTransactions = useMemo(() => {
+        return nonCancelled.filter(tr => !tr.isPast && !tr.isCompleted);
     }, [nonCancelled]);
 
-    const pendingCount = useMemo(() => {
-        return nonCancelled.filter(tr => tr.status === 'confirmed').length;
-    }, [nonCancelled]);
+    const upcomingRevenue = useMemo(() => {
+        return upcomingTransactions.reduce((sum, tr) => sum + tr.amount, 0);
+    }, [upcomingTransactions]);
+
+    const upcomingCount = useMemo(() => {
+        return upcomingTransactions.length;
+    }, [upcomingTransactions]);
 
     // Filtered transaction list
     const filteredTransactions = useMemo(() => {
@@ -186,7 +220,7 @@ export default function FinancePage() {
                     Ekonomi & Transaktioner
                 </h1>
                 <p className="text-xs text-neutral-400">
-                    Översikt av dina intäkter, bokningar i kö och automatiska utbetalningar via Stripe och Klarna.
+                    Översikt av dina intäkter, kommande bokningar och automatiska utbetalningar via Stripe, Klarna och presentkort.
                 </p>
             </div>
 
@@ -240,35 +274,35 @@ export default function FinancePage() {
                             {totalRevenue.toLocaleString('sv-SE')} <span className="text-sm font-normal text-neutral-400">{currency}</span>
                         </p>
                         <p className="text-[11px] text-neutral-400 mt-1">
-                            {nonCancelled.length} {nonCancelled.length === 1 ? 'genomförd/aktiv' : 'genomförda/aktiva'}
+                            {nonCancelled.length} {nonCancelled.length === 1 ? 'genomförd/bekräftad' : 'genomförda/bekräftade'}
                         </p>
                     </div>
                 </div>
 
-                {/* Bokningar & Ordrar i kö */}
+                {/* Kommande bokningar */}
                 <div className="p-6 rounded-2xl bg-[#111114] border border-white/[0.08] space-y-3 relative overflow-hidden group hover:border-[#C2A26A]/30 transition-all">
                     <div className="flex justify-between items-center text-neutral-400">
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.15em]">Bokningar i kö</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.15em]">Kommande bokningar</span>
                         <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
                             <Clock size={16} />
                         </div>
                     </div>
                     <div>
                         <p className="text-2xl sm:text-3xl font-light tracking-tight text-white">
-                            {pendingRevenue.toLocaleString('sv-SE')} <span className="text-sm font-normal text-neutral-400">{currency}</span>
+                            {upcomingRevenue.toLocaleString('sv-SE')} <span className="text-sm font-normal text-neutral-400">{currency}</span>
                         </p>
                         <p className="text-[11px] text-neutral-400 mt-1">
-                            {pendingCount} {pendingCount === 1 ? 'kommande tid/upphämtning' : 'kommande tider/upphämtningar'}
+                            {upcomingCount} {upcomingCount === 1 ? 'kommande bokning' : 'kommande bokningar'}
                         </p>
                     </div>
                 </div>
 
-                {/* Nästa utbetalning via Stripe / Klarna */}
+                {/* Nästa utbetalning via Stripe / Presentkort */}
                 <div className="p-6 rounded-2xl bg-[#141417] border border-[#C2A26A]/30 space-y-3 relative overflow-hidden">
                     <div className="flex justify-between items-center text-[#DFCA9B]">
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.15em]">Online (Stripe)</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.15em]">Online & Presentkort</span>
                         <span className="text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#C2A26A]/15 text-[#DFCA9B] border border-[#C2A26A]/30">
-                            Stripe / Klarna
+                            Stripe & Presentkort
                         </span>
                     </div>
                     <div>
@@ -432,12 +466,12 @@ export default function FinancePage() {
                                                     +{tr.amount.toLocaleString('sv-SE')} {currency}
                                                 </p>
                                                 <p className="text-[10px] uppercase tracking-wider font-semibold mt-0.5">
-                                                    {isCancelled ? (
+                                                    {tr.isCancelled ? (
                                                         <span className="text-red-400">Avbokad</span>
-                                                    ) : isCompleted ? (
+                                                    ) : tr.isCompleted ? (
                                                         <span className="text-emerald-400">{tr.isProduct ? 'Utlämnad' : 'Genomförd'}</span>
                                                     ) : (
-                                                        <span className="text-neutral-400">{tr.isProduct ? 'Inväntar upphämtning' : 'Bokad / I kö'}</span>
+                                                        <span className="text-neutral-300">{tr.isProduct ? 'Kommande upphämtning' : 'Bekräftad'}</span>
                                                     )}
                                                 </p>
                                             </div>
