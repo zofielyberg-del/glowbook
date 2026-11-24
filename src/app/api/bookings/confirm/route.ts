@@ -164,6 +164,7 @@ export async function POST(req: Request) {
         let isRewardsEnabled = false;
         let cancellationWindowHours = 24;
         let stripeAccountId: string | null = null;
+        let salonTier: string = 'bas';
         if (sid) {
             try {
                 const salonDetails = await prisma.salon.findUnique({
@@ -174,6 +175,7 @@ export async function POST(req: Request) {
                         message_templates: true,
                         cancellation_window_hours: true,
                         stripe_account_id: true,
+                        membership_tier: true,
                         owner: {
                             select: { email: true }
                         }
@@ -185,6 +187,7 @@ export async function POST(req: Request) {
                     isRewardsEnabled = !!salonDetails.is_rewards_enabled;
                     cancellationWindowHours = salonDetails.cancellation_window_hours ?? 24;
                     stripeAccountId = salonDetails.stripe_account_id || null;
+                    salonTier = (salonDetails.membership_tier || 'bas').toLowerCase();
                     if (salonDetails.message_templates) {
                         messageTemplates = typeof salonDetails.message_templates === 'string'
                             ? JSON.parse(salonDetails.message_templates)
@@ -193,6 +196,21 @@ export async function POST(req: Request) {
                 }
             } catch (salonFetchError) {
                 console.error('Error fetching salon details for email notification:', salonFetchError);
+            }
+        }
+
+        // Validate Gift Card eligibility for salon (requires Stripe Connect + Pro/Luxe)
+        const isUsingGiftCard = paymentMethod === 'giftcard' || (giftCardCode && String(giftCardCode).trim().length > 0);
+        if (isUsingGiftCard && sid) {
+            if (!stripeAccountId) {
+                return NextResponse.json({
+                    error: 'Salongen har inte aktiverat Stripe och kan därför inte ta emot presentkort som betalsätt.'
+                }, { status: 400 });
+            }
+            if (!['pro', 'luxe'].includes(salonTier)) {
+                return NextResponse.json({
+                    error: 'Presentkort kan endast användas hos salonger med medlemskap Pro eller Luxe.'
+                }, { status: 400 });
             }
         }
 

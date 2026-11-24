@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Save, Shield, CreditCard, LogOut, ChevronRight, ChevronDown, User, Store, Bell, Check, MapPin, Star, AlertTriangle, Clock, Info, X, Camera, Image as ImageIcon, Sparkles, MessageSquare, ClipboardList, Users, Upload, ExternalLink, Plus, CheckCircle2, XCircle, Instagram, ArrowRight, Trash2, Wallet, Lock, RefreshCw } from "lucide-react";
+import { Save, Shield, CreditCard, LogOut, ChevronRight, ChevronDown, User, Store, Bell, Check, MapPin, Star, AlertTriangle, Clock, Info, X, Camera, Image as ImageIcon, Sparkles, MessageSquare, ClipboardList, Users, Upload, ExternalLink, Plus, CheckCircle2, XCircle, Instagram, ArrowRight, Trash2, Wallet, Lock, RefreshCw, Gift } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import WeeklyScheduleGrid from "@/components/schedule/WeeklyScheduleGrid";
@@ -2805,18 +2805,92 @@ function SettingsContent() {
                                             </div>
                                             <h3 className="font-bold text-base text-foreground">Betalmetoder</h3>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {['Kortbetalning', 'Klarna', 'Swish', 'Presentkort'].map(method => (
-                                                <div key={method} className="flex items-center gap-2 text-xs font-bold text-foreground/80">
-                                                    <div className="w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                                                        <Check size={10} />
-                                                    </div>
-                                                    {method}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-foreground/80">
+                                                <div className={clsx("w-4 h-4 rounded-full flex items-center justify-center", salonData.stripeConnected ? "bg-emerald-500/10 text-emerald-500" : "bg-foreground/10 text-foreground/40")}>
+                                                    <Check size={10} />
                                                 </div>
-                                            ))}
+                                                <span>Kortbetalning</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs font-bold text-foreground/80">
+                                                <div className={clsx("w-4 h-4 rounded-full flex items-center justify-center", salonData.stripeConnected ? "bg-emerald-500/10 text-emerald-500" : "bg-foreground/10 text-foreground/40")}>
+                                                    <Check size={10} />
+                                                </div>
+                                                <span>Klarna</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs font-bold text-foreground/80">
+                                                <div className="w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                                                    <Check size={10} />
+                                                </div>
+                                                <span>På plats</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs font-bold text-foreground/80">
+                                                <div className={clsx("w-4 h-4 rounded-full flex items-center justify-center", (salonData.stripeConnected && ['pro', 'luxe'].includes((salonData.tier || '').toLowerCase())) ? "bg-champagne-500/20 text-champagne-600" : "bg-foreground/10 text-foreground/40")}>
+                                                    <Check size={10} />
+                                                </div>
+                                                <span>Presentkort (Add-on)</span>
+                                            </div>
                                         </div>
                                     </section>
                                 </div>
+
+                                {/* Presentkort Add-on Status Card */}
+                                {(() => {
+                                    const isGcActive = salonData.stripeConnected && ['pro', 'luxe'].includes((salonData.tier || '').toLowerCase());
+                                    const isBas = (salonData.tier || '').toLowerCase() === 'bas';
+
+                                    if (isGcActive) {
+                                        return (
+                                            <section className="bg-champagne-500/10 p-8 rounded-3xl border border-champagne-500/30 flex flex-col md:flex-row gap-5 items-start md:items-center justify-between shadow-sm">
+                                                <div className="flex gap-4 items-start">
+                                                    <div className="w-12 h-12 rounded-2xl bg-champagne-500 text-white flex items-center justify-center shrink-0 shadow-md">
+                                                        <Gift size={24} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className="text-sm font-bold text-foreground">Glowbook Presentkort är aktiverat</h4>
+                                                            <span className="text-[10px] bg-champagne-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider">Aktivt add-on</span>
+                                                        </div>
+                                                        <p className="text-xs text-foreground/80 leading-relaxed max-w-2xl">
+                                                            Kunder kan lösa in Glowbook Presentkort vid bokning hos din salong. När ett presentkort används överförs 100% av beloppet direkt till ditt Stripe-konto utan transaktionsavgift.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </section>
+                                        );
+                                    }
+
+                                    return (
+                                        <section className="bg-card p-8 rounded-3xl border border-border shadow-sm flex flex-col md:flex-row gap-5 items-start md:items-center justify-between">
+                                            <div className="flex gap-4 items-start">
+                                                <div className="w-12 h-12 rounded-2xl bg-foreground/5 text-foreground/40 flex items-center justify-center shrink-0">
+                                                    <Gift size={24} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="text-sm font-bold text-foreground">Glowbook Presentkort (Tillägg)</h4>
+                                                        <span className="text-[10px] bg-foreground/10 text-foreground/60 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">Ej aktiverat</span>
+                                                    </div>
+                                                    <p className="text-xs text-foreground/70 leading-relaxed max-w-2xl">
+                                                        {!salonData.stripeConnected && isBas
+                                                            ? 'För att erbjuda presentkort som betalsätt behöver du ansluta Stripe Connect och uppgradera till Pro eller Luxe.'
+                                                            : !salonData.stripeConnected
+                                                            ? 'För att erbjuda presentkort som betalsätt behöver du ansluta ditt Stripe-konto ovan.'
+                                                            : 'Presentkort är ett exklusivt tillägg för Pro och Luxe. Uppgradera ditt medlemskap för att ta emot presentkort från dina kunder.'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {isBas && (
+                                                <button
+                                                    onClick={() => setActiveTab('membership')}
+                                                    className="px-5 py-3 rounded-2xl bg-foreground text-background hover:bg-champagne-600 hover:text-white text-xs font-bold transition-all shrink-0 cursor-pointer"
+                                                >
+                                                    Uppgradera till Pro
+                                                </button>
+                                            )}
+                                        </section>
+                                    );
+                                })()}
 
                                 <section className="bg-amber-500/5 p-8 rounded-3xl border border-amber-500/20 flex gap-4">
                                     <AlertTriangle size={24} className="text-amber-500 shrink-0" />

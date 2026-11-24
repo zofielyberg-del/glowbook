@@ -4,10 +4,39 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
     try {
-        const { code } = await req.json();
+        const { code, salonId } = await req.json();
 
         if (!code) {
-            return NextResponse.json({ error: 'Code is required' }, { status: 400 });
+            return NextResponse.json({ error: 'Kod saknas' }, { status: 400 });
+        }
+
+        if (salonId) {
+            const salon = await prisma.salon.findUnique({
+                where: { id: salonId },
+                select: {
+                    id: true,
+                    name: true,
+                    stripe_account_id: true,
+                    membership_tier: true
+                }
+            });
+
+            if (!salon) {
+                return NextResponse.json({ error: 'Salongen kunde inte hittas' }, { status: 404 });
+            }
+
+            if (!salon.stripe_account_id) {
+                return NextResponse.json({
+                    error: 'Denna salong har inte aktiverat Stripe och kan därför inte ta emot presentkort.'
+                }, { status: 400 });
+            }
+
+            const activeTier = (salon.membership_tier || '').toLowerCase();
+            if (!['pro', 'luxe'].includes(activeTier)) {
+                return NextResponse.json({
+                    error: 'Presentkort kan endast lösas in hos salonger med medlemskap Pro eller Luxe.'
+                }, { status: 400 });
+            }
         }
 
         const normalizedCode = String(code).trim().toUpperCase();

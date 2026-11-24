@@ -105,8 +105,8 @@ export default function GiftCardsPage() {
     // Gift Card Purchase Processor
     const handlePurchase = async () => {
         const finalAmount = Number(selectedValue);
-        if (!finalAmount || isNaN(finalAmount) || finalAmount <= 0) {
-            alert('Vänligen ange ett giltigt belopp.');
+        if (!finalAmount || isNaN(finalAmount) || finalAmount < 100) {
+            alert('Minsta belopp för presentkort är 100 SEK.');
             return;
         }
 
@@ -398,10 +398,10 @@ export default function GiftCardsPage() {
                                                 <div className="relative">
                                                     <input
                                                         type="number"
-                                                        min="1"
+                                                        min="100"
                                                         max="50000"
                                                         step="1"
-                                                        placeholder="T.ex. 10, 500, 1500..."
+                                                        placeholder="T.ex. 250, 500, 1500..."
                                                         value={customValueInput}
                                                         onChange={(e) => {
                                                             const raw = e.target.value;
@@ -418,6 +418,7 @@ export default function GiftCardsPage() {
                                                         {currency}
                                                     </span>
                                                 </div>
+                                                <p className="text-[10px] text-foreground/40 font-medium ml-1">Minsta köpbelopp är 100 {currency}</p>
                                             </motion.div>
                                         )}
                                     </AnimatePresence>

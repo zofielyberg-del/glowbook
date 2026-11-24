@@ -452,6 +452,11 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
     const [selectedReward, setSelectedReward] = useState<any>(null);
     const [status, setStatus] = useState<'loading' | 'ready'>('loading');
 
+    const isGiftCardEligible = useMemo(() => {
+        const tier = (salon?.tier || salon?.membership_tier || '').toLowerCase();
+        return Boolean(salon?.stripe_account_id && ['pro', 'luxe'].includes(tier));
+    }, [salon?.stripe_account_id, salon?.tier, salon?.membership_tier]);
+
     useEffect(() => {
         if (salon && salon.stripe_account_id) {
             setSelectedPaymentMethod('stripe');
@@ -459,6 +464,12 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             setSelectedPaymentMethod('onsite');
         }
     }, [salon?.id, salon?.stripe_account_id]);
+
+    useEffect(() => {
+        if (selectedPaymentMethod === 'giftcard' && !isGiftCardEligible) {
+            setSelectedPaymentMethod(salon?.stripe_account_id ? 'stripe' : 'onsite');
+        }
+    }, [isGiftCardEligible, selectedPaymentMethod, salon?.stripe_account_id]);
 
     const basePrice = useMemo(() => {
         return Number(
@@ -634,7 +645,7 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             const response = await fetch('/api/giftcards/validate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: cleanCode }),
+                body: JSON.stringify({ code: cleanCode, salonId: salon?.id }),
             });
             const data = await response.json();
 
@@ -2168,98 +2179,102 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
                                                                 </div>
                                                             )}
 
-                                                            <div
-                                                                onClick={() => setSelectedPaymentMethod('giftcard')}
-                                                                className={clsx(
-                                                                    "p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-4",
-                                                                    selectedPaymentMethod === 'giftcard'
-                                                                        ? "border-champagne-500 bg-champagne-500/5 ring-1 ring-champagne-500"
-                                                                        : "border-border bg-card hover:border-foreground/10"
-                                                                )}
-                                                            >
-                                                                <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center", selectedPaymentMethod === 'giftcard' ? "bg-champagne-500 text-white" : "bg-foreground/5 text-foreground/40")}>
-                                                                    <Coins size={20} />
-                                                                </div>
-                                                                <div className="flex-1">
-                                                                    <h5 className="font-bold text-sm">{t('booking_giftcard')}</h5>
-                                                                    <p className="text-[10px] text-foreground/40 font-medium">{t('booking_giftcard_desc')}</p>
-                                                                </div>
-                                                            </div>
-
-                                                            {selectedPaymentMethod === 'giftcard' && (
-                                                                <div className="p-4 rounded-2xl border border-champagne-500/20 bg-champagne-500/5 space-y-3">
-                                                                    <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30">{t('booking_enter_giftcard_code')}</label>
-                                                                    <div className="flex gap-2">
-                                                                        <input
-                                                                            type="text"
-                                                                            value={giftCardCode}
-                                                                            onChange={e => setGiftCardCode(e.target.value.toUpperCase())}
-                                                                            placeholder="GLOW-XXXX-XXXX"
-                                                                            className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-sm font-mono tracking-widest outline-none focus:border-champagne-500 transition-all placeholder:text-foreground/15"
-                                                                        />
-                                                                        <button
-                                                                            onClick={() => validateGiftCard(giftCardCode)}
-                                                                            className="px-4 py-3 bg-foreground text-background rounded-xl text-xs font-bold hover:bg-champagne-600 hover:text-white transition-all whitespace-nowrap"
-                                                                        >
-                                                                            Validera
-                                                                        </button>
-                                                                    </div>
-                                                                    {giftCardStatus && (
-                                                                        <div className={clsx(
-                                                                            "flex items-center gap-2 text-xs font-bold p-3 rounded-xl",
-                                                                            giftCardStatus.valid
-                                                                                ? "bg-green-500/10 text-green-600 border border-green-500/20"
-                                                                                : "bg-red-500/10 text-red-500 border border-red-500/20"
-                                                                        )}>
-                                                                            {giftCardStatus.valid ? <Check size={12} /> : <AlertTriangle size={12} />}
-                                                                            {giftCardStatus.message}
+                                                            {isGiftCardEligible && (
+                                                                <>
+                                                                    <div
+                                                                        onClick={() => setSelectedPaymentMethod('giftcard')}
+                                                                        className={clsx(
+                                                                            "p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-4",
+                                                                            selectedPaymentMethod === 'giftcard'
+                                                                                ? "border-champagne-500 bg-champagne-500/5 ring-1 ring-champagne-500"
+                                                                                : "border-border bg-card hover:border-foreground/10"
+                                                                        )}
+                                                                    >
+                                                                        <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center", selectedPaymentMethod === 'giftcard' ? "bg-champagne-500 text-white" : "bg-foreground/5 text-foreground/40")}>
+                                                                            <Coins size={20} />
                                                                         </div>
-                                                                    )}
+                                                                        <div className="flex-1">
+                                                                            <h5 className="font-bold text-sm">{t('booking_giftcard')}</h5>
+                                                                            <p className="text-[10px] text-foreground/40 font-medium">{t('booking_giftcard_desc')}</p>
+                                                                        </div>
+                                                                    </div>
 
-                                                                    {giftCardStatus?.valid && finalTotal > 0 && (
-                                                                        <div className="mt-4 pt-4 border-t border-champagne-500/10 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40">{t('booking_payment_method')}: {finalTotal} {salon.currency || 'kr'}</p>
-                                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                                                <div
-                                                                                    onClick={() => setGiftCardSecondaryMethod('onsite')}
-                                                                                    className={clsx(
-                                                                                        "p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3",
-                                                                                        giftCardSecondaryMethod === 'onsite'
-                                                                                            ? "border-champagne-500 bg-champagne-500/10 text-champagne-700 ring-1 ring-champagne-500 font-bold"
-                                                                                            : "border-border/60 bg-card hover:border-foreground/10 text-foreground/60"
-                                                                                    )}
+                                                                    {selectedPaymentMethod === 'giftcard' && (
+                                                                        <div className="p-4 rounded-2xl border border-champagne-500/20 bg-champagne-500/5 space-y-3">
+                                                                            <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30">{t('booking_enter_giftcard_code')}</label>
+                                                                            <div className="flex gap-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={giftCardCode}
+                                                                                    onChange={e => setGiftCardCode(e.target.value.toUpperCase())}
+                                                                                    placeholder="GLOW-XXXX-XXXX"
+                                                                                    className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-sm font-mono tracking-widest outline-none focus:border-champagne-500 transition-all placeholder:text-foreground/15"
+                                                                                />
+                                                                                <button
+                                                                                    onClick={() => validateGiftCard(giftCardCode)}
+                                                                                    className="px-4 py-3 bg-foreground text-background rounded-xl text-xs font-bold hover:bg-champagne-600 hover:text-white transition-all whitespace-nowrap"
                                                                                 >
-                                                                                    <Wallet size={16} />
-                                                                                    <div className="text-left">
-                                                                                        <h6 className="font-bold text-xs">{t('booking_pay_onsite')}</h6>
+                                                                                    Validera
+                                                                                </button>
+                                                                            </div>
+                                                                            {giftCardStatus && (
+                                                                                <div className={clsx(
+                                                                                    "flex items-center gap-2 text-xs font-bold p-3 rounded-xl",
+                                                                                    giftCardStatus.valid
+                                                                                        ? "bg-green-500/10 text-green-600 border border-green-500/20"
+                                                                                        : "bg-red-500/10 text-red-500 border border-red-500/20"
+                                                                                )}>
+                                                                                    {giftCardStatus.valid ? <Check size={12} /> : <AlertTriangle size={12} />}
+                                                                                    {giftCardStatus.message}
+                                                                                </div>
+                                                                            )}
+
+                                                                            {giftCardStatus?.valid && finalTotal > 0 && (
+                                                                                <div className="mt-4 pt-4 border-t border-champagne-500/10 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40">{t('booking_payment_method')}: {finalTotal} {salon.currency || 'kr'}</p>
+                                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                                        <div
+                                                                                            onClick={() => setGiftCardSecondaryMethod('onsite')}
+                                                                                            className={clsx(
+                                                                                                "p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3",
+                                                                                                giftCardSecondaryMethod === 'onsite'
+                                                                                                    ? "border-champagne-500 bg-champagne-500/10 text-champagne-700 ring-1 ring-champagne-500 font-bold"
+                                                                                                    : "border-border/60 bg-card hover:border-foreground/10 text-foreground/60"
+                                                                                            )}
+                                                                                        >
+                                                                                            <Wallet size={16} />
+                                                                                            <div className="text-left">
+                                                                                                <h6 className="font-bold text-xs">{t('booking_pay_onsite')}</h6>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        {salon.stripe_account_id && (
+                                                                                            <div
+                                                                                                onClick={() => setGiftCardSecondaryMethod('stripe')}
+                                                                                                className={clsx(
+                                                                                                    "p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3",
+                                                                                                    giftCardSecondaryMethod === 'stripe'
+                                                                                                        ? "border-blue-500 bg-blue-500/10 text-blue-700 ring-1 ring-blue-500 font-bold"
+                                                                                                        : "border-border/60 bg-card hover:border-blue-500/10 text-foreground/60"
+                                                                                                )}
+                                                                                            >
+                                                                                                <CreditCard size={16} />
+                                                                                                <div className="text-left flex items-center gap-2 flex-wrap">
+                                                                                                    <h6 className="font-bold text-xs">{t('booking_pay_stripe')}</h6>
+                                                                                                    <span className="inline-flex items-center gap-1 text-[8px] bg-[#FFB3C7] text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-wider scale-90 origin-left">
+                                                                                                        <svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" className="inline-block">
+                                                                                                            <path d="M21.5 17a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM4.592 2v20H0V2h4.592zm11.46 0c0 4.194-1.583 8.105-4.415 11.068l-.278.283L17.702 22h-5.668l-6.893-9.4 1.779-1.332c2.858-2.14 4.535-5.378 4.637-8.924L11.562 2h4.49z" />
+                                                                                                        </svg>
+                                                                                                        Klarna
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        )}
                                                                                     </div>
                                                                                 </div>
-                                                                                {salon.stripe_account_id && (
-                                                                                    <div
-                                                                                        onClick={() => setGiftCardSecondaryMethod('stripe')}
-                                                                                        className={clsx(
-                                                                                            "p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3",
-                                                                                            giftCardSecondaryMethod === 'stripe'
-                                                                                                ? "border-blue-500 bg-blue-500/10 text-blue-700 ring-1 ring-blue-500 font-bold"
-                                                                                                : "border-border/60 bg-card hover:border-blue-500/10 text-foreground/60"
-                                                                                        )}
-                                                                                    >
-                                                                                        <CreditCard size={16} />
-                                                                                        <div className="text-left flex items-center gap-2 flex-wrap">
-                                                                                            <h6 className="font-bold text-xs">{t('booking_pay_stripe')}</h6>
-                                                                                            <span className="inline-flex items-center gap-1 text-[8px] bg-[#FFB3C7] text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-wider scale-90 origin-left">
-                                                                                                <svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor" className="inline-block">
-                                                                                                    <path d="M21.5 17a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM4.592 2v20H0V2h4.592zm11.46 0c0 4.194-1.583 8.105-4.415 11.068l-.278.283L17.702 22h-5.668l-6.893-9.4 1.779-1.332c2.858-2.14 4.535-5.378 4.637-8.924L11.562 2h4.49z" />
-                                                                                                </svg>
-                                                                                                Klarna
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
+                                                                            )}
                                                                         </div>
                                                                     )}
-                                                                </div>
+                                                                </>
                                                             )}
                                                         </div>
 

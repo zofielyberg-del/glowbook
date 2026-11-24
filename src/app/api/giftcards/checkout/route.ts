@@ -9,6 +9,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing information' }, { status: 400 });
         }
 
+        const numericAmount = Number(amount);
+        if (isNaN(numericAmount) || numericAmount < 100) {
+            return NextResponse.json({ error: 'Minsta belopp för presentkort är 100 SEK' }, { status: 400 });
+        }
+
         const rawCurr = String(currency || 'SEK').trim().toUpperCase();
         const isoCurrency = rawCurr === 'KR' ? 'SEK' : (['SEK', 'NOK', 'DKK', 'EUR', 'ISK'].includes(rawCurr) ? rawCurr : 'SEK');
 
