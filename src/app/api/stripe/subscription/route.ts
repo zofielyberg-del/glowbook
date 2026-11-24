@@ -51,6 +51,8 @@ export async function POST(req: Request) {
                 mode: 'subscription',
                 payment_method_types: ['card'],
                 allow_promotion_codes: true,
+                automatic_tax: { enabled: true },
+                tax_id_collection: { enabled: true },
                 ...(salonEmail ? { customer_email: salonEmail } : {}),
                 line_items,
                 subscription_data: {

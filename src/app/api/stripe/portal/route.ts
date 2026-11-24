@@ -116,6 +116,8 @@ export async function POST(req: Request) {
                 mode: 'subscription',
                 payment_method_types: ['card'],
                 allow_promotion_codes: true,
+                automatic_tax: { enabled: true },
+                tax_id_collection: { enabled: true },
                 ...(email ? { customer_email: email } : {}),
                 line_items,
                 subscription_data: {

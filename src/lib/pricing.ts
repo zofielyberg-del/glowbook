@@ -1,9 +1,9 @@
 export type MembershipTierKey = 'bas' | 'pro' | 'luxe';
 
 export const TIER_PRICES: Record<MembershipTierKey, number> = {
-    bas: 79,
-    pro: 149,
-    luxe: 349,
+    bas: 99,
+    pro: 179,
+    luxe: 379,
 };
 
 export const DURATION_DISCOUNTS: Record<number, number> = {
@@ -11,6 +11,27 @@ export const DURATION_DISCOUNTS: Record<number, number> = {
     3: 0.05,
     6: 0.10,
     12: 0.15,
+};
+
+export const STRIPE_TIER_PRICE_IDS: Record<MembershipTierKey, Record<number, string>> = {
+    bas: {
+        1: 'price_1Uez9VDEreE5JKEk40Tp7O9I',
+        3: 'price_1UfRhzDEreE5JKEkV87K7eX3',
+        6: 'price_1UfRj9DEreE5JKEkpGGLg29i',
+        12: 'price_1UfRk9DEreE5JKEkhAhVrcff',
+    },
+    pro: {
+        1: 'price_1UezAPDEreE5JKEkNc5oPfXy',
+        3: 'price_1UfRkrDEreE5JKEkDCweuSaN',
+        6: 'price_1UfRllDEreE5JKEkS7nIZ7Nm',
+        12: 'price_1UfRmSDEreE5JKEkdsSdXVak',
+    },
+    luxe: {
+        1: 'price_1UezCiDEreE5JKEkpWqL24c2',
+        3: 'price_1UfRnBDEreE5JKEkQsWSJfM3',
+        6: 'price_1UfRoKDEreE5JKEk6307xKmC',
+        12: 'price_1Tf1xnDEreE5JKEk4ahIvGv7',
+    },
 };
 
 export const MEMBERSHIP_DURATIONS: ReadonlyArray<{
@@ -61,11 +82,12 @@ export function calculateMembershipPrice(tier?: string | null, duration?: number
 }
 
 /**
- * Resolves an optional Stripe Price ID from env vars only when it matches the selected duration
- * (falls back to base tier price IDs only for 1-month billing so multi-month bundles keep exact intervals).
+ * Resolves an optional Stripe Price ID from env vars only when it matches the selected duration,
+ * falling back to verified official Stripe price IDs.
  */
 export function getConfiguredStripePriceId(tier: string, duration: number): string {
-    const tierUpper = normalizeTierKey(tier).toUpperCase();
+    const tierKey = normalizeTierKey(tier);
+    const tierUpper = tierKey.toUpperCase();
     const dur = normalizeDuration(duration);
 
     const exactDurationPrice = process.env[`STRIPE_PRICE_${tierUpper}_${dur}`];
@@ -79,5 +101,5 @@ export function getConfiguredStripePriceId(tier: string, duration: number): stri
         if (legacyPrice) return legacyPrice;
     }
 
-    return '';
+    return STRIPE_TIER_PRICE_IDS[tierKey]?.[dur] || '';
 }
