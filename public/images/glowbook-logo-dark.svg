@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="100%" height="100%">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&amp;display=swap');
+      .glow-text {
+        font-family: 'Cormorant Garamond', 'Didot', 'Bodoni MT', Georgia, serif;
+        font-size: 190px;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        fill: #FFFFFF;
+      }
+      .book-text {
+        font-family: 'Cormorant Garamond', 'Didot', 'Bodoni MT', Georgia, serif;
+        font-size: 190px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        fill: #C2A26A;
+      }
+    </style>
+  </defs>
+  <rect width="100%" height="100%" fill="#0B0B0C"/>
+  <text x="50%" y="62%" dominant-baseline="middle" text-anchor="middle">
+    <tspan class="glow-text">Glow</tspan><tspan class="book-text">book</tspan>
+  </text>
+</svg>
