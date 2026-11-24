@@ -94,6 +94,104 @@ async function processStripeRefundIfPaid(appointment: {
     }
 }
 
+/**
+ * Automatically restores a customer's gift card balance and reverses the Stripe transfer
+ * to the salon when a gift card booking is cancelled within policy (or by salon).
+ */
+async function processGiftCardRefundIfUsed(appointment: {
+    id: string;
+    payment_id: string | null;
+    payment_method: string | null;
+    total_price: any;
+    customer_email: string | null;
+}): Promise<{ refunded: boolean; amount?: number; cardCode?: string; skippedReason?: string }> {
+    const paymentId = appointment.payment_id || '';
+    const paymentMethod = appointment.payment_method || '';
+
+    let transferId: string | undefined;
+    let cardCode: string | undefined;
+
+    if (paymentId.includes('#gc:')) {
+        const parts = paymentId.split('#gc:');
+        if (parts[0].startsWith('tr_')) {
+            transferId = parts[0].trim();
+        }
+        cardCode = parts[1]?.trim();
+    } else if (paymentId.startsWith('tr_')) {
+        transferId = paymentId.trim();
+    } else if (paymentId.startsWith('giftcard_')) {
+        cardCode = paymentId.replace('giftcard_', '').trim();
+    } else if (paymentMethod === 'gift_card') {
+        if (paymentId && !paymentId.startsWith('cs_') && !paymentId.startsWith('pi_')) {
+            cardCode = paymentId.trim();
+        }
+    }
+
+    if (!transferId && !cardCode && paymentMethod !== 'gift_card') {
+        return { refunded: false, skippedReason: 'no_gift_card_used' };
+    }
+
+    // 1. Revert Stripe transfer from salon to Glowbook platform if transfer was executed
+    if (transferId) {
+        try {
+            const transfer = await stripe.transfers.retrieve(transferId);
+            if (!cardCode && transfer.metadata?.giftCardCode) {
+                cardCode = transfer.metadata.giftCardCode;
+            }
+
+            if (!transfer.reversed) {
+                await stripe.transfers.createReversal(transferId, {
+                    description: `Återkallad överföring vid avbokning av bokning ${appointment.id}`
+                });
+                console.log(`[Cancel] Successfully reversed Stripe transfer ${transferId} for appointment ${appointment.id}`);
+            } else {
+                console.log(`[Cancel] Stripe transfer ${transferId} was already reversed.`);
+            }
+        } catch (revErr: any) {
+            console.error(`[Cancel] Stripe transfer reversal failed for ${transferId}:`, revErr);
+        }
+    }
+
+    // 2. Restore gift card balance in database
+    if (cardCode) {
+        try {
+            const giftCard = await prisma.giftCard.findUnique({
+                where: { code: cardCode }
+            });
+
+            if (giftCard) {
+                const refundAmount = Number(appointment.total_price) || 0;
+                const totalValue = Number(giftCard.value);
+                const currentBalance = Number(giftCard.remaining_balance);
+                const newBalance = Math.min(totalValue, currentBalance + refundAmount);
+
+                await prisma.giftCard.update({
+                    where: { id: giftCard.id },
+                    data: {
+                        remaining_balance: newBalance,
+                        status: 'active'
+                    }
+                });
+
+                console.log(`[Cancel] Restored ${refundAmount} SEK to gift card ${cardCode}. New balance: ${newBalance} SEK.`);
+
+                return {
+                    refunded: true,
+                    amount: refundAmount,
+                    cardCode: cardCode
+                };
+            } else {
+                console.warn(`[Cancel] Gift card with code ${cardCode} not found in database.`);
+            }
+        } catch (gcErr: any) {
+            console.error(`[Cancel] Error restoring gift card balance for ${cardCode}:`, gcErr);
+            throw gcErr;
+        }
+    }
+
+    return { refunded: false, skippedReason: 'card_not_found_or_not_restored' };
+}
+
 export async function POST(req: Request) {
     try {
         const body = await req.json();
@@ -150,19 +248,37 @@ export async function POST(req: Request) {
             }
         }
 
-        // 1b. Issue automatic Stripe/Klarna refund before cancelling in DB if paid online
+        // 1b. Issue automatic Stripe/Klarna refund or Gift Card balance restoration before cancelling in DB
         let refundResult: { refunded: boolean; amount?: number; refundId?: string } = { refunded: false };
+        let giftCardRefundResult: { refunded: boolean; amount?: number; cardCode?: string } = { refunded: false };
+
         if (!skipRefund) {
             try {
-                refundResult = await processStripeRefundIfPaid(appointment);
-                if (refundResult.refunded) {
-                    console.log(`[Cancel] Refunded ${refundResult.amount ?? ''} SEK for appointment ${appointmentId} (refund: ${refundResult.refundId || 'existing'})`);
+                // Check if booking was paid or partially backed by a gift card
+                giftCardRefundResult = await processGiftCardRefundIfUsed(appointment);
+                if (giftCardRefundResult.refunded) {
+                    console.log(`[Cancel] Restored ${giftCardRefundResult.amount ?? ''} SEK to gift card ${giftCardRefundResult.cardCode} for appointment ${appointmentId}`);
                 }
-            } catch (refundErr: any) {
-                console.error('[Cancel] Automatic Stripe refund failed:', refundErr);
+            } catch (gcRefundErr: any) {
+                console.error('[Cancel] Automatic Gift Card restoration failed:', gcRefundErr);
                 return NextResponse.json({
-                    error: 'Automatisk återbetalning via Stripe misslyckades just nu. Bokningen är fortfarande aktiv – vänligen försök igen eller kontakta salongen.'
+                    error: 'Automatisk återställning av presentkort misslyckades just nu. Bokningen är fortfarande aktiv – vänligen försök igen eller kontakta salongen.'
                 }, { status: 502 });
+            }
+
+            // If not a gift card booking (or only partial), process direct Stripe refund
+            if (!giftCardRefundResult.refunded) {
+                try {
+                    refundResult = await processStripeRefundIfPaid(appointment);
+                    if (refundResult.refunded) {
+                        console.log(`[Cancel] Refunded ${refundResult.amount ?? ''} SEK for appointment ${appointmentId} (refund: ${refundResult.refundId || 'existing'})`);
+                    }
+                } catch (refundErr: any) {
+                    console.error('[Cancel] Automatic Stripe refund failed:', refundErr);
+                    return NextResponse.json({
+                        error: 'Automatisk återbetalning via Stripe misslyckades just nu. Bokningen är fortfarande aktiv – vänligen försök igen eller kontakta salongen.'
+                    }, { status: 502 });
+                }
             }
         }
 
@@ -264,9 +380,11 @@ export async function POST(req: Request) {
         const providerEmail = appointment.salon?.owner?.email || '';
 
         // 4. Send cancellation email to customer
-        const emailRefundInfo = refundResult.refunded
-            ? { refunded: true, amount: refundResult.amount }
-            : undefined;
+        const emailRefundInfo = giftCardRefundResult.refunded
+            ? { refunded: true, amount: giftCardRefundResult.amount, isGiftCard: true, cardCode: giftCardRefundResult.cardCode }
+            : refundResult.refunded
+                ? { refunded: true, amount: refundResult.amount, isGiftCard: false }
+                : undefined;
 
         if (appointment.customer_email) {
             try {
@@ -318,13 +436,19 @@ export async function POST(req: Request) {
             emitAvailabilityUpdate(appointment.salon_id, { salonId: appointment.salon_id });
         }
 
+        const wasRefunded = refundResult.refunded || giftCardRefundResult.refunded;
+        const totalRefundAmount = giftCardRefundResult.amount || refundResult.amount;
+
         return NextResponse.json({
             success: true,
-            refunded: refundResult.refunded,
-            refundAmount: refundResult.amount,
-            message: refundResult.refunded
-                ? `Bokningen har avbokats och ${refundResult.amount ? `${refundResult.amount} kr` : 'beloppet'} återbetalas automatiskt till ditt ursprungliga betalsätt.`
-                : 'Bokningen har avbokats framgångsrikt.'
+            refunded: wasRefunded,
+            refundAmount: totalRefundAmount,
+            isGiftCard: giftCardRefundResult.refunded,
+            message: giftCardRefundResult.refunded
+                ? `Bokningen har avbokats och ${giftCardRefundResult.amount} kr har automatiskt återförts till ditt presentkort (${giftCardRefundResult.cardCode}).`
+                : refundResult.refunded
+                    ? `Bokningen har avbokats och ${refundResult.amount ? `${refundResult.amount} kr` : 'beloppet'} återbetalas automatiskt till ditt ursprungliga betalsätt.`
+                    : 'Bokningen har avbokats framgångsrikt.'
         });
 
     } catch (error) {

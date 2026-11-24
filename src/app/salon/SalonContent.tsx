@@ -228,7 +228,22 @@ export default function SalonContent({ params }: { params?: { id: string } }) {
             const prodBlock = availability.find((a: any) => a && (a.type === 'products' || a.type === 'addons'));
             list = prodBlock?.list || [];
         }
-        return list.map((p: any) => {
+
+        const normalizeProductImg = (item: any) => {
+            let img = item.image || '';
+            const nameLower = (item.name || '').toLowerCase();
+            if (nameLower.includes('vitamina') || nameLower.includes('cuticle oil')) {
+                img = '/images/products/pronails-vitamina.jpg';
+            } else if (nameLower.includes('anti-age') || nameLower.includes('hand cream') || nameLower.includes('rich hand')) {
+                img = '/images/products/pronails-anti-age.jpg';
+            } else if (img.includes('unsplash.com')) {
+                img = '';
+            }
+            return { ...item, image: img };
+        };
+
+        return list.map((raw: any) => {
+            const p = normalizeProductImg(raw);
             if (productStockOverrides[p.id] !== undefined) {
                 return { ...p, stock: productStockOverrides[p.id] };
             }

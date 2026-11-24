@@ -360,7 +360,8 @@ export async function POST(req: Request) {
                         booking_date: new Date(date),
                         total_price: price,
                         status: status,
-                        payment_method: paymentMethod
+                        payment_method: paymentMethod,
+                        payment_id: redeemedGiftCard ? `giftcard_${redeemedGiftCard.code}` : undefined
                     }
                 });
             });
@@ -484,7 +485,7 @@ export async function POST(req: Request) {
                     console.log(`[Stripe Transfer] Successfully transferred ${redeemedGiftCard.amount} SEK to salon account ${stripeAccountId}. Transfer ID: ${transfer.id}`);
                     await prisma.appointment.update({
                         where: { id: appointment.id },
-                        data: { payment_id: transfer.id }
+                        data: { payment_id: `${transfer.id}#gc:${redeemedGiftCard.code}` }
                     });
                 } catch (transferErr: any) {
                     const errMsg = transferErr?.message || String(transferErr);

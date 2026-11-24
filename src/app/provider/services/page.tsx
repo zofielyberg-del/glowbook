@@ -165,6 +165,19 @@ export default function ServicesPage() {
         productUrl: ''
     });
 
+    const normalizeProduct = (p: any) => {
+        let img = p.image || '';
+        const nameLower = (p.name || '').toLowerCase();
+        if (nameLower.includes('vitamina') || nameLower.includes('cuticle oil')) {
+            img = '/images/products/pronails-vitamina.jpg';
+        } else if (nameLower.includes('anti-age') || nameLower.includes('hand cream') || nameLower.includes('rich hand')) {
+            img = '/images/products/pronails-anti-age.jpg';
+        } else if (img.includes('unsplash.com')) {
+            img = '';
+        }
+        return { ...p, image: img };
+    };
+
     // Sync products from server on mount
     useEffect(() => {
         const saved = localStorage.getItem('glowbook_salon') || sessionStorage.getItem('glowbook_salon');
@@ -172,15 +185,17 @@ export default function ServicesPage() {
             try {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed.products) && parsed.products.length > 0) {
-                    setProducts(parsed.products);
+                    const normalized = parsed.products.map(normalizeProduct);
+                    setProducts(normalized);
                 }
                 if (parsed.id) {
                     fetch(`/api/salons/get?id=${parsed.id}`)
                         .then(r => r.json())
                         .then(d => {
                             if (d.success && d.salon && Array.isArray(d.salon.products)) {
-                                setProducts(d.salon.products);
-                                const next = { ...parsed, products: d.salon.products };
+                                const normalized = d.salon.products.map(normalizeProduct);
+                                setProducts(normalized);
+                                const next = { ...parsed, products: normalized };
                                 localStorage.setItem('glowbook_salon', JSON.stringify(next));
                                 sessionStorage.setItem('glowbook_salon', JSON.stringify(next));
                             }
@@ -261,7 +276,7 @@ export default function ServicesPage() {
                 stock: 0,
                 category: 'Nagelvård & Eftervård',
                 description: 'Närande nagelbandsolja berikad med mandelolja och vitamin A, C och E för friska nagelband och maximal hållbarhet.',
-                image: 'https://images.unsplash.com/photo-1608248597359-041498263152?auto=format&fit=crop&q=80&w=600',
+                image: '/images/products/pronails-vitamina.jpg',
                 recommendation: 'Köp till ProNails Vitamina för att hålla dina nagelband återfuktade och förlänga resultatet.',
                 ingredients: 'Prunus Amygdalus Dulcis Oil, Triticum Vulgare Germ Oil, Macadamia Integrifolia Seed Oil, Retinyl Palmitate, Tocopherol, Ascorbyl Palmitate.',
                 productUrl: 'https://pronails.se'
@@ -274,7 +289,7 @@ export default function ServicesPage() {
                 stock: 0,
                 category: 'Handvård & Eftervård',
                 description: 'Djupt återfuktande handkräm med UV-filter och antioxidanter som skyddar händerna mot förtida åldrande och torrhet.',
-                image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=600',
+                image: '/images/products/pronails-anti-age.jpg',
                 recommendation: 'Perfekt eftervård för silkeslena händer efter din nagelbehandling.',
                 ingredients: 'Aqua, Glycerin, Butyrospermum Parkii Butter, Cetearyl Alcohol, Dimethicone, Ethylhexyl Methoxycinnamate, Tocopheryl Acetate.',
                 productUrl: 'https://pronails.se'
@@ -785,8 +800,15 @@ export default function ServicesPage() {
                                     <div key={prod.id} className="p-5 rounded-2xl bg-[#111114] border border-white/[0.08] space-y-3 flex flex-col justify-between overflow-hidden">
                                         <div>
                                             {prod.image && (
-                                                <div className="w-full h-36 rounded-xl overflow-hidden bg-black/40 mb-3 border border-white/[0.05]">
-                                                    <img src={prod.image} alt={prod.name} className="w-full h-full object-cover" />
+                                                <div className="w-full h-36 rounded-xl overflow-hidden bg-white/[0.02] mb-3 border border-white/[0.06] flex items-center justify-center p-2">
+                                                    <img 
+                                                        src={prod.image} 
+                                                        alt={prod.name} 
+                                                        className="w-full h-full object-contain"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLElement).style.display = 'none';
+                                                        }}
+                                                    />
                                                 </div>
                                             )}
                                             <div className="flex items-center justify-between gap-2">
